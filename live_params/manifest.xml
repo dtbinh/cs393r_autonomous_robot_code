@@ -1,0 +1,16 @@
+<package>
+  <description brief="live_params">
+
+     live_params
+
+  </description>
+  <author>jjames</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/live_params</url>
+  <depend package="roscpp"/>
+  <depend package="roslib"/>
+
+</package>
+
+

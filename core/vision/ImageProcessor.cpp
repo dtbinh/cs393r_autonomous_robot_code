@@ -132,6 +132,7 @@ bool ImageProcessor::findGoal(int& imageX, int& imageY)
   double ball_cx = 0.0;
   double ball_cy = 0.0;
   double num_ball_hits = 0.0;
+  double min_goal_size = 500;
   for(unsigned int x = 0; x < getImageWidth(); x++)
   {
     for(unsigned int y = 0; y < getImageHeight(); y++)
@@ -148,7 +149,7 @@ bool ImageProcessor::findGoal(int& imageX, int& imageY)
     }
   }
 
-  if(num_ball_hits == 0.0)
+  if(num_ball_hits < min_goal_size)
   {
     imageX = imageY = 0;
     //printf("no goal hits\n");

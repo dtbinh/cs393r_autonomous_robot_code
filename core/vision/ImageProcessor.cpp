@@ -107,13 +107,111 @@ void ImageProcessor::processFrame(){
   visionLog((30, "Classifying Image", camera_));
   if(!classifier_->classifyImage(color_table_)) return;
   detectBall();
+  detectGoal();
+}
+
+void ImageProcessor::detectGoal() 
+{
+  int imageX, imageY;
+  if(!findGoal(imageX, imageY)) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
+
+  goal->imageCenterX = imageX;
+  goal->imageCenterY = imageY;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  goal->visionBearing = cmatrix_.bearing(p);
+  goal->visionElevation = cmatrix_.elevation(p);
+  goal->visionDistance = cmatrix_.groundDistance(p);
+
+  goal->seen = true;
+}
+
+bool ImageProcessor::findGoal(int& imageX, int& imageY) 
+{
+  double ball_cx = 0.0;
+  double ball_cy = 0.0;
+  double num_ball_hits = 0.0;
+  for(unsigned int x = 0; x < getImageWidth(); x++)
+  {
+    for(unsigned int y = 0; y < getImageHeight(); y++)
+    {
+      unsigned int idx = 320*y+x;
+      unsigned char color = getSegImg()[idx];
+  
+      if(color == c_BLUE) //is goal colored
+      {
+        ball_cx += x;
+        ball_cy += y;
+        num_ball_hits += 1.0;
+      }
+    }
+  }
+
+  if(num_ball_hits == 0.0)
+  {
+    imageX = imageY = 0;
+    //printf("no goal hits\n");
+    return false;
+  }  
+  else
+  {
+    imageX = (int) ball_cx / num_ball_hits;
+    imageY = (int) ball_cy / num_ball_hits;
+    printf("goal at x=%d, y=%d\n", imageX, imageY);
+    return true;
+  }
 }
 
 void ImageProcessor::detectBall() {
+  int imageX, imageY;
+  if(!findBall(imageX, imageY)) return; // function defined elsewhere that fills in imageX, imageY by reference
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+
+  ball->imageCenterX = imageX;
+  ball->imageCenterY = imageY;
+
+  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+
+  ball->seen = true;
 }
 
-void ImageProcessor::findBall(int& imageX, int& imageY) {
-  imageX = imageY = 0;
+bool ImageProcessor::findBall(int& imageX, int& imageY) {
+  double ball_cx = 0.0;
+  double ball_cy = 0.0;
+  double num_ball_hits = 0.0;
+  for(unsigned int x = 0; x < getImageWidth(); x++)
+  {
+    for(unsigned int y = 0; y < getImageHeight(); y++)
+    {
+      unsigned int idx = 320*y+x;
+      unsigned char color = getSegImg()[idx];
+  
+      if(color == c_ORANGE) //is ball colored
+      {
+        ball_cx += x;
+        ball_cy += y;
+        num_ball_hits += 1.0;
+      }
+    }
+  }
+
+  if(num_ball_hits == 0.0)
+  {
+    imageX = imageY = 0;
+    //printf("no ball hits\n");
+    return false;
+  }  
+  else
+  {
+    imageX = (int) ball_cx / num_ball_hits;
+    imageY = (int) ball_cy / num_ball_hits;
+    printf("ball at x=%d, y=%d\n", imageX, imageY);
+    return true;
+  }
 }
 
 int ImageProcessor::getTeamColor() {

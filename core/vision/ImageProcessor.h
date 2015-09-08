@@ -12,6 +12,7 @@
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
 #include <math/Pose3D.h>
+#include <vision/BeaconDetector.h>
 
 /// @ingroup vision
 class ImageProcessor {
@@ -62,6 +63,7 @@ class ImageProcessor {
 
     RobotCalibration* calibration_;
     bool enableCalibration_;
+    BeaconDetector* beacon_detector_;
 };
 
 #endif

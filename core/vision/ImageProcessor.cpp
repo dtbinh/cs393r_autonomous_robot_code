@@ -1,5 +1,4 @@
 #include <vision/ImageProcessor.h>
-#include <vision/BeaconDetector.h>
 #include <iostream>
 
 ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams, Camera::Type camera) :
@@ -114,16 +113,16 @@ void ImageProcessor::setCalibration(RobotCalibration calibration)
 
 void ImageProcessor::processFrame()
 {
-  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH && camera_ == Camera::BOTTOM)
-    return;visionLog((30, "Process Frame camera %i", camera_));
+  if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH && camera_ == Camera::BOTTOM) return;
+  visionLog(30, "Process Frame camera %i", camera_);
 
   updateTransform();
   
   // Horizon calculation
-  visionLog((30, "Calculating horizon line"));
+  visionLog(30, "Calculating horizon line");
   HorizonLine horizon = HorizonLine::generate(iparams_, cmatrix_, 30000);
   vblocks_.robot_vision->horizon = horizon;
-  visionLog((30, "Classifying Image", camera_));
+  visionLog(30, "Classifying Image", camera_);
   if(!classifier_->classifyImage(color_table_))
     return;
   detectBall();
@@ -151,7 +150,7 @@ inline unsigned char applyMatrix3(unsigned char* img, unsigned int cx, unsigned 
 }
 
 //img (input), gx, gy, sobel (outputs) must be preallocated 320x240
-bool ImageProcessor::sobel(unsigned char* img, unsigned char* gx, unsigned char* gy, unsigned char* sobel, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240)
+bool ImageProcessor::sobel(unsigned char* img, unsigned char* gx, unsigned char* gy, unsigned char* sobel, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
 {
 //  static unsigned char sobel_x[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
 //  static unsigned char sobel_y[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
@@ -230,7 +229,7 @@ bool ImageProcessor::sobel(unsigned char* img, unsigned char* gx, unsigned char*
 }
 
 //img (input) and thresholded (output) must be preallocated 320x240
-void ImageProcessor::grayThreshold(unsigned char threshold, unsigned char* img, unsigned char* thresholded, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240)
+void ImageProcessor::grayThreshold(unsigned char threshold, unsigned char* img, unsigned char* thresholded, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
 {
   for(unsigned int x = min_x; x < max_x; x++)
   {

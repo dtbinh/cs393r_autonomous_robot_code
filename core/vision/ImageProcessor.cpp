@@ -125,8 +125,9 @@ void ImageProcessor::processFrame()
   visionLog(30, "Classifying Image", camera_);
   if(!classifier_->classifyImage(color_table_))
     return;
-  detectBall();
-  detectGoal();
+  // detectBall();
+  // detectGoal();
+  findBeacons();
 }
 
 inline unsigned int idx(unsigned int x, unsigned int y)
@@ -248,308 +249,205 @@ void ImageProcessor::grayThreshold(unsigned char threshold, unsigned char* img, 
   }
 }
 
-//struct hough_cmp_gt
-//{
-//    hough_cmp_gt(const int* _aux) : aux(_aux) {}
-//    bool operator()(int l1, int l2) const
-//    {
-//        return aux[l1] > aux[l2] || (aux[l1] == aux[l2] && l1 < l2);
-//    }
-//    const int* aux;
-//};
-//
-//CvSeq*
-//detectCircles( CvArr* src_image, void* circle_storage,
-//                int method, double dp, double min_dist,
-//                double param1, double param2,
-//                int min_radius, int max_radius )
-//{
-//    CvSeq* result = 0;
-//
-//    CvMat stub, *img = (CvMat*)src_image;
-//    CvMat* mat = 0;
-//    CvSeq* circles = 0;
-//    CvSeq circles_header;
-//    CvSeqBlock circles_block;
-//    int circles_max = INT_MAX;
-//    int canny_threshold = cvRound(param1);
-//    int acc_threshold = cvRound(param2);
-//
-//    img = cvGetMat( img, &stub );
-//
-//    if( !CV_IS_MASK_ARR(img))
-//        CV_Error( CV_StsBadArg, "The source image must be 8-bit, single-channel" );
-//
-//    if( !circle_storage )
-//        CV_Error( CV_StsNullPtr, "NULL destination" );
-//
-//    if( dp <= 0 || min_dist <= 0 || canny_threshold <= 0 || acc_threshold <= 0 )
-//        CV_Error( CV_StsOutOfRange, "dp, min_dist, canny_threshold and acc_threshold must be all positive numbers" );
-//
-//    min_radius = MAX( min_radius, 0 );
-//    if( max_radius <= 0 )
-//        max_radius = MAX( img->rows, img->cols );
-//    else if( max_radius <= min_radius )
-//        max_radius = min_radius + 2;
-//
-//    if( CV_IS_STORAGE( circle_storage ))
-//    {
-//        circles = cvCreateSeq( CV_32FC3, sizeof(CvSeq),
-//            sizeof(float)*3, (CvMemStorage*)circle_storage );
-//    }
-//    else if( CV_IS_MAT( circle_storage ))
-//    {
-//        mat = (CvMat*)circle_storage;
-//
-//        if( !CV_IS_MAT_CONT( mat->type ) || (mat->rows != 1 && mat->cols != 1) ||
-//            CV_MAT_TYPE(mat->type) != CV_32FC3 )
-//            CV_Error( CV_StsBadArg,
-//            "The destination matrix should be continuous and have a single row or a single column" );
-//
-//        circles = cvMakeSeqHeaderForArray( CV_32FC3, sizeof(CvSeq), sizeof(float)*3,
-//                mat->data.ptr, mat->rows + mat->cols - 1, &circles_header, &circles_block );
-//        circles_max = circles->total;
-//        cvClearSeq( circles );
-//    }
-//    else
-//        CV_Error( CV_StsBadArg, "Destination is not CvMemStorage* nor CvMat*" );
-//
-//    const int SHIFT = 10, ONE = 1 << SHIFT;
-//    cv::Ptr<CvMat> dx, dy;
-//    cv::Ptr<CvMat> edges, accum, dist_buf;
-//    std::vector<int> sort_buf;
-//    cv::Ptr<CvMemStorage> storage;
-//
-//    int x, y, i, j, k, center_count, nz_count;
-//    float min_radius2 = (float)min_radius*min_radius;
-//    float max_radius2 = (float)max_radius*max_radius;
-//    int rows, cols, arows, acols;
-//    int astep, *adata;
-//    float* ddata;
-//    CvSeq *nz, *centers;
-//    float idp, dr;
-//    CvSeqReader reader;
-//
-//    edges.reset(cvCreateMat( img->rows, img->cols, CV_8UC1 ));
-//
-//    // Use the Canny Edge Detector to detect all the edges in the image.
-//    cvCanny( img, edges, MAX(canny_threshold/2,1), canny_threshold, 3 );
-//
-//    dx.reset(cvCreateMat( img->rows, img->cols, CV_16SC1 ));
-//    dy.reset(cvCreateMat( img->rows, img->cols, CV_16SC1 ));
-//
-//    /*Use the Sobel Derivative to compute the local gradient of all the non-zero pixels in the edge image.*/
-//    cvSobel( img, dx, 1, 0, 3 );
-//    cvSobel( img, dy, 0, 1, 3 );
-//
-//    if( dp < 1.f )
-//        dp = 1.f;
-//    idp = 1.f/dp;
-//    accum.reset(cvCreateMat( cvCeil(img->rows*idp)+2, cvCeil(img->cols*idp)+2, CV_32SC1 ));
-//    cvZero(accum);
-//
-//    storage.reset(cvCreateMemStorage());
-//    /* Create sequences for the nonzero pixels in the edge image and the centers of circles
-//    which could be detected.*/
-//    nz = cvCreateSeq( CV_32SC2, sizeof(CvSeq), sizeof(CvPoint), storage );
-//    centers = cvCreateSeq( CV_32SC1, sizeof(CvSeq), sizeof(int), storage );
-//
-//    rows = img->rows;
-//    cols = img->cols;
-//    arows = accum->rows - 2;
-//    acols = accum->cols - 2;
-//    adata = accum->data.i;
-//    astep = accum->step/sizeof(adata[0]);
-//    // Accumulate circle evidence for each edge pixel
-//    for( y = 0; y < rows; y++ )
-//    {
-//        const uchar* edges_row = edges->data.ptr + y*edges->step;
-//        const short* dx_row = (const short*)(dx->data.ptr + y*dx->step);
-//        const short* dy_row = (const short*)(dy->data.ptr + y*dy->step);
-//
-//        for( x = 0; x < cols; x++ )
-//        {
-//            float vx, vy;
-//            int sx, sy, x0, y0, x1, y1, r;
-//            CvPoint pt;
-//
-//            vx = dx_row[x];
-//            vy = dy_row[x];
-//
-//            if( !edges_row[x] || (vx == 0 && vy == 0) )
-//                continue;
-//
-//            float mag = std::sqrt(vx*vx+vy*vy);
-//            assert( mag >= 1 );
-//            sx = cvRound((vx*idp)*ONE/mag);
-//            sy = cvRound((vy*idp)*ONE/mag);
-//
-//            x0 = cvRound((x*idp)*ONE);
-//            y0 = cvRound((y*idp)*ONE);
-//            // Step from min_radius to max_radius in both directions of the gradient
-//            for(int k1 = 0; k1 < 2; k1++ )
-//            {
-//                x1 = x0 + min_radius * sx;
-//                y1 = y0 + min_radius * sy;
-//
-//                for( r = min_radius; r <= max_radius; x1 += sx, y1 += sy, r++ )
-//                {
-//                    int x2 = x1 >> SHIFT, y2 = y1 >> SHIFT;
-//                    if( (unsigned)x2 >= (unsigned)acols ||
-//                        (unsigned)y2 >= (unsigned)arows )
-//                        break;
-//                    adata[y2*astep + x2]++;
-//                }
-//
-//                sx = -sx; sy = -sy;
-//            }
-//
-//            pt.x = x; pt.y = y;
-//            cvSeqPush( nz, &pt );
-//        }
-//    }
-//
-//    nz_count = nz->total;
-//    if( !nz_count )
-//      return result;
-//    //Find possible circle centers
-//    for( y = 1; y < arows - 1; y++ )
-//    {
-//        for( x = 1; x < acols - 1; x++ )
-//        {
-//            int base = y*(acols+2) + x;
-//            if( adata[base] > acc_threshold &&
-//                adata[base] > adata[base-1] && adata[base] > adata[base+1] &&
-//                adata[base] > adata[base-acols-2] && adata[base] > adata[base+acols+2] )
-//                cvSeqPush(centers, &base);
-//        }
-//    }
-//
-//    center_count = centers->total;
-//    if( !center_count )
-//        return result;
-//
-//    sort_buf.resize( MAX(center_count,nz_count) );
-//    cvCvtSeqToArray( centers, &sort_buf[0] );
-//    /*Sort candidate centers in descending order of their accumulator values, so that the centers
-//    with the most supporting pixels appear first.*/
-//    std::sort(sort_buf.begin(), sort_buf.begin() + center_count, hough_cmp_gt(adata));
-//    cvClearSeq( centers );
-//    cvSeqPushMulti( centers, &sort_buf[0], center_count );
-//
-//    dist_buf.reset(cvCreateMat( 1, nz_count, CV_32FC1 ));
-//    ddata = dist_buf->data.fl;
-//
-//    dr = dp;
-//    min_dist = MAX( min_dist, dp );
-//    min_dist *= min_dist;
-//    // For each found possible center
-//    // Estimate radius and check support
-//    for( i = 0; i < centers->total; i++ )
-//    {
-//        int ofs = *(int*)cvGetSeqElem( centers, i );
-//        y = ofs/(acols+2);
-//        x = ofs - (y)*(acols+2);
-//        //Calculate circle's center in pixels
-//        float cx = (float)((x + 0.5f)*dp), cy = (float)(( y + 0.5f )*dp);
-//        float start_dist, dist_sum;
-//        float r_best = 0;
-//        int max_count = 0;
-//        // Check distance with previously detected circles
-//        for( j = 0; j < circles->total; j++ )
-//        {
-//            float* c = (float*)cvGetSeqElem( circles, j );
-//            if( (c[0] - cx)*(c[0] - cx) + (c[1] - cy)*(c[1] - cy) < min_dist )
-//                break;
-//        }
-//
-//        if( j < circles->total )
-//            continue;
-//        // Estimate best radius
-//        cvStartReadSeq( nz, &reader );
-//        for( j = k = 0; j < nz_count; j++ )
-//        {
-//            CvPoint pt;
-//            float _dx, _dy, _r2;
-//            CV_READ_SEQ_ELEM( pt, reader );
-//            _dx = cx - pt.x; _dy = cy - pt.y;
-//            _r2 = _dx*_dx + _dy*_dy;
-//            if(min_radius2 <= _r2 && _r2 <= max_radius2 )
-//            {
-//                ddata[k] = _r2;
-//                sort_buf[k] = k;
-//                k++;
-//            }
-//        }
-//
-//        int nz_count1 = k, start_idx = nz_count1 - 1;
-//        if( nz_count1 == 0 )
-//            continue;
-//        dist_buf->cols = nz_count1;
-//        cvPow( dist_buf, dist_buf, 0.5 );
-//        // Sort non-zero pixels according to their distance from the center.
-//        std::sort(sort_buf.begin(), sort_buf.begin() + nz_count1, hough_cmp_gt((int*)ddata));
-//
-//        dist_sum = start_dist = ddata[sort_buf[nz_count1-1]];
-//        for( j = nz_count1 - 2; j >= 0; j-- )
-//        {
-//            float d = ddata[sort_buf[j]];
-//
-//            if( d > max_radius )
-//                break;
-//
-//            if( d - start_dist > dr )
-//            {
-//                float r_cur = ddata[sort_buf[(j + start_idx)/2]];
-//                if( (start_idx - j)*r_best >= max_count*r_cur ||
-//                    (r_best < FLT_EPSILON && start_idx - j >= max_count) )
-//                {
-//                    r_best = r_cur;
-//                    max_count = start_idx - j;
-//                }
-//                start_dist = d;
-//                start_idx = j;
-//                dist_sum = 0;
-//            }
-//            dist_sum += d;
-//        }
-//        // Check if the circle has enough support
-//        if( max_count > acc_threshold )
-//        {
-//            float c[3];
-//            c[0] = cx;
-//            c[1] = cy;
-//            c[2] = (float)r_best;
-//            cvSeqPush( circles, c );
-//            if( circles->total > circles_max )
-//                return result;
-//        }
-//    }
-//
-//    if( mat )
-//    {
-//        if( mat->cols > mat->rows )
-//            mat->cols = circles->total;
-//        else
-//            mat->rows = circles->total;
-//    }
-//    else
-//        result = circles;
-//
-//    return result;
-//}
+bool columnBeaconType(unsigned char* seg_img, unsigned int x, WorldObjectType& beacon_type, unsigned int& lowest_y)
+{ 
+  unsigned int pink_count = 0;
+  unsigned int pink_min = 0;
+  unsigned int pink_max = 0;
+  unsigned int blue_count = 0;
+  unsigned int blue_min = 0;
+  unsigned int blue_max = 0;
+  unsigned int yellow_count = 0;
+  unsigned int yellow_min = 0;
+  unsigned int yellow_max = 0;
+  std::vector<unsigned char> column_colors;
+
+  //gather beacon colors
+  for(unsigned int y = 0; y < 240; y++) //scan the rows from top to bottom
+  {
+    unsigned int c = seg_img[idx(x,y)];
+    if(c == c_PINK)
+    {
+      if(pink_count == 0)
+      {
+        pink_min = y;
+      }
+      pink_max = y;
+      pink_count++;
+      if(column_colors.size() == 0 || column_colors[column_colors.size()-1] != c_PINK)
+        column_colors.push_back(c);
+    }
+    else if(c == c_BLUE)
+    {
+      if(blue_count == 0)
+      {
+        blue_min = y;
+      }
+      blue_max = y;
+      blue_count++;
+      if(column_colors.size() == 0 || column_colors[column_colors.size()-1] != c_BLUE)
+        column_colors.push_back(c);
+    }
+    else if(c == c_YELLOW)
+    {
+      if(yellow_count == 0)
+      {
+        yellow_min = y;
+      }
+      yellow_max = y;
+      yellow_count++;
+      if(column_colors.size() == 0 || column_colors[column_colors.size()-1] != c_YELLOW)
+        column_colors.push_back(c);
+    }
+  }
+
+  //filter noise
+  unsigned int count_threshold = 4;
+  unsigned int valid_color_count = 3;
+  if(pink_count < count_threshold)
+  {
+    //todo: also rip these out of the column colors
+    pink_count = 0;
+    valid_color_count--;
+  }
+  if(blue_count < count_threshold)
+  {
+    blue_count = 0;
+    valid_color_count--;
+  }
+  if(yellow_count < count_threshold)
+  {
+    yellow_count = 0;
+    valid_color_count--;
+  }
+
+  if(valid_color_count != 2 || column_colors.size() == 0) //something weird happened or nothing was there
+  {
+    return false;
+  }
+
+  if(pink_count < blue_count && pink_count < yellow_count) //beacon is blue and yellow
+  {
+    unsigned int avg_cylinder_height = (blue_max - blue_min + yellow_max - yellow_min) / 2;
+    if(column_colors[0] == c_YELLOW)
+    {
+      lowest_y = blue_max + avg_cylinder_height * 2;
+      beacon_type = WO_BEACON_YELLOW_BLUE;
+      return true;
+    }
+    else
+    {
+      lowest_y = yellow_max + avg_cylinder_height * 2;
+      beacon_type = WO_BEACON_BLUE_YELLOW;
+      return true;
+    }
+  }
+
+  if(yellow_count < blue_count && yellow_count < pink_count) //beacon is blue and pink
+  {
+    unsigned int avg_cylinder_height = (blue_max - blue_min + pink_max - pink_min) / 2;
+    if(column_colors[0] == c_PINK)
+    {
+      lowest_y = blue_max + avg_cylinder_height;
+      beacon_type = WO_BEACON_PINK_BLUE;
+      return true;
+    }
+    else
+    {
+      lowest_y = pink_max + avg_cylinder_height;
+      beacon_type = WO_BEACON_BLUE_PINK;
+      return true;
+    }
+  }
+
+  if(blue_count < yellow_count && blue_count < pink_count) //beacon is yellow and pink
+  {
+    unsigned int avg_cylinder_height = (yellow_max - yellow_min + pink_max - pink_min) / 2;
+    if(column_colors[0] == c_PINK)
+    {
+      lowest_y = yellow_max + avg_cylinder_height;
+      beacon_type = WO_BEACON_PINK_YELLOW;
+      return true;
+    }
+    else
+    {
+      lowest_y = pink_max + avg_cylinder_height;
+      beacon_type = WO_BEACON_YELLOW_PINK;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void drawBeaconMarker(unsigned char* img, unsigned int x, unsigned int y)
+{
+  unsigned int marker_size = 10;
+  for(unsigned int dx = (x-marker_size/2); dx < (x+marker_size/2); dx++)
+  {
+    for(unsigned int dy = (y-marker_size/2); dy < (y+marker_size/2); dy++)
+    {
+      unsigned int Y_idx = 3*idx(dx,dy) + 0;
+      unsigned int U_idx = 3*idx(dx,dy) + 1;
+      unsigned int V_idx = 3*idx(dx,dy) + 2;
+      img[Y_idx] = 76;
+      img[U_idx] = 84;
+      img[V_idx] = 255;
+    }
+  }
+}
+
+bool ImageProcessor::findBeacons()
+{
+  unsigned char* seg_img = getSegImg();
+  std::map<WorldObjectType, double> column_count_map;
+  column_count_map[WO_BEACON_BLUE_YELLOW] = 0.0;
+  column_count_map[WO_BEACON_YELLOW_BLUE] = 0.0;
+  column_count_map[WO_BEACON_BLUE_PINK] = 0.0;
+  column_count_map[WO_BEACON_PINK_BLUE] = 0.0;
+  column_count_map[WO_BEACON_PINK_YELLOW] = 0.0;
+  column_count_map[WO_BEACON_YELLOW_PINK] = 0.0;
+
+  for(unsigned int x = 0; x < 320; x++) //for every column
+  {
+    WorldObjectType beacon_type;
+    unsigned int lowest_y;
+    if(columnBeaconType(seg_img, x, beacon_type, lowest_y)) //throw away empty columns
+    {
+      (&vblocks_.world_object->objects_[beacon_type])->imageCenterX += x;
+      (&vblocks_.world_object->objects_[beacon_type])->imageCenterY += lowest_y;
+      column_count_map[beacon_type] += 1.0;
+    }
+  }
+
+  unsigned char* img = getImg();
+  for(std::map<WorldObjectType, double>::iterator iter = column_count_map.begin(); iter != column_count_map.end(); iter++)
+  {
+    if(iter->second != 0.0)
+    {
+      (&vblocks_.world_object->objects_[iter->first])->imageCenterX /= iter->second;
+      (&vblocks_.world_object->objects_[iter->first])->imageCenterY /= iter->second;
+      (&vblocks_.world_object->objects_[iter->first])->seen = true;
+
+      std::cerr << "Found beacon " << iter->first << " at x=" <<(&vblocks_.world_object->objects_[iter->first])->imageCenterX << ", y="<<(&vblocks_.world_object->objects_[iter->first])->imageCenterY << std::endl;
+
+      //draw points on image
+      drawBeaconMarker(img,(&vblocks_.world_object->objects_[iter->first])->imageCenterX, (&vblocks_.world_object->objects_[iter->first])->imageCenterY);
+    }
+  }
+}
 
 void ImageProcessor::detectGoal()
 {
-  int imageX, imageY;
-  if(!findGoal(imageX, imageY))
-    return; // function defined elsewhere that fills in imageX, imageY by reference
+  Point2d point;
+  if(!findGoal(point))
+    return; // function defined elsewhere that fills in point.x, point.y by reference
   WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
 
-  goal->imageCenterX = imageX;
-  goal->imageCenterY = imageY;
+  goal->imageCenterX = point.x;
+  goal->imageCenterY = point.y;
 
-  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  Position p = cmatrix_.getWorldPosition(point.x, point.y);
   goal->visionBearing = cmatrix_.bearing(p);
   goal->visionElevation = cmatrix_.elevation(p);
   goal->visionDistance = cmatrix_.groundDistance(p);
@@ -557,15 +455,15 @@ void ImageProcessor::detectGoal()
   goal->seen = true;
 }
 
-bool ImageProcessor::findGoal(int& imageX, int& imageY)
+bool ImageProcessor::findGoal(Point2d& point)
 {
   double ball_cx = 0.0;
   double ball_cy = 0.0;
   double num_ball_hits = 0.0;
   double min_goal_size = 500;
-  for(unsigned int x = 0; x < getImageWidth(); x++)
+  for(unsigned int x = 0; x < 320; x++)
   {
-    for(unsigned int y = 0; y < getImageHeight(); y++)
+    for(unsigned int y = 0; y < 240; y++)
     {
       unsigned int idx = 320 * y + x;
       unsigned char color = getSegImg()[idx];
@@ -581,30 +479,30 @@ bool ImageProcessor::findGoal(int& imageX, int& imageY)
 
   if(num_ball_hits < min_goal_size)
   {
-    imageX = imageY = 0;
+    point.x = point.y = 0;
     //printf("no goal hits\n");
     return false;
   }
   else
   {
-    imageX = (int) ball_cx / num_ball_hits;
-    imageY = (int) ball_cy / num_ball_hits;
-    printf("goal at x=%d, y=%d\n", imageX, imageY);
+    point.x = (int) ball_cx / num_ball_hits;
+    point.y = (int) ball_cy / num_ball_hits;
+    printf("goal at x=%d, y=%d\n", point.x, point.y);
     return true;
   }
 }
 
 void ImageProcessor::detectBall()
 {
-  int imageX, imageY;
-  if(!findBall(imageX, imageY))
-    return; // function defined elsewhere that fills in imageX, imageY by reference
+  Point2d point;
+  if(!findBall(point))
+    return; // function defined elsewhere that fills in point.x, point.y by reference
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  ball->imageCenterX = imageX;
-  ball->imageCenterY = imageY;
+  ball->imageCenterX = point.x;
+  ball->imageCenterY = point.y;
 
-  Position p = cmatrix_.getWorldPosition(imageX, imageY);
+  Position p = cmatrix_.getWorldPosition(point.x, point.y);
   ball->visionBearing = cmatrix_.bearing(p);
   ball->visionElevation = cmatrix_.elevation(p);
   ball->visionDistance = cmatrix_.groundDistance(p);
@@ -612,14 +510,14 @@ void ImageProcessor::detectBall()
   ball->seen = true;
 }
 
-bool ImageProcessor::findBall(int& imageX, int& imageY)
+bool ImageProcessor::findBall(Point2d& point)
 {
   double ball_cx = 0.0;
   double ball_cy = 0.0;
   double num_ball_hits = 0.0;
-  for(unsigned int x = 0; x < getImageWidth(); x++)
+  for(unsigned int x = 0; x < 320; x++)
   {
-    for(unsigned int y = 0; y < getImageHeight(); y++)
+    for(unsigned int y = 0; y < 240; y++)
     {
       unsigned int idx = 320 * y + x;
       unsigned char color = getSegImg()[idx];
@@ -635,15 +533,15 @@ bool ImageProcessor::findBall(int& imageX, int& imageY)
 
   if(num_ball_hits == 0.0)
   {
-    imageX = imageY = 0;
+    point.x = point.y = 0;
     //printf("no ball hits\n");
     return false;
   }
   else
   {
-    imageX = (int) ball_cx / num_ball_hits;
-    imageY = (int) ball_cy / num_ball_hits;
-    printf("ball at x=%d, y=%d\n", imageX, imageY);
+    point.x = (int) ball_cx / num_ball_hits;
+    point.y = (int) ball_cy / num_ball_hits;
+    printf("ball at x=%d, y=%d\n", point.x, point.y);
     return true;
   }
 }

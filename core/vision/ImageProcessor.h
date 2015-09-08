@@ -14,6 +14,13 @@
 #include <math/Pose3D.h>
 #include <vision/BeaconDetector.h>
 
+class Point2d
+{
+public:
+	int x;
+	int y;
+};
+
 /// @ingroup vision
 class ImageProcessor {
   public:
@@ -37,10 +44,14 @@ class ImageProcessor {
     std::vector<BallCandidate*> getBallCandidates();
     BallCandidate* getBestBallCandidate();
     bool isImageLoaded();
+
+    bool findBeacons();
+
     void detectBall();
-    bool findBall(int& imageX, int& imageY);
+    bool findBall(Point2d& point);
+
     void detectGoal();
-    bool findGoal(int& imageX, int& imageY);
+    bool findGoal(Point2d& point);
   private:
     int getTeamColor();
     double getCurrentTime();

@@ -44,6 +44,9 @@ class ImageProcessor {
     int getTeamColor();
     double getCurrentTime();
 
+    void grayThreshold(unsigned char threshold, unsigned char* img, unsigned char* thresholded, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
+    bool sobel(unsigned char* img, unsigned char* gx, unsigned char* gy, unsigned char* sobel, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
+
     VisionBlocks& vblocks_;
     const ImageParams& iparams_;
     Camera::Type camera_;

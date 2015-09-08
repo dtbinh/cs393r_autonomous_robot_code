@@ -43,7 +43,7 @@ class Playing(StateMachine):
     curve = self.Curve()
     sit = pose.Sit()
     off = self.Off()
-    self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
+    #self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
   
-    #self.trans(stand, C, walk, T(5.0), tip, T(5.0), sit, C, off)
+    self.trans(stand, C, walk, T(5.0), tip, T(5.0), sit, C, off)
 

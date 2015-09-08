@@ -61,7 +61,7 @@ The basic event types are as follows:
 
 1.  Null Event (`N`) - This event always fires.
 2.  Completion Event (`C`) - This event fires when its node's `complete()` method returns `True`. By default, calling `finish()` on a node will cause the node to be complete.
-3.  Iteration Event (`I`) - This event fires after a set number of iterations.
+3.  Iteration Event (`I(i)`) - This event fires after `i` frames have passed.
 4.  Time Event (`T(t)`) - This event fires after `t` seconds have elapsed.
 5.  Signal Event (`S(s)`) - This event fires after a signal `s` is posted with the `postSignal(s)` method.
 
@@ -107,7 +107,25 @@ A behavior script may then check the `seen` variable for the ball object as foll
 
 ```python
 import core
-ball = core.world_objects.getObjPtr(core.WO_BALL)
+ball = memory.world_objects.getObjPtr(core.WO_BALL)
 if ball.seen:
   walkTowardBall()
 ```
+
+Segmented color can be accessed via the segmented image arrays in the `RobotVisionBlock`. The ImageProcessor class provides a method for accessing the proper array for the current camera being processed. For example, the following code would produce a count of all orange pixels in the current image:
+
+```cpp
+auto total = 0;
+// Process from left to right
+for(int x = 0; x < 320; x++) {
+  // Process from top to bottom
+  for(int y = 0; y < 240; y++) {
+    // Retrieve the segmented color of the pixel at (x,y)
+    auto c = getSegImg()[y * iparams_.width + x];
+    if(c == c_ORANGE)
+      total++;
+  }
+}
+printf("total orange pixels: %i\n", total);
+```
+

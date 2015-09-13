@@ -12,6 +12,7 @@ class MergeBlob
 		void Union(int i , int j);
 		void Union_process();
 		void Calculate_blob();
+		int get_blob_number(){return blob_number;}
 
 		unsigned char *array_image;
 		int *array_tree;
@@ -22,6 +23,8 @@ class MergeBlob
 		int neglect_factor_x;
 		int neglect_factor_y;
 		int blob_number;
+		int blob_pixel_number_threshold;
+
 /*
 		struct Boundingbox
 		{
@@ -41,6 +44,11 @@ class MergeBlob
 			}
 		};
 */
+
+
+
+	public:
+
 		struct Blob
 		{
 			int centroid_x;
@@ -74,11 +82,9 @@ class MergeBlob
             }
 		};
 
-
-	public:
-
 		Blob *blob;
-		MergeBlob(unsigned char *image, int x , int y , int neg_factor_x , int neg_factor_y)
+
+		MergeBlob(unsigned char *image, int x , int y , int neg_factor_x , int neg_factor_y , int pixel_threshold)
 		{
 			int i , j , k = 0;
 
@@ -86,6 +92,7 @@ class MergeBlob
 			image_height = y;
 			neglect_factor_x = neg_factor_x;
 			neglect_factor_y = neg_factor_y;
+			blob_pixel_number_threshold = pixel_threshold;
 
 			valid_length_total =  x*y/(neg_factor_x * neg_factor_y );
 
@@ -104,7 +111,7 @@ class MergeBlob
 				}
 			}
 
-			blob_number = valid_length_total;
+			blob_number = 0;
 			blob = NULL;
 
 			Union_process();

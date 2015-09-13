@@ -31,7 +31,7 @@ void MergeBlob :: Union(int i , int j)
 		array_tree[q] = p;
 		array_weight[p] += array_weight[q];
 	}
-	--blob_number;
+	//--blob_number;
 }
 
 void MergeBlob :: Union_process()
@@ -40,7 +40,6 @@ void MergeBlob :: Union_process()
 	int current_position = 0;
 	int true_length = image_length / neglect_factor_x;
 	int true_height = image_height / neglect_factor_y;
-
 
 	for( i = 0 ; i < true_height - 1 ; ++i)
 	{
@@ -64,9 +63,9 @@ void MergeBlob :: Union_process()
 	}
 
     //cout << "blob_number = " << blob_number << endl;
-	Display_array_image();
-	Display_array_tree();
-	Display_array_weight();
+	//Display_array_image();
+	//Display_array_tree();
+	//Display_array_weight();
 }
 
 void MergeBlob :: Calculate_blob()
@@ -78,12 +77,18 @@ void MergeBlob :: Calculate_blob()
 	int true_length = image_length/neglect_factor_x;
 	int true_height = image_height/neglect_factor_y;
 
+	for( i = 0 ; i < valid_length_total; ++i)
+	{
+        if((array_weight[i] > blob_pixel_number_threshold)&& (i == array_tree[i])) ++blob_number;
+	}
+
 	blob = new Blob[blob_number];
-	//cout << "blob_number" << blob_number << endl;
+	cout << "blob_number ====== " << blob_number << endl;
 
 	for( i = 0 ; i < valid_length_total; ++i)
 	{
-        if( i == array_tree[i] )
+        root_blob_position[i] = -1;
+        if((array_weight[i] > blob_pixel_number_threshold)&& (i == array_tree[i]))
         {
             //cout << "array_weight[i]" << array_weight[i]+1 << endl;
             blob[counter_blob].pixel_index_x = new int[array_weight[i]+1];
@@ -103,10 +108,13 @@ void MergeBlob :: Calculate_blob()
 		int father = Root(i);
 		int tmp = root_blob_position[father];
 
-		blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = neglect_factor_x * (i%true_length);
-		blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = neglect_factor_y * (i/true_length);
-	}
+        if( tmp != -1)
+        {
+            blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = neglect_factor_x * (i%true_length);
+            blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = neglect_factor_y * (i/true_length);
+        }
 
+	}
 	for( i = 0 ; i < counter_blob ; ++i)
 	{
 		int big_x = blob[i].pixel_index_x[1];

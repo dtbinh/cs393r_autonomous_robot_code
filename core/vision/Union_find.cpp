@@ -97,7 +97,7 @@ void MergeBlob :: Calculate_blob()
             blob[counter_blob].pixel_index_x[0] = 0;
             blob[counter_blob].pixel_index_y[0] = 0;
 
-            blob[counter_blob].color = array_image[i] - 48;
+            blob[counter_blob].color = array_image[i];
 
             root_blob_position[i] = counter_blob++;
         }
@@ -143,7 +143,8 @@ void MergeBlob :: Calculate_blob()
 		blob[i].centroid_x = sum_x / blob[i].pixel_index_x[0];
 		blob[i].centroid_y = sum_y / blob[i].pixel_index_y[0];
 
-		DisplayBlob(i);
+		//DisplayBlob(i);
+		//printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
 	}
 	delete []root_blob_position;
 

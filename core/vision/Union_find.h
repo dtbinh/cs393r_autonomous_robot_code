@@ -44,8 +44,6 @@ class MergeBlob
 		};
 */
 
-
-
 	public:
 
 		struct Blob
@@ -76,6 +74,9 @@ class MergeBlob
 			}
 			~Blob()
 			{
+			    //if( pixel_index_x != NULL ) printf("x not null\n");
+			    //if( pixel_index_y != NULL ) printf("y not null\n");
+
 			    delete []pixel_index_x;
 			    delete []pixel_index_y;
             }

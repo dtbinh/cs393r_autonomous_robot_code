@@ -126,26 +126,24 @@ void ImageProcessor::processFrame()
   if(!classifier_->classifyImage(color_table_))
     return;
 
-  // MergeBlob mergeblob(getSegImg(), 320, 240, 4, 2, 10);
+  MergeBlob mergeblob(getSegImg(), 320, 240, 4, 2, 10);
 
-  // printf("Found %d blobs\n", mergeblob.get_blob_number());
-  // for(int i = 0; i < mergeblob.get_blob_number(); i++)
-  // {
-  //   printf("pre-crash\n");
-  //   MergeBlob::Blob blob = mergeblob.blob[i];
-  //   printf("post-crash\n");
-  //   if(blob.color == c_ORANGE)
-  //   {
-  //     printf("Found orange blob\n");
-  //     // printf("Found orange blob at x=%d,y=%g\n", blob.centroid_x, blob.centroid_y);
-  //     // mergeblob.DisplayBlob(i);
-  //   }
-  // }
+  printf("Found %d blobs\n", mergeblob.get_blob_number());
+  for(int i = 0; i < mergeblob.get_blob_number(); i++)
+  {
+    MergeBlob::Blob* blob = &mergeblob.blob[i];
+    if(blob->color == c_ORANGE)
+    {
+      printf("Found orange blob\n");
+      // printf("Found orange blob at x=%d,y=%g\n", blob.centroid_x, blob.centroid_y);
+      // mergeblob.DisplayBlob(i);
+    }
+  }
 
-  // detectBall();
-  // detectGoal();
-  // findBeacons();
-    // printf("destructing\n");
+  detectBall();
+  detectGoal();
+  findBeacons();
+  printf("destructing\n");
 }
 
 inline unsigned int idx(unsigned int x, unsigned int y)

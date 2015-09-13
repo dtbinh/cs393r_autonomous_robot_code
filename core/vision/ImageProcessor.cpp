@@ -145,7 +145,7 @@ void ImageProcessor::processFrame()
   // detectBall();
   // detectGoal();
   // findBeacons();
-    printf("destructing\n");
+    // printf("destructing\n");
 }
 
 inline unsigned int idx(unsigned int x, unsigned int y)

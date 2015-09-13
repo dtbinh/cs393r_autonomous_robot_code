@@ -179,101 +179,92 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
   {
     for(int x = area.x1; x <= area.x2; x += hstep) 
     {
-      if(x >= 320 || x < 0 || y >= 240 || y < 0)
+      int yy, uu, vv;
+      ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, uu, vv);
+      HSV col = rgb2hsv(yuv2rgb(YCrCb(yy, uu, vv)));
+
+      if(col.v < 30) //black
       {
-        printf("BAD ITERATION PIXEL\n");
-        continue;
+        segImg_[iparams_.width * y + x] = c_UNDEFINED;
       }
-
-      int y, u, v;
-      printf("getting pixel x=%d,y=%d\n", x, y);
-      ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, y, u, v);
-      printf("yuv=%d,%d,%d\n",y,u,v);
-      HSV col = rgb2hsv(yuv2rgb(YCrCb(y, u, v)));
-      printf("hsv=%d,%d,%d\n",col.h,col.s,col.v);
-
-      // if(col.v < 30) //black
-      // {
-      //   segImg_[iparams_.width * y + x] = c_UNDEFINED;
-      // }
-      // else if(col.s < 85) //not colorful
-      // {
-      //   if(col.v < 3 * 255 / 8)
-      //   {
-      //     segImg_[iparams_.width * y + x] = c_UNDEFINED;
-      //   }
-      //   else if(col.v < 160)
-      //   {
-      //     segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
-      //   }
-      //   else
-      //   {
-      //     segImg_[iparams_.width * y + x] = c_WHITE;
-      //   }
-      // }
-      // else //colored
-      // {
-      //   if(col.h < 15 / 2 || col.h >= 345 / 2)
-      //   {
-      //     //red
-      //     segImg_[iparams_.width * y + x] = c_PINK;
-      //   }
-      //   else if(col.h < 45 / 2)
-      //   {
-      //     //yellow-red
-      //     segImg_[iparams_.width * y + x] = c_ORANGE;
-      //   }
-      //   else if(col.h < 75 / 2)
-      //   {
-      //     //yellow
-      //     segImg_[iparams_.width * y + x] = c_YELLOW;
-      //   }
-      //   else if(col.h < 105 / 2)
-      //   {
-      //     //green-yellow
-      //     segImg_[iparams_.width * y + x] = c_YELLOW;
-      //   }
-      //   else if(col.h < 135 / 2)
-      //   {
-      //     //green
-      //     segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
-      //   }
-      //   else if(col.h < 165 / 2)
-      //   {
-      //     //cyan-green
-      //     segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
-      //   }
-      //   else if(col.h < 195 / 2)
-      //   {
-      //     //cyan
-      //     segImg_[iparams_.width * y + x] = c_BLUE;
-      //   }
-      //   else if(col.h < 225 / 2)
-      //   {
-      //     //blue-cyan
-      //     segImg_[iparams_.width * y + x] = c_BLUE;
-      //   }
-      //   else if(col.h < 255 / 2)
-      //   {
-      //     //blue
-      //     segImg_[iparams_.width * y + x] = c_BLUE;
-      //   }
-      //   else if(col.h < 285 / 2)
-      //   {
-      //     //magenta-blue
-      //     segImg_[iparams_.width * y + x] = c_BLUE;
-      //   }
-      //   else if(col.h < 315 / 2)
-      //   {
-      //     //magenta
-      //     segImg_[iparams_.width * y + x] = c_PINK;
-      //   }
-      //   else if(col.h < 345 / 2)
-      //   {
-      //     //red-magenta
-      //     segImg_[iparams_.width * y + x] = c_PINK;
-      //   }
-      // }
+      else if(col.s < 85) //not colorful
+      {
+        if(col.v < 3 * 255 / 8)
+        {
+          segImg_[iparams_.width * y + x] = c_UNDEFINED;
+        }
+        else if(col.v < 160)
+        {
+          segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
+        }
+        else
+        {
+          segImg_[iparams_.width * y + x] = c_WHITE;
+        }
+      }
+      else //colored
+      {
+        if(col.h < 15 / 2 || col.h >= 345 / 2)
+        {
+          //red
+          segImg_[iparams_.width * y + x] = c_PINK;
+        }
+        else if(col.h < 45 / 2)
+        {
+          //yellow-red
+          segImg_[iparams_.width * y + x] = c_ORANGE;
+        }
+        else if(col.h < 75 / 2)
+        {
+          //yellow
+          segImg_[iparams_.width * y + x] = c_YELLOW;
+        }
+        else if(col.h < 105 / 2)
+        {
+          //green-yellow
+          segImg_[iparams_.width * y + x] = c_YELLOW;
+        }
+        else if(col.h < 135 / 2)
+        {
+          //green
+          segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
+        }
+        else if(col.h < 165 / 2)
+        {
+          //cyan-green
+          segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
+        }
+        else if(col.h < 195 / 2)
+        {
+          //cyan
+          segImg_[iparams_.width * y + x] = c_BLUE;
+        }
+        else if(col.h < 225 / 2)
+        {
+          //blue-cyan
+          segImg_[iparams_.width * y + x] = c_BLUE;
+        }
+        else if(col.h < 255 / 2)
+        {
+          //blue
+          segImg_[iparams_.width * y + x] = c_BLUE;
+        }
+        else if(col.h < 285 / 2)
+        {
+          //magenta-blue
+          segImg_[iparams_.width * y + x] = c_BLUE;
+        }
+        else if(col.h < 315 / 2)
+        {
+          //magenta
+          segImg_[iparams_.width * y + x] = c_PINK;
+        }
+        else if(col.h < 345 / 2)
+        {
+          //red-magenta
+          segImg_[iparams_.width * y + x] = c_PINK;
+        }
+      }
     }
   }
 

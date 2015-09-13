@@ -1,0 +1,17 @@
+<package>
+  <description brief="vision_testing">
+
+     vision_testing
+
+  </description>
+  <author>jjames</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/vision_testing</url>
+  <depend package="roscpp"/>
+  <depend package="cv_bridge"/>
+  <depend package="image_transport"/>
+
+</package>
+
+

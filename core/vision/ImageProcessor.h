@@ -12,6 +12,14 @@
 #include <common/RobotCalibration.h>
 #include <vision/structures/BallCandidate.h>
 #include <math/Pose3D.h>
+#include <vision/BeaconDetector.h>
+
+class Point2d
+{
+public:
+	int x;
+	int y;
+};
 
 class BeaconDetector;
 
@@ -38,11 +46,20 @@ class ImageProcessor {
     std::vector<BallCandidate*> getBallCandidates();
     BallCandidate* getBestBallCandidate();
     bool isImageLoaded();
+
+    bool findBeacons();
+
     void detectBall();
-    void findBall(int& imageX, int& imageY);
+    bool findBall(Point2d& point);
+
+    void detectGoal();
+    bool findGoal(Point2d& point);
   private:
     int getTeamColor();
     double getCurrentTime();
+
+    void grayThreshold(unsigned char threshold, unsigned char* img, unsigned char* thresholded, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
+    bool sobel(unsigned char* img, unsigned char* gx, unsigned char* gy, unsigned char* sobel, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
 
     VisionBlocks& vblocks_;
     const ImageParams& iparams_;

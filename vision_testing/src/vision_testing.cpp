@@ -685,6 +685,448 @@ void hsvCluster(unsigned char* img_hsv, unsigned char* full_clusters, unsigned c
   }
 }
 
+std::pair<Color, unsigned int> mode(std::vector<Color> colors, unsigned int max)
+{
+  std::vector<int> histogram(max, 0);
+  for(unsigned int i = 0; i < colors.size(); ++i)
+    ++histogram[colors[i]];
+  Color max_value = (Color) (std::max_element(histogram.begin(), histogram.end()) - histogram.begin());
+  unsigned int count = histogram[max_value];
+  return std::pair<Color, unsigned int>(max_value, count);
+}
+
+enum ColorTransition
+{
+  NO_TRANSITION,
+  PINK_BLUE,
+  PINK_YELLOW,
+  PINK_WHITE,
+  BLUE_PINK,
+  BLUE_YELLOW,
+  BLUE_WHITE,
+  YELLOW_BLUE,
+  YELLOW_PINK,
+  YELLOW_WHITE,
+  WHITE_GREEN
+};
+
+void detectTransitions(unsigned char* img, unsigned char* transitions, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
+{
+  //set no transition everywhere
+  for(unsigned int x = min_x; x < max_x; x++)
+  {
+    for(unsigned int y = min_y; y < max_y; y++)
+    {
+      transitions[idx(x, y)] = NO_TRANSITION;
+    }
+  }
+
+  unsigned int range = 3;
+  for(unsigned int x = min_x; x < max_x; x++)
+  {
+    for(unsigned int y = min_y + range; y < max_y - range; y++)
+    {
+      std::pair<Color, unsigned int> upper_color;
+      std::pair<Color, unsigned int> lower_color;
+      std::vector<Color> upper;
+      std::vector<Color> lower;
+      for(unsigned int r = 1; r <= range; r++)
+      {
+        upper.push_back((Color) img[idx(x, y - r)]);
+        lower.push_back((Color) img[idx(x, y + r)]);
+      }
+      upper_color = mode(upper, NUM_COLORS);
+      lower_color = mode(lower, NUM_COLORS);
+
+      if(upper_color.second < 2 || lower_color.second < 2 || abs(upper_color.second - lower_color.second) > 1) //make sure it's a good fit
+      {
+        continue;
+      }
+
+      //beacons
+      if(upper_color.first == c_PINK && lower_color.first == c_BLUE)
+      {
+        transitions[idx(x, y)] = PINK_BLUE;
+      }
+      else if(upper_color.first == c_PINK && lower_color.first == c_YELLOW)
+      {
+        transitions[idx(x, y)] = PINK_YELLOW;
+      }
+      else if(upper_color.first == c_BLUE && lower_color.first == c_PINK)
+      {
+        transitions[idx(x, y)] = BLUE_PINK;
+      }
+      else if(upper_color.first == c_BLUE && lower_color.first == c_YELLOW)
+      {
+        transitions[idx(x, y)] = BLUE_YELLOW;
+      }
+      else if(upper_color.first == c_YELLOW && lower_color.first == c_BLUE)
+      {
+        transitions[idx(x, y)] = YELLOW_BLUE;
+      }
+      else if(upper_color.first == c_YELLOW && lower_color.first == c_PINK)
+      {
+        transitions[idx(x, y)] = YELLOW_PINK;
+      }
+      else if(upper_color.first == c_YELLOW && lower_color.first == c_WHITE)
+      {
+        transitions[idx(x, y)] = YELLOW_WHITE;
+      }
+      else if(upper_color.first == c_BLUE && lower_color.first == c_WHITE)
+      {
+        transitions[idx(x, y)] = BLUE_WHITE;
+      }
+      else if(upper_color.first == c_PINK && lower_color.first == c_WHITE)
+      {
+        transitions[idx(x, y)] = PINK_WHITE;
+      }
+      else if(upper_color.first == c_WHITE && lower_color.first == c_FIELD_GREEN)
+      {
+        transitions[idx(x, y)] = WHITE_GREEN;
+      }
+    }
+  }
+}
+
+enum BeaconPossibilityState
+{
+  HAS_NOTHING,
+  HAS_BOTTOM,
+  FIRST_COLOR_PINK,
+  FIRST_COLOR_BLUE,
+  FIRST_COLOR_YELLOW,
+  IS_BEACON
+};
+
+enum BeaconType
+{
+  NOT_A_BEACON,
+  YELLOW_PINK_BEACON,
+  YELLOW_BLUE_BEACON,
+  BLUE_PINK_BEACON,
+  BLUE_YELLOW_BEACON,
+  PINK_BLUE_BEACON,
+  PINK_YELLOW_BEACON,
+  NUM_BEACON_TYPES
+};
+
+void drawPoint(unsigned char* img, int x, int y, unsigned char r, unsigned char g, unsigned char b)
+{
+  img[3 * idx(x, y) + 0] = b;
+  img[3 * idx(x, y) + 1] = g;
+  img[3 * idx(x, y) + 2] = r;
+}
+
+void drawLine(unsigned char* img, int x1, int y1, int x2, int y2, unsigned char r, unsigned char g, unsigned char b)
+{
+  int delta_x(x2 - x1);
+  // if x1 == x2, then it does not matter what we set here
+  signed char const ix((delta_x > 0) - (delta_x < 0));
+  delta_x = std::abs(delta_x) << 1;
+
+  int delta_y(y2 - y1);
+  // if y1 == y2, then it does not matter what we set here
+  signed char const iy((delta_y > 0) - (delta_y < 0));
+  delta_y = std::abs(delta_y) << 1;
+
+  drawPoint(img, x1, y1, r, g, b);
+
+  if(delta_x >= delta_y)
+  {
+    // error may go below zero
+    int error(delta_y - (delta_x >> 1));
+
+    while(x1 != x2)
+    {
+      if((error >= 0) && (error || (ix > 0)))
+      {
+        error -= delta_x;
+        y1 += iy;
+      }
+      // else do nothing
+
+      error += delta_y;
+      x1 += ix;
+
+      drawPoint(img, x1, y1, r, g, b);
+    }
+  }
+  else
+  {
+    // error may go below zero
+    int error(delta_x - (delta_y >> 1));
+
+    while(y1 != y2)
+    {
+      if((error >= 0) && (error || (iy > 0)))
+      {
+        error -= delta_y;
+        x1 += ix;
+      }
+      // else do nothing
+
+      error += delta_x;
+      y1 += iy;
+
+      drawPoint(img, x1, y1, r, g, b);
+    }
+  }
+}
+
+void detectBeacons(unsigned char* transitions, unsigned char* beacons, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
+{
+  std::vector<std::pair<unsigned int, unsigned int> > beacon_points(NUM_BEACON_TYPES, std::pair<unsigned int, unsigned int>(0, 0));
+  std::vector<unsigned int> beacon_counts(NUM_BEACON_TYPES, 0.0);
+  for(unsigned int x = min_x; x < max_x; x++)
+  {
+    //loop through each column from top to bottom
+    BeaconPossibilityState column_state = HAS_NOTHING;
+    BeaconType type = NOT_A_BEACON;
+    int beacon_bottom_idx = 0;
+    for(int y = (int) max_y - 2; y >= (int) min_y + 1; --y)
+    {
+//      drawPoint(beacons, x, y, 0, 0, 0);
+      switch(column_state)
+      {
+      case HAS_NOTHING:
+        if(transitions[idx(x, y)] == WHITE_GREEN)
+        {
+          column_state = HAS_BOTTOM;
+          beacon_bottom_idx = y;
+        }
+        break;
+      case HAS_BOTTOM:
+        if(transitions[idx(x, y)] == WHITE_GREEN)
+        {
+          column_state = HAS_BOTTOM;
+          beacon_bottom_idx = y;
+        }
+        if(transitions[idx(x, y)] == PINK_WHITE)
+        {
+          column_state = FIRST_COLOR_PINK;
+        }
+        if(transitions[idx(x, y)] == BLUE_WHITE)
+        {
+          column_state = FIRST_COLOR_BLUE;
+        }
+        if(transitions[idx(x, y)] == YELLOW_WHITE)
+        {
+          column_state = FIRST_COLOR_YELLOW;
+        }
+        break;
+      case FIRST_COLOR_PINK:
+        if(transitions[idx(x, y)] == BLUE_PINK)
+        {
+          column_state = IS_BEACON;
+          type = BLUE_PINK_BEACON;
+        }
+        if(transitions[idx(x, y)] == YELLOW_PINK)
+        {
+          column_state = IS_BEACON;
+          type = YELLOW_PINK_BEACON;
+        }
+        break;
+      case FIRST_COLOR_BLUE:
+        if(transitions[idx(x, y)] == PINK_BLUE)
+        {
+          column_state = IS_BEACON;
+          type = PINK_BLUE_BEACON;
+        }
+        if(transitions[idx(x, y)] == YELLOW_BLUE)
+        {
+          column_state = IS_BEACON;
+          type = YELLOW_BLUE_BEACON;
+        }
+        break;
+      case FIRST_COLOR_YELLOW:
+        if(transitions[idx(x, y)] == BLUE_YELLOW)
+        {
+          column_state = IS_BEACON;
+          type = BLUE_YELLOW_BEACON;
+        }
+        if(transitions[idx(x, y)] == PINK_YELLOW)
+        {
+          column_state = IS_BEACON;
+          type = PINK_YELLOW_BEACON;
+        }
+        break;
+      case IS_BEACON:
+//        if(transitions[idx(x, y)] != NO_TRANSITION)
+//        {
+//          //TODO: better specify which transitions are bad
+//          //decoy beacon
+//          column_state = HAS_NOTHING;
+//          type = NOT_A_BEACON;
+//          beacon_bottom_idx = 0;
+//        }
+        break;
+      default:
+        break;
+      }
+    }
+
+    beacon_points[type].first += x;
+    beacon_points[type].second += beacon_bottom_idx;
+    beacon_counts[type]++;
+  }
+
+  for(unsigned int type = 1; type < (unsigned int) NUM_BEACON_TYPES; type++)
+  {
+    if(beacon_counts[type] == 0)
+    {
+      continue;
+    }
+
+    unsigned int x = beacon_points[type].first / beacon_counts[type];
+    unsigned int y = beacon_points[type].second / beacon_counts[type];
+    //todo: check bounds
+    switch(type)
+    {
+    //todo: add colors
+    case PINK_YELLOW_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 255, 255, 0);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 255, 255 * 0.5, 255 * 0.75);
+      break;
+    case PINK_BLUE_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 0, 0, 255);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 255, 255 * 0.5, 255 * 0.75);
+      break;
+    case YELLOW_BLUE_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 0, 0, 255);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 255, 255, 0);
+      break;
+    case YELLOW_PINK_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 255, 255 * 0.5, 255 * 0.75);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 255, 255, 0);
+      break;
+    case BLUE_YELLOW_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 255, 255, 0);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 0, 0, 255);
+      break;
+    case BLUE_PINK_BEACON:
+      drawLine(beacons, x, y, x, y - 5, 255, 0, 0);
+      drawLine(beacons, x, y - 5, x + 2, y - 3, 255, 255 * 0.5, 255 * 0.75);
+      drawLine(beacons, x, y - 5, x - 2, y - 3, 0, 0, 255);
+      break;
+    default:
+      break;
+    }
+  }
+}
+
+void generateTransitionVis(unsigned char* transitions, unsigned char* vis_bgr, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
+{
+  for(unsigned int x = min_x; x < max_x; x++) //todo: allow full bounds
+  {
+    for(unsigned int y = min_y + 1; y < max_y - 1; y++)
+    {
+      switch(transitions[idx(x, y)])
+      {
+      case PINK_BLUE:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255 * 0.75;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255 * 0.5;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255;
+        vis_bgr[3 * idx(x, y) + 1] = 0;
+        vis_bgr[3 * idx(x, y) + 2] = 0;
+        break;
+      case PINK_YELLOW:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255 * 0.75;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255 * 0.5;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 0;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case PINK_WHITE:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255 * 0.75;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255 * 0.5;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case BLUE_PINK:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255 * 0.75;
+        vis_bgr[3 * idx(x, y) + 1] = 255 * 0.5;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case BLUE_YELLOW:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 0;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 0;
+
+        vis_bgr[3 * idx(x, y) + 0] = 0;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case BLUE_WHITE:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 0;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 0;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case YELLOW_BLUE:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 0;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255;
+        vis_bgr[3 * idx(x, y) + 1] = 0;
+        vis_bgr[3 * idx(x, y) + 2] = 0;
+        break;
+      case YELLOW_PINK:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 0;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255 * 0.75;
+        vis_bgr[3 * idx(x, y) + 1] = 255 * 0.5;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case YELLOW_WHITE:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 0;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 255;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 255;
+        break;
+      case WHITE_GREEN:
+        vis_bgr[3 * idx(x, y - 1) + 0] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 1] = 255;
+        vis_bgr[3 * idx(x, y - 1) + 2] = 255;
+
+        vis_bgr[3 * idx(x, y) + 0] = 0;
+        vis_bgr[3 * idx(x, y) + 1] = 255;
+        vis_bgr[3 * idx(x, y) + 2] = 0;
+        break;
+      default:
+        vis_bgr[3 * idx(x, y) + 0] = 0;
+        vis_bgr[3 * idx(x, y) + 1] = 0;
+        vis_bgr[3 * idx(x, y) + 2] = 0;
+        break;
+      }
+    }
+  }
+}
+
 //assumes single channel img, smoothed already allocated
 void smooth(unsigned char* img, unsigned char* smoothed, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
 {
@@ -695,22 +1137,6 @@ void smooth(unsigned char* img, unsigned char* smoothed, unsigned int min_x, uns
       smoothed[idx(x, y)] = ((int) img[idx(x - 1, y - 1)] + (int) img[idx(x - 1, y)] + (int) img[idx(x - 1, y + 1)] + (int) img[idx(x, y - 1)] + (int) img[idx(x, y)] + (int) img[idx(x, y + 1)] + (int) img[idx(x + 1, y - 1)] + (int) img[idx(x + 1, y)] + (int) img[idx(x + 1, y + 1)]) / 9;
     }
   }
-}
-
-void process(Mat img, Mat& processed)
-{
-//  Mat gx, gy;
-//  gx.copySize(img);
-//  gy.copySize(img);
-//  processed.copySize(img);
-//
-//  sobel(img.data, gx.data, gy.data, processed.data, 0, 0, img.cols, img.rows);
-
-  Mat gauss, sobel;
-  cv::GaussianBlur(img, gauss, Size(3, 3), 5.0);
-  cv::Sobel(gauss, sobel, CV_8U, 1, 1);
-  cv::equalizeHist(sobel, processed);
-  grayThreshold(22, 255, processed.data, processed.data, 0, 0, img.cols, img.rows);
 }
 
 int main(int argc, char **argv)
@@ -748,7 +1174,7 @@ int main(int argc, char **argv)
   namedWindow("raw", WINDOW_NORMAL);
   imshow("raw", bgr);
 
-  Mat yuv, clusters, full_clusters, vis, full_vis;
+  Mat yuv, clusters, full_clusters, transitions, vis, full_vis, transition_vis, beacon_vis;
   cv::cvtColor(bgr, yuv, CV_BGR2YCrCb);
 
   Mat rgb, custom_rgb;
@@ -771,9 +1197,16 @@ int main(int argc, char **argv)
   full_clusters = hsv_custom.clone();
   vis = hsv_custom.clone();
   full_vis = hsv_custom.clone();
+  transitions = hsv_custom.clone();
+  transition_vis = hsv_custom.clone();
+  beacon_vis = bgr.clone();
   hsvCluster(hsv_custom.data, full_clusters.data, clusters.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
+  detectTransitions(clusters.data, transitions.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
+  detectBeacons(transitions.data, beacon_vis.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
+
   generateFullClusterVis(full_clusters.data, full_vis.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
   generateClusterVis(clusters.data, vis.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
+  generateTransitionVis(transitions.data, transition_vis.data, 0, 0, hsv_custom.cols, hsv_custom.rows);
   cv::cvtColor(hsv, hsv, CV_HSV2BGR);
   cv::cvtColor(hsv_custom, hsv_custom, CV_HSV2BGR);
 
@@ -783,8 +1216,10 @@ int main(int argc, char **argv)
   imshow("hsv_custom", hsv_custom);
   namedWindow("clustered", WINDOW_NORMAL);
   imshow("clustered", vis);
-  namedWindow("full_clustered", WINDOW_NORMAL);
-  imshow("full_clustered", full_vis);
+  namedWindow("transitions", WINDOW_NORMAL);
+  imshow("transitions", transition_vis);
+  namedWindow("beacon_vis", WINDOW_NORMAL);
+  imshow("beacon_vis", beacon_vis);
 
   waitKey(0); // Wait for a keystroke in the window
   return 0;

@@ -181,26 +181,27 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
     {
       int yy, cr, cb;
       ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, cb, cr);
-      HSV col = ycrcbhsv_table[yy][cr][cb];//rgb2hsv(yuv2rgb(YCrCb(yy, cr, cb)));
+      HSV col = ycrcbhsv_table[yy][cr][cb]; //rgb2hsv(yuv2rgb(YCrCb(yy, cr, cb)));
 
       if(col.v < 30) //black
       {
         segImg_[iparams_.width * y + x] = c_UNDEFINED;
       }
-      else if(col.s < 85) //not colorful
+      else if(col.s < 70 || (col.s < 125 && col.v > 125)) //grey or not colorful
       {
-        if(col.v < 3 * 255 / 8)
-        {
-          segImg_[iparams_.width * y + x] = c_UNDEFINED;
-        }
-        else if(col.v < 160)
-        {
-          segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
-        }
-        else
-        {
-          segImg_[iparams_.width * y + x] = c_WHITE;
-        }
+        segImg_[iparams_.width * y + x] = c_WHITE;
+        // if(col.v < 30)
+        // {
+        //   segImg_[iparams_.width * y + x] = c_UNDEFINED;
+        // }
+        // else if(col.v < 160)
+        // {
+        //   segImg_[iparams_.width * y + x] = c_WHITE;
+        // }
+        // else
+        // {
+        //   segImg_[iparams_.width * y + x] = c_WHITE;
+        // }
       }
       else //colored
       {
@@ -209,7 +210,7 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
           //red
           segImg_[iparams_.width * y + x] = c_PINK;
         }
-        else if(col.h < 45 / 2)
+        else if(col.h < 35 / 2)
         {
           //yellow-red
           segImg_[iparams_.width * y + x] = c_ORANGE;

@@ -83,7 +83,7 @@ void MergeBlob :: Calculate_blob()
 	}
 
 	blob = new Blob[blob_number];
-	cout << "blob_number ====== " << blob_number << endl;
+	//cout << "blob_number ====== " << blob_number << endl;
 
 	for( i = 0 ; i < valid_length_total; ++i)
 	{
@@ -136,11 +136,11 @@ void MergeBlob :: Calculate_blob()
 			else if(blob[i].pixel_index_y[j] < small_y) {small_y = blob[i].pixel_index_y[j] ;}
 		}
 
-		blob[i].boundingbox_length = big_x - small_x + 1;
-		blob[i].boundingbox_height = big_y - small_y + 1;
+		blob[i].boundingbox_length = big_x - small_x + neglect_factor_x;
+		blob[i].boundingbox_height = big_y - small_y + neglect_factor_y;
 		blob[i].boundingbox_vertex_x = small_x;
 		blob[i].boundingbox_vertex_y = small_y;
-		blob[i].centroid_x = sum_x / blob[i].pixel_index_x[0];
+		blob[i].centroid_x = sum_x / blob[i].pixel_index_x[0] + 1;
 		blob[i].centroid_y = sum_y / blob[i].pixel_index_y[0];
 
 		//DisplayBlob(i);

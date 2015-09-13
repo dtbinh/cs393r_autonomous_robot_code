@@ -158,30 +158,30 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
   if(!imageLoaded) {
     visionLog(20, "Classifying with no raw image");
   }
-  int vstep = 1 << 1;
-  int hstep = 1 << 2;
+  int vstep = 1 << 0;
+  int hstep = 1 << 0;
 
-  // static bool have_table = false;
-  // static HSV ycrcbhsv_table[256][256][256];
-  // if(!have_table)
-  // {
-  //   have_table = true;
-  //   for(unsigned int y = 0; y < 256; y++) //should stop at 220
-  //     for(unsigned int cr = 0; cr < 256; cr++) //should stop at 235
-  //       for(unsigned int cb = 0; cb < 256; cb++) //should stop at 235
-  //       {
-  //         RGB rgb = yuv2rgb(YCrCb(y, cr, cb));
-  //         ycrcbhsv_table[y][cr][cb] = rgb2hsv(rgb);
-  //       }
-  //   std::cerr << "Table generated!" << std::endl;
-  // }
+  static bool have_table = false;
+  static HSV ycrcbhsv_table[256][256][256];
+  if(!have_table)
+  {
+    have_table = true;
+    for(unsigned int y = 0; y < 256; y++) //should stop at 220
+      for(unsigned int cr = 0; cr < 256; cr++) //should stop at 235
+        for(unsigned int cb = 0; cb < 256; cb++) //should stop at 235
+        {
+          RGB rgb = yuv2rgb(YCrCb(y, cr, cb));
+          ycrcbhsv_table[y][cr][cb] = rgb2hsv(rgb);
+        }
+    printf("Table generated!\n");
+  }
   for (int y = area.y1; y <= area.y2; y += vstep) 
   {
     for(int x = area.x1; x <= area.x2; x += hstep) 
     {
-      int yy, uu, vv;
-      ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, uu, vv);
-      HSV col = rgb2hsv(yuv2rgb(YCrCb(yy, uu, vv)));
+      int yy, cr, cb;
+      ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, cb, cr);
+      HSV col = ycrcbhsv_table[yy][cr][cb];//rgb2hsv(yuv2rgb(YCrCb(yy, cr, cb)));
 
       if(col.v < 30) //black
       {
@@ -204,7 +204,7 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
       }
       else //colored
       {
-        if(col.h < 15 / 2 || col.h >= 345 / 2)
+        if(col.h < 5 / 2 || col.h >= 345 / 2)
         {
           //red
           segImg_[iparams_.width * y + x] = c_PINK;

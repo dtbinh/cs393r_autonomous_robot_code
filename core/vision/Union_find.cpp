@@ -1,130 +1,7 @@
-#ifndef MERGING_BLOB_H_INCLUDED
-#define MERGING_BLOB_H_INCLUDED
+#include "Union_find.h"
 
-#include <iostream>
+
 using namespace std;
-
-class MergeBlob
-{
-	private:
-
-		int Root(int i);
-		int Count_Sons(int i);
-		bool If_Connected( int i , int j);
-		void Union(int i , int j);
-		void Union_process();
-		void Calculate_blob();
-
-		unsigned char *array_image;
-		int *array_tree;
-		int *array_weight;
-		int image_length;
-		int image_height;
-		int valid_length_total;
-		int neglect_factor_x;
-		int neglect_factor_y;
-		int blob_number;
-/*
-		struct Boundingbox
-		{
-			int vertex_x;
-			int vertex_y;
-
-			int length;
-			int height;
-
-			Boundingbox(int boundingbox_vertex_x = 0 , int boundingbox_vertex_y = 0 ,
-				   		int boundingbox_length = 0 , int boundingbox_height = 0)
-			{
-				vertex_x = boundingbox_vertex_x;
-				vertex_y = boundingbox_vertex_y;
-				length = boundingbox_length;
-				height = boundingbox_height;
-			}
-		};
-*/
-		struct Blob
-		{
-			int centroid_x;
-			int centroid_y;
-			int color;
-			int boundingbox_length;
-			int boundingbox_height;
-			int boundingbox_vertex_x;
-			int boundingbox_vertex_y;
-
-			int *pixel_index_x;
-			int *pixel_index_y;
-
-			Blob()
-			{
-				centroid_x = -1;
-				centroid_y = -1;
-				color = -1;
-				boundingbox_vertex_x = -1;
-				boundingbox_vertex_y = -1;
-				boundingbox_height = -1;
-				boundingbox_length = -1;
-
-				pixel_index_x = NULL;
-				pixel_index_y = NULL;
-			}
-			~Blob()
-			{
-			    delete []pixel_index_x;
-			    delete []pixel_index_y;
-            }
-		};
-
-
-	public:
-
-		Blob *blob;
-		MergeBlob(unsigned char *image, int x , int y , int neg_factor_x , int neg_factor_y)
-		{
-			int i , j , k = 0;
-
-			image_length = x;
-			image_height = y;
-			neglect_factor_x = neg_factor_x;
-			neglect_factor_y = neg_factor_y;
-
-			valid_length_total =  x*y/(neg_factor_x * neg_factor_y );
-
-			array_image = new unsigned char[valid_length_total];
-			array_tree = new int[valid_length_total];
-			array_weight = new int[valid_length_total];
-
-			for( i = 0 ; i < y ; i = i + neg_factor_y)
-			{
-				for ( j = 0 ; j < x ; j = j + neg_factor_x)
-				{
-					array_image[k] = image[i*x + j];
-					array_tree[k] = k;
-					array_weight[k] = 1;
-					++k;
-				}
-			}
-
-			blob_number = valid_length_total;
-			blob = NULL;
-
-			Union_process();
-			Calculate_blob();
-		}
-		~MergeBlob()
-		{
-			delete []array_tree;
-			delete []array_weight;
-			delete []array_image;
-			delete []blob;
-		}
-
-        void DisplayBlob(int i);
-        void Display_array_image();
-        void Display_array_tree();
-        void Display_array_weight();
-};
 
 bool MergeBlob :: If_Connected( int i , int j){ return Root(i) == Root(j) ;}
 
@@ -154,7 +31,7 @@ void MergeBlob :: Union(int i , int j)
 		array_tree[q] = p;
 		array_weight[p] += array_weight[q];
 	}
-	--blob_number;
+	//--blob_number;
 }
 
 void MergeBlob :: Union_process()
@@ -163,7 +40,6 @@ void MergeBlob :: Union_process()
 	int current_position = 0;
 	int true_length = image_length / neglect_factor_x;
 	int true_height = image_height / neglect_factor_y;
-
 
 	for( i = 0 ; i < true_height - 1 ; ++i)
 	{
@@ -201,12 +77,18 @@ void MergeBlob :: Calculate_blob()
 	int true_length = image_length/neglect_factor_x;
 	int true_height = image_height/neglect_factor_y;
 
+	for( i = 0 ; i < valid_length_total; ++i)
+	{
+        if((array_weight[i] > blob_pixel_number_threshold)&& (i == array_tree[i])) ++blob_number;
+	}
+
 	blob = new Blob[blob_number];
-	//cout << "blob_number" << blob_number << endl;
+	cout << "blob_number ====== " << blob_number << endl;
 
 	for( i = 0 ; i < valid_length_total; ++i)
 	{
-        if( i == array_tree[i] )
+        root_blob_position[i] = -1;
+        if((array_weight[i] > blob_pixel_number_threshold)&& (i == array_tree[i]))
         {
             //cout << "array_weight[i]" << array_weight[i]+1 << endl;
             blob[counter_blob].pixel_index_x = new int[array_weight[i]+1];
@@ -215,7 +97,7 @@ void MergeBlob :: Calculate_blob()
             blob[counter_blob].pixel_index_x[0] = 0;
             blob[counter_blob].pixel_index_y[0] = 0;
 
-            blob[counter_blob].color = array_image[i] - 48;
+            blob[counter_blob].color = array_image[i];
 
             root_blob_position[i] = counter_blob++;
         }
@@ -226,10 +108,13 @@ void MergeBlob :: Calculate_blob()
 		int father = Root(i);
 		int tmp = root_blob_position[father];
 
-		blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = neg_factor_x * (i%true_length);
-		blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = neg_factor_y * (i/true_length);
-	}
+        if( tmp != -1)
+        {
+            blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = neglect_factor_x * (i%true_length);
+            blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = neglect_factor_y * (i/true_length);
+        }
 
+	}
 	for( i = 0 ; i < counter_blob ; ++i)
 	{
 		int big_x = blob[i].pixel_index_x[1];
@@ -259,7 +144,9 @@ void MergeBlob :: Calculate_blob()
 		blob[i].centroid_y = sum_y / blob[i].pixel_index_y[0];
 
 		//DisplayBlob(i);
+		//printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1\n");
 	}
+	delete []root_blob_position;
 
 }
 
@@ -316,6 +203,3 @@ void MergeBlob :: Display_array_weight()
     }
     return ;
 }
-
-
-#endif // MERGING_BLOB_H_INCLUDED

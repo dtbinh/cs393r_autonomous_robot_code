@@ -13,6 +13,7 @@
 #include <vision/structures/BallCandidate.h>
 #include <math/Pose3D.h>
 #include <vision/BeaconDetector.h>
+#include <vision/Union_find.h>
 
 class Point2d
 {
@@ -20,6 +21,8 @@ public:
 	int x;
 	int y;
 };
+
+class BeaconDetector;
 
 /// @ingroup vision
 class ImageProcessor {

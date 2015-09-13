@@ -125,9 +125,25 @@ void ImageProcessor::processFrame()
   visionLog(30, "Classifying Image", camera_);
   if(!classifier_->classifyImage(color_table_))
     return;
-  // detectBall();
-  // detectGoal();
+
+  MergeBlob mergeblob(getSegImg(), 320, 240, 4, 2, 10);
+
+  printf("Found %d blobs\n", mergeblob.get_blob_number());
+  for(int i = 0; i < mergeblob.get_blob_number(); i++)
+  {
+    MergeBlob::Blob* blob = &mergeblob.blob[i];
+    if(blob->color == c_ORANGE)
+    {
+      printf("Found orange blob\n");
+      // printf("Found orange blob at x=%d,y=%g\n", blob.centroid_x, blob.centroid_y);
+      // mergeblob.DisplayBlob(i);
+    }
+  }
+
+  detectBall();
+  detectGoal();
   findBeacons();
+  printf("destructing\n");
 }
 
 inline unsigned int idx(unsigned int x, unsigned int y)

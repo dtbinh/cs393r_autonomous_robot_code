@@ -145,6 +145,7 @@ void MergeBlob :: Calculate_blob()
 
 		DisplayBlob(i);
 	}
+	delete []root_blob_position;
 
 }
 

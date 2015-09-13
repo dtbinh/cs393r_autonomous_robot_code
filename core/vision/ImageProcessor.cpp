@@ -1,8 +1,4 @@
 #include <vision/ImageProcessor.h>
-<<<<<<< HEAD
-#include <vision/BeaconDetector.h>
-=======
->>>>>>> d4a00464b7df0378cb583aa3a2a0b84da1eae4e1
 #include <iostream>
 
 ImageProcessor::ImageProcessor(VisionBlocks& vblocks, const ImageParams& iparams, Camera::Type camera) :
@@ -127,16 +123,29 @@ void ImageProcessor::processFrame()
   HorizonLine horizon = HorizonLine::generate(iparams_, cmatrix_, 30000);
   vblocks_.robot_vision->horizon = horizon;
   visionLog(30, "Classifying Image", camera_);
-<<<<<<< HEAD
-  if(!classifier_->classifyImage(color_table_)) return;
-  detectBall();
-  beacon_detector_->findBeacons();
-=======
   if(!classifier_->classifyImage(color_table_))
     return;
+
+  // MergeBlob mergeblob(getSegImg(), 320, 240, 4, 2, 10);
+
+  // printf("Found %d blobs\n", mergeblob.get_blob_number());
+  // for(int i = 0; i < mergeblob.get_blob_number(); i++)
+  // {
+  //   printf("pre-crash\n");
+  //   MergeBlob::Blob blob = mergeblob.blob[i];
+  //   printf("post-crash\n");
+  //   if(blob.color == c_ORANGE)
+  //   {
+  //     printf("Found orange blob\n");
+  //     // printf("Found orange blob at x=%d,y=%g\n", blob.centroid_x, blob.centroid_y);
+  //     // mergeblob.DisplayBlob(i);
+  //   }
+  // }
+
   // detectBall();
   // detectGoal();
-  findBeacons();
+  // findBeacons();
+    printf("destructing\n");
 }
 
 inline unsigned int idx(unsigned int x, unsigned int y)
@@ -236,7 +245,6 @@ bool ImageProcessor::sobel(unsigned char* img, unsigned char* gx, unsigned char*
   }
 
   return true;
->>>>>>> d4a00464b7df0378cb583aa3a2a0b84da1eae4e1
 }
 
 //img (input) and thresholded (output) must be preallocated 320x240

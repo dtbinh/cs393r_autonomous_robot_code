@@ -12,7 +12,6 @@ class MergeBlob
 		void Union(int i , int j);
 		void Union_process();
 		void Calculate_blob();
-		int get_blob_number(){return blob_number;}
 
 		unsigned char *array_image;
 		int *array_tree;
@@ -129,6 +128,7 @@ class MergeBlob
         void Display_array_image();
         void Display_array_tree();
         void Display_array_weight();
+		int get_blob_number(){return blob_number;}
 };
 
 #endif // MERGING_BLOB_H_INCLUDED

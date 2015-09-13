@@ -187,7 +187,7 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
       {
         segImg_[iparams_.width * y + x] = c_UNDEFINED;
       }
-      else if(col.s < 55 || (col.s < 115 && col.v > 125)) //grey or not colorful
+      else if(col.s < 55 || (col.s < 115 && col.v > 130)) //grey or not colorful
       {
         segImg_[iparams_.width * y + x] = c_WHITE;
         // if(col.v < 30)

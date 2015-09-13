@@ -35,7 +35,13 @@ class BeaconDetector : public ObjectDetector {
     YELLOW_BLUE,
     YELLOW_PINK,
     YELLOW_WHITE,
-    WHITE_GREEN
+    WHITE_GREEN,
+    WHITE_PINK,
+    WHITE_BLUE,
+    WHITE_YELLOW,
+    GREEN_PINK,
+    GREEN_BLUE,
+    GREEN_YELLOW
   };
 
   enum BeaconPossibilityState
@@ -45,6 +51,9 @@ class BeaconDetector : public ObjectDetector {
     FIRST_COLOR_PINK,
     FIRST_COLOR_BLUE,
     FIRST_COLOR_YELLOW,
+    SECOND_COLOR_PINK,
+    SECOND_COLOR_BLUE,
+    SECOND_COLOR_YELLOW,
     IS_BEACON
   };
 

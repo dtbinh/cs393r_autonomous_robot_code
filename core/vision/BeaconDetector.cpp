@@ -6,6 +6,15 @@ using namespace Eigen;
 BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE 
 {
 	transitions = new unsigned char[320*240];
+
+  //set no transition everywhere
+  for(unsigned int x = 0; x < 320; x++)
+  {
+    for(unsigned int y = 0; y < 240; y++)
+    {
+      transitions[idx(x, y)] = NO_TRANSITION;
+    }
+  }
 }
 
 void BeaconDetector::findBeacons(unsigned char* img) 
@@ -26,15 +35,6 @@ inline std::pair<Color, unsigned int> mode(std::vector<Color> colors, unsigned i
 
 void BeaconDetector::detectTransitions(unsigned char* img, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
 {
-  //set no transition everywhere
-  for(unsigned int x = min_x; x < max_x; x++)
-  {
-    for(unsigned int y = min_y; y < max_y; y++)
-    {
-      transitions[idx(x, y)] = NO_TRANSITION;
-    }
-  }
-
   unsigned int range = 3;
   for(unsigned int x = min_x; x < max_x; x++)
   {
@@ -97,6 +97,34 @@ void BeaconDetector::detectTransitions(unsigned char* img, unsigned int min_x, u
       else if(upper_color.first == c_WHITE && lower_color.first == c_FIELD_GREEN)
       {
         transitions[idx(x, y)] = WHITE_GREEN;
+      }      
+      else if(upper_color.first == c_WHITE && lower_color.first == c_PINK)
+      {
+        transitions[idx(x, y)] = WHITE_PINK;
+      }
+      else if(upper_color.first == c_WHITE && lower_color.first == c_BLUE)
+      {
+        transitions[idx(x, y)] = WHITE_BLUE;
+      }
+      else if(upper_color.first == c_WHITE && lower_color.first == c_YELLOW)
+      {
+        transitions[idx(x, y)] = WHITE_YELLOW;
+      }
+      else if(upper_color.first == c_FIELD_GREEN && lower_color.first == c_PINK)
+      {
+        transitions[idx(x, y)] = GREEN_PINK;
+      }
+      else if(upper_color.first == c_FIELD_GREEN && lower_color.first == c_BLUE)
+      {
+        transitions[idx(x, y)] = GREEN_BLUE;
+      }
+      else if(upper_color.first == c_FIELD_GREEN && lower_color.first == c_YELLOW)
+      {
+        transitions[idx(x, y)] = GREEN_YELLOW;
+      }
+      else
+      {
+        transitions[idx(x, y)] = NO_TRANSITION;
       }
     }
   }
@@ -207,48 +235,79 @@ void BeaconDetector::detectBeacons(unsigned char* img, unsigned int min_x, unsig
       case FIRST_COLOR_PINK:
         if(transitions[idx(x, y)] == BLUE_PINK)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_BLUE;
           type = BLUE_PINK_BEACON;
         }
         if(transitions[idx(x, y)] == YELLOW_PINK)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_YELLOW;
           type = YELLOW_PINK_BEACON;
         }
         break;
       case FIRST_COLOR_BLUE:
         if(transitions[idx(x, y)] == PINK_BLUE)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_PINK;
           type = PINK_BLUE_BEACON;
         }
         if(transitions[idx(x, y)] == YELLOW_BLUE)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_YELLOW;
           type = YELLOW_BLUE_BEACON;
         }
         break;
       case FIRST_COLOR_YELLOW:
         if(transitions[idx(x, y)] == BLUE_YELLOW)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_BLUE;
           type = BLUE_YELLOW_BEACON;
         }
         if(transitions[idx(x, y)] == PINK_YELLOW)
         {
-          column_state = IS_BEACON;
+          column_state = SECOND_COLOR_PINK;
           type = PINK_YELLOW_BEACON;
         }
         break;
+      case SECOND_COLOR_PINK:
+       if(transitions[idx(x, y)] == GREEN_PINK || transitions[idx(x, y)] == WHITE_PINK)
+       {
+          column_state = IS_BEACON;
+       }
+       else if(!(type==PINK_YELLOW_BEACON && transitions[idx(x, y)]==PINK_YELLOW) && !(type==PINK_BLUE_BEACON && transitions[idx(x, y)]==PINK_BLUE) && transitions[idx(x, y)] != NO_TRANSITION)
+       {
+         //decoy beacon
+         column_state = HAS_NOTHING;
+         type = NOT_A_BEACON;
+         beacon_bottom_idx = 0;
+       }
+       break;
+      case SECOND_COLOR_BLUE:
+       if(transitions[idx(x, y)] == GREEN_BLUE || transitions[idx(x, y)] == WHITE_BLUE)
+       {
+          column_state = IS_BEACON;
+       }
+       else if(!(type==BLUE_YELLOW_BEACON && transitions[idx(x, y)]==BLUE_YELLOW) && !(type==BLUE_PINK_BEACON && transitions[idx(x, y)]==BLUE_PINK) && transitions[idx(x, y)] != NO_TRANSITION)
+       {
+         //decoy beacon
+         column_state = HAS_NOTHING;
+         type = NOT_A_BEACON;
+         beacon_bottom_idx = 0;
+       }
+       break;
+      case SECOND_COLOR_YELLOW:
+       if(transitions[idx(x, y)] == GREEN_YELLOW || transitions[idx(x, y)] == WHITE_YELLOW)
+       {
+          column_state = IS_BEACON;
+       }
+       else if(!(type==YELLOW_PINK_BEACON && transitions[idx(x, y)]==YELLOW_PINK) && !(type==YELLOW_BLUE && transitions[idx(x, y)]==YELLOW_BLUE) && transitions[idx(x, y)] != NO_TRANSITION)
+       {
+         //decoy beacon
+         column_state = HAS_NOTHING;
+         type = NOT_A_BEACON;
+         beacon_bottom_idx = 0;
+       }
+       break;
       case IS_BEACON:
-//        if(transitions[idx(x, y)] != NO_TRANSITION)
-//        {
-//          //TODO: better specify which transitions are bad
-//          //decoy beacon
-//          column_state = HAS_NOTHING;
-//          type = NOT_A_BEACON;
-//          beacon_bottom_idx = 0;
-//        }
         break;
       default:
         break;
@@ -260,9 +319,10 @@ void BeaconDetector::detectBeacons(unsigned char* img, unsigned int min_x, unsig
     beacon_counts[type]++;
   }
 
+  unsigned int min_beacon_count = 4;
   for(unsigned int type = 1; type < (unsigned int) NUM_BEACON_TYPES; type++)
   {
-    if(beacon_counts[type] == 0)
+    if(beacon_counts[type] < min_beacon_count)
     {
       continue;
     }

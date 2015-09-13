@@ -226,8 +226,8 @@ void MergeBlob :: Calculate_blob()
 		int father = Root(i);
 		int tmp = root_blob_position[father];
 
-		blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = i%true_length;
-		blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = i/true_length;
+		blob[tmp].pixel_index_x[++blob[tmp].pixel_index_x[0]] = neg_factor_x * (i%true_length);
+		blob[tmp].pixel_index_y[++blob[tmp].pixel_index_y[0]] = neg_factor_y * (i/true_length);
 	}
 
 	for( i = 0 ; i < counter_blob ; ++i)
@@ -237,8 +237,13 @@ void MergeBlob :: Calculate_blob()
 		int small_x = blob[i].pixel_index_x[1];
 		int small_y = blob[i].pixel_index_y[1];
 
+		int sum_x = blob[i].pixel_index_x[1];
+		int sum_y = blob[i].pixel_index_y[1];
+
 		for( j = 2 ; j <= blob[i].pixel_index_x[0] ; ++j )
 		{
+			sum_x += blob[i].pixel_index_x[j];
+			sum_y += blob[i].pixel_index_y[j];
 			if(blob[i].pixel_index_x[j] > big_x) {big_x = blob[i].pixel_index_x[j] ;}
 			else if(blob[i].pixel_index_x[j] < small_x) {small_x = blob[i].pixel_index_x[j] ;}
 
@@ -250,8 +255,8 @@ void MergeBlob :: Calculate_blob()
 		blob[i].boundingbox_height = big_y - small_y + 1;
 		blob[i].boundingbox_vertex_x = small_x;
 		blob[i].boundingbox_vertex_y = small_y;
-		blob[i].centroid_x = (big_x + small_x)/2;
-		blob[i].centroid_y = (big_y + small_y)/2;
+		blob[i].centroid_x = sum_x / blob[i].pixel_index_x[0];
+		blob[i].centroid_y = sum_y / blob[i].pixel_index_y[0];
 
 		//DisplayBlob(i);
 	}

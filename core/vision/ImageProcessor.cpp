@@ -140,6 +140,12 @@ void ImageProcessor::processFrame()
     {
       // printf("Found orange blob\n");
       // mergeblob.DisplayBlob(i);
+      //findBall(blob);
+
+      for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
+      {
+        getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
+      }
 
       Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
       ball->visionBearing = cmatrix_.bearing(p);
@@ -219,22 +225,23 @@ bool ImageProcessor::findGoal(Point2d& point)
 
 void ImageProcessor::detectBall()
 {
-  Point2d point;
-  if(!findBall(point))
-    return; // function defined elsewhere that fills in point.x, point.y by reference
-  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+  // Point2d point;
+  // if(!findBall(point))
+  //   return; // function defined elsewhere that fills in point.x, point.y by reference
+  // WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  ball->imageCenterX = point.x;
-  ball->imageCenterY = point.y;
+  // ball->imageCenterX = point.x;
+  // ball->imageCenterY = point.y;
 
-  Position p = cmatrix_.getWorldPosition(point.x, point.y);
-  ball->visionBearing = cmatrix_.bearing(p);
-  ball->visionElevation = cmatrix_.elevation(p);
-  ball->visionDistance = cmatrix_.groundDistance(p);
+  // Position p = cmatrix_.getWorldPosition(point.x, point.y);
+  // ball->visionBearing = cmatrix_.bearing(p);
+  // ball->visionElevation = cmatrix_.elevation(p);
+  // ball->visionDistance = cmatrix_.groundDistance(p);
 
-  ball->seen = true;
+  // ball->seen = true;
 }
 
+//bool ImageProcessor::findBall(MergeBlob::Blob* blob)
 bool ImageProcessor::findBall(Point2d& point)
 {
   double ball_cx = 0.0;

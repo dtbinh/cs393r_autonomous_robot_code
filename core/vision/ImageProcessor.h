@@ -53,9 +53,8 @@ class ImageProcessor {
 
     void detectBall();
     bool findBall(Point2d& point);
+    //bool findBall(MergeBlob::Blob* blob);
 
-     //void detectBall();
-     //bool findBall(Blob& blob);
 
     void detectGoal();
     bool findGoal(Point2d& point);

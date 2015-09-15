@@ -18,7 +18,7 @@ class BeaconDetector : public ObjectDetector {
   BeaconDetector(DETECTOR_DECLARE_ARGS);
   void init(TextLogger* tl){ textlogger = tl; }
   void findBeacons(unsigned char* img);
-  void findBeacons(MergeBlob* mb);
+  void findBeacons(unsigned char* img, MergeBlob* mb);
  private:
   TextLogger* textlogger;
 

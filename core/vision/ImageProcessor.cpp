@@ -127,8 +127,8 @@ void ImageProcessor::processFrame()
     return;
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
-  
-  beacon_detector_->findBeacons(mergeblob);
+
+  beacon_detector_->findBeacons(getSegImg(), mergeblob);
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 

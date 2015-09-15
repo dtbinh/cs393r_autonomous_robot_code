@@ -161,118 +161,118 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
   int vstep = 1 << 0;
   int hstep = 1 << 0;
 
-  static bool have_table = false;
-  static HSV ycrcbhsv_table[256][256][256];
-  if(!have_table)
-  {
-    have_table = true;
-    for(unsigned int y = 0; y < 256; y++) //should stop at 220
-      for(unsigned int cr = 0; cr < 256; cr++) //should stop at 235
-        for(unsigned int cb = 0; cb < 256; cb++) //should stop at 235
-        {
-          RGB rgb = yuv2rgb(YCrCb(y, cr, cb));
-          ycrcbhsv_table[y][cr][cb] = rgb2hsv(rgb);
-        }
-    printf("Table generated!\n");
-  }
-  for (int y = area.y1; y <= area.y2; y += vstep) 
-  {
-    for(int x = area.x1; x <= area.x2; x += hstep) 
-    {
-      int yy, cr, cb;
-      ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, cb, cr);
-      HSV col = ycrcbhsv_table[yy][cr][cb]; //rgb2hsv(yuv2rgb(YCrCb(yy, cr, cb)));
+  // static bool have_table = false;
+  // static HSV ycrcbhsv_table[256][256][256];
+  // if(!have_table)
+  // {
+  //   have_table = true;
+  //   for(unsigned int y = 0; y < 256; y++) //should stop at 220
+  //     for(unsigned int cr = 0; cr < 256; cr++) //should stop at 235
+  //       for(unsigned int cb = 0; cb < 256; cb++) //should stop at 235
+  //       {
+  //         RGB rgb = yuv2rgb(YCrCb(y, cr, cb));
+  //         ycrcbhsv_table[y][cr][cb] = rgb2hsv(rgb);
+  //       }
+  //   printf("Table generated!\n");
+  // }
+  // for (int y = area.y1; y <= area.y2; y += vstep) 
+  // {
+  //   for(int x = area.x1; x <= area.x2; x += hstep) 
+  //   {
+  //     int yy, cr, cb;
+  //     ColorTableMethods::xy2yuv(img_, x, y, iparams_.width, yy, cb, cr);
+  //     HSV col = ycrcbhsv_table[yy][cr][cb]; //rgb2hsv(yuv2rgb(YCrCb(yy, cr, cb)));
 
-      if(col.v < 30) //black
-      {
-        segImg_[iparams_.width * y + x] = c_UNDEFINED;
-      }
-      else if((yy > 105 && cr > 105 && cb > 105 && yy < 130 && cr < 125 && cb < 125) || col.s < 30 || (col.s < 115 && col.v > 130)) //grey or not colorful
-      {
-        if(col.v < 30)
-        {
-          segImg_[iparams_.width * y + x] = c_UNDEFINED;
-        }
-        else if(col.v < 140)
-        {
-          segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
-        }
-        else
-        {
-          segImg_[iparams_.width * y + x] = c_WHITE;
-        }
-      }
-      else //colored
-      {
-        if(col.h < 2 / 2 || col.h >= 345 / 2)
-        {
-          //red
-          segImg_[iparams_.width * y + x] = c_PINK;
-        }
-        else if(col.h < 44 / 2)
-        {
-          //yellow-red
-          segImg_[iparams_.width * y + x] = c_ORANGE;
-        }
-        else if(col.h < 95 / 2)
-        {
-          //yellow
-          segImg_[iparams_.width * y + x] = c_YELLOW;
-        }
-        else if(col.h < 105 / 2)
-        {
-          //green-yellow
-          segImg_[iparams_.width * y + x] = c_YELLOW;
-        }
-        else if(col.h < 135 / 2)
-        {
-          //green
-          segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
-        }
-        else if(col.h < 165 / 2)
-        {
-          //cyan-green
-          segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
-        }
-        else if(col.h < 195 / 2)
-        {
-          //cyan
-          segImg_[iparams_.width * y + x] = c_BLUE;
-        }
-        else if(col.h < 225 / 2)
-        {
-          //blue-cyan
-          segImg_[iparams_.width * y + x] = c_BLUE;
-        }
-        else if(col.h < 255 / 2)
-        {
-          //blue
-          segImg_[iparams_.width * y + x] = c_BLUE;
-        }
-        else if(col.h < 285 / 2)
-        {
-          //magenta-blue
-          segImg_[iparams_.width * y + x] = c_BLUE;
-        }
-        else if(col.h < 315 / 2)
-        {
-          //magenta
-          segImg_[iparams_.width * y + x] = c_PINK;
-        }
-        else if(col.h < 345 / 2)
-        {
-          //red-magenta
-          segImg_[iparams_.width * y + x] = c_PINK;
-        }
-      }
-    }
-  }
-
-  // colorTable_ = colorTable;
-  // for (int y = area.y1; y <= area.y2; y += vstep) {
-  //   for(int x = area.x1; x <= area.x2; x += hstep) {
-  //     auto c = ColorTableMethods::xy2color(img_, colorTable, x, y, iparams_.width);
-  //     segImg_[iparams_.width * y + x] = c;
+  //     if(col.v < 30) //black
+  //     {
+  //       segImg_[iparams_.width * y + x] = c_UNDEFINED;
+  //     }
+  //     else if((yy > 105 && cr > 105 && cb > 105 && yy < 130 && cr < 125 && cb < 125) || col.s < 30 || (col.s < 115 && col.v > 130)) //grey or not colorful
+  //     {
+  //       if(col.v < 30)
+  //       {
+  //         segImg_[iparams_.width * y + x] = c_UNDEFINED;
+  //       }
+  //       else if(col.v < 140)
+  //       {
+  //         segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
+  //       }
+  //       else
+  //       {
+  //         segImg_[iparams_.width * y + x] = c_WHITE;
+  //       }
+  //     }
+  //     else //colored
+  //     {
+  //       if(col.h < 2 / 2 || col.h >= 345 / 2)
+  //       {
+  //         //red
+  //         segImg_[iparams_.width * y + x] = c_PINK;
+  //       }
+  //       else if(col.h < 44 / 2)
+  //       {
+  //         //yellow-red
+  //         segImg_[iparams_.width * y + x] = c_ORANGE;
+  //       }
+  //       else if(col.h < 95 / 2)
+  //       {
+  //         //yellow
+  //         segImg_[iparams_.width * y + x] = c_YELLOW;
+  //       }
+  //       else if(col.h < 105 / 2)
+  //       {
+  //         //green-yellow
+  //         segImg_[iparams_.width * y + x] = c_YELLOW;
+  //       }
+  //       else if(col.h < 135 / 2)
+  //       {
+  //         //green
+  //         segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
+  //       }
+  //       else if(col.h < 165 / 2)
+  //       {
+  //         //cyan-green
+  //         segImg_[iparams_.width * y + x] = c_FIELD_GREEN;
+  //       }
+  //       else if(col.h < 195 / 2)
+  //       {
+  //         //cyan
+  //         segImg_[iparams_.width * y + x] = c_BLUE;
+  //       }
+  //       else if(col.h < 225 / 2)
+  //       {
+  //         //blue-cyan
+  //         segImg_[iparams_.width * y + x] = c_BLUE;
+  //       }
+  //       else if(col.h < 255 / 2)
+  //       {
+  //         //blue
+  //         segImg_[iparams_.width * y + x] = c_BLUE;
+  //       }
+  //       else if(col.h < 285 / 2)
+  //       {
+  //         //magenta-blue
+  //         segImg_[iparams_.width * y + x] = c_BLUE;
+  //       }
+  //       else if(col.h < 315 / 2)
+  //       {
+  //         //magenta
+  //         segImg_[iparams_.width * y + x] = c_PINK;
+  //       }
+  //       else if(col.h < 345 / 2)
+  //       {
+  //         //red-magenta
+  //         segImg_[iparams_.width * y + x] = c_PINK;
+  //       }
+  //     }
   //   }
   // }
+
+  colorTable_ = colorTable;
+  for (int y = area.y1; y <= area.y2; y += vstep) {
+    for(int x = area.x1; x <= area.x2; x += hstep) {
+      auto c = ColorTableMethods::xy2color(img_, colorTable, x, y, iparams_.width);
+      segImg_[iparams_.width * y + x] = c;
+    }
+  }
 }

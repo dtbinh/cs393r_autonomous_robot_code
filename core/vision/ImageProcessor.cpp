@@ -128,7 +128,7 @@ void ImageProcessor::processFrame()
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
 
-  // detectBall();
+  detectBall(getSegImg(), mergeblob);
   if(camera_ == Camera::TOP)
   {
     beacon_detector_->findBeacons(getSegImg(), mergeblob);
@@ -214,6 +214,12 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
     bool contains_other_blobs = false;
     for(int j = 0; j < mb->get_blob_number(); j++)
     {
+      if(mb->blob[i].color == c_PINK)
+      {
+        //pink sometimes looks like orange
+        continue;
+      }
+
       unsigned int orange_y_min = mb->blob[i].boundingbox_vertex_y;
       unsigned int orange_y_max = orange_y_min + mb->blob[i].boundingbox_height;
       unsigned int orange_x_min = mb->blob[i].boundingbox_vertex_x;
@@ -237,8 +243,14 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
     float centroid_height = 20.0;
     double dist = cmatrix_.groundDistance(cmatrix_.getWorldPosition(mb->blob[i].centroid_x, mb->blob[i].centroid_y, centroid_height));
 
-    unsigned int min_blob_size = 50 + 1 * (50 - dist);
-    unsigned int max_blob_size = 50 + 1 * (50 - dist);
+    float d1 = 137.679;
+    float d2 = 300;
+    float pixels_at_d1 = 378;
+    float pixels_at_d2 = 50;
+    unsigned int pixels_at_dist = (pixels_at_d2-pixels_at_d1) / (d2-d1) * (dist-d1) + pixels_at_d1;
+    unsigned int min_blob_size = 0.9 * pixels_at_dist;
+    unsigned int max_blob_size = 1.1 * pixels_at_dist;
+    printf("min=%d,max=%d,dist=%g\n", min_blob_size, max_blob_size,dist);
 
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
@@ -264,6 +276,7 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
       ball->fromTopCamera = (camera_ == Camera::TOP);
       ball->visionDistance = cmatrix_.groundDistance(p);
       ball->seen = true;
+      printf("found at %d,%d", x, y);
     }
   }
 }

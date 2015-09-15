@@ -14,6 +14,7 @@
 #include <math/Pose3D.h>
 #include <vision/BeaconDetector.h>
 #include <vision/Union_find.h>
+#include <vision/utils.h>
 //#include <vision/BallDetector.h>
 
 class Point2d
@@ -57,16 +58,12 @@ class ImageProcessor {
      //void detectBall();
      //bool findBall(Blob& blob);
 
-    void detectGoal();
-    bool findGoal(Point2d& point);
+    void detectGoal(unsigned char* img, MergeBlob* mb);
 
 
   private:
     int getTeamColor();
     double getCurrentTime();
-
-    void grayThreshold(unsigned char threshold, unsigned char* img, unsigned char* thresholded, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
-    bool sobel(unsigned char* img, unsigned char* gx, unsigned char* gy, unsigned char* sobel, unsigned int min_x = 0, unsigned int min_y = 0, unsigned int max_x = 320, unsigned int max_y = 240);
 
     VisionBlocks& vblocks_;
     const ImageParams& iparams_;

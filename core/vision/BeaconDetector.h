@@ -2,12 +2,7 @@
 
 #include <vision/ObjectDetector.h>
 #include <vision/Union_find.h>
-
-
-inline unsigned int idx(unsigned int x, unsigned int y)
-{
-  return 320 * y + x;
-}
+#include <vision/utils.h>
 
 class TextLogger;
 

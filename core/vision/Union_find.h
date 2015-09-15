@@ -51,8 +51,8 @@ class MergeBlob
 			int centroid_x;
 			int centroid_y;
 			int color;
-			int boundingbox_length;
-			int boundingbox_height;
+			int boundingbox_length; //x
+			int boundingbox_height; //y
 			int boundingbox_vertex_x;
 			int boundingbox_vertex_y;
 
@@ -83,6 +83,7 @@ class MergeBlob
 		};
 
 		Blob *blob;
+		std::vector<Blob*> blobs_connected_to_top;
 
 		MergeBlob(unsigned char *image, int x , int y , int neg_factor_x , int neg_factor_y , int pixel_threshold)
 		{

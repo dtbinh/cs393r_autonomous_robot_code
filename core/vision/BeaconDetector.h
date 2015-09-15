@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vision/ObjectDetector.h>
+#include <vision/Union_find.h>
 
 
 inline unsigned int idx(unsigned int x, unsigned int y)
@@ -17,6 +18,7 @@ class BeaconDetector : public ObjectDetector {
   BeaconDetector(DETECTOR_DECLARE_ARGS);
   void init(TextLogger* tl){ textlogger = tl; }
   void findBeacons(unsigned char* img);
+  void findBeacons(MergeBlob* mb);
  private:
   TextLogger* textlogger;
 

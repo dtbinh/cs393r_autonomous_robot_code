@@ -17,6 +17,86 @@ BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE
   }
 }
 
+//returns true if b1 is stacked on top of and touching b2
+inline bool stacked(Blob* b1, Blob* b2, unsigned int touch_threshold = 5)
+{
+  unsigned int b1_y_min = b1->boundingbox_vertex_y;
+  unsigned int b1_y_max = b1_y_min + boundingbox_height;
+  unsigned int b1_x_min = b1->boundingbox_vertex_x;
+  unsigned int b1_x_max = b1_x_min + boundingbox_length;
+  unsigned int b2_y_min = b2->boundingbox_vertex_y;
+  unsigned int b2_y_max = b2_y_min + boundingbox_height;
+  unsigned int b2_x_min = b2->boundingbox_vertex_x;
+  unsigned int b2_x_max = b2_x_min + boundingbox_length;
+
+  //test y touching
+  if(b1_y_max < (b2_y_min - touch_threshold))
+  {
+    return false;
+  }
+
+  //test x touching
+  if((b1_x_min > (b2_x_max + touch_threshold)) || (b2_x_min > (b1_x_max + touch_threshold)))
+  { 
+    return false;
+  }
+}
+
+bool checkColorChain(Blob* blob, Color last_color, BeaconType& beacon, std::vector<Blob*>& blobs)
+{
+  // if(blobs.size() == 0) //first in the chain must be white
+  // {
+  //   if(blob->color == c_WHITE)
+  //   {
+  //     blobs.push_back(blob);
+  //   }
+  //   else
+  //   {
+  //     return false;
+  //   }
+  // }
+  // else
+  // {
+  // }
+
+  
+  // for(unsigned int i = 0; i < blob->blobs_connected_to_top.size(); i++)
+  // {
+  //   if(checkColorChain())
+  //   {
+  //     return true;
+  //   }
+  // }
+  // return false;
+}
+
+void BeaconDetector::findBeacons(MergeBlob* mb)
+{
+  std::vector<Blob*> relevant_blobs;
+  unsigned int min_blob_size = 20;
+  for(int i = 0; i < mb->get_blob_number(); i++)
+  {
+    unsigned int size = mb->blob[i]->boundingbox_length * mb->blob[i]->boundingbox_height;
+    double ar = mb->blob[i]->boundingbox_length / mb->blob[i]->boundingbox_height;
+    if(num_pixels > min_blob_size && ar > 0.9 && ar < 1.5 && (mb->blob[i]->color == c_WHITE || mb->blob[i]->color == c_YELLOW || mb->blob[i]->color == c_BLUE || mb->blob[i]->color == c_PINK))
+    {
+      relevant_blobs.push_back(&mb->blob[i]);
+    }
+  }
+
+  //populate blob connections
+  for(unsigned int i = 0; i < relevant_blobs.size(); i++)
+  {
+    for(unsigned int j = 0; j < relevant_blobs.size(); j++)
+    {
+      if(stacked(relevant_blobs[i], relevant_blobs[j]))
+      {
+        relevant_blobs[j]->blobs_connected_to_top.push_back(relevant_blobs[i]);
+      }
+    }
+  }
+}
+
 void BeaconDetector::findBeacons(unsigned char* img) 
 {
 	detectTransitions(img);

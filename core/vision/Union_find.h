@@ -61,6 +61,8 @@ class MergeBlob
 			int *pixel_index_y;
 
 			std::vector<Blob*> blobs_connected_to_top;
+			std::vector<Blob*> blobs_connected_to_bottom;
+			bool beacon_candidate;
 
 			Blob()
 			{
@@ -74,6 +76,8 @@ class MergeBlob
 
 				pixel_index_x = NULL;
 				pixel_index_y = NULL;
+				
+				beacon_candidate = true;
 			}
 			~Blob()
 			{

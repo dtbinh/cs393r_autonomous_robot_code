@@ -128,7 +128,8 @@ void ImageProcessor::processFrame()
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
 
-  beacon_detector_->findBeacons(getSegImg(), mergeblob);
+  if(camera_ == Camera::TOP)
+    beacon_detector_->findBeacons(getSegImg(), mergeblob);
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
@@ -145,7 +146,7 @@ void ImageProcessor::processFrame()
       ball->visionBearing = cmatrix_.bearing(p);
       ball->visionElevation = cmatrix_.elevation(p);
       ball->visionDistance = cmatrix_.groundDistance(p);
-      printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
+      // printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
 
       getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
       getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;

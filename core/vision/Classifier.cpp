@@ -187,35 +187,34 @@ void Classifier::classifyImage(const FocusArea& area, unsigned char* colorTable)
       {
         segImg_[iparams_.width * y + x] = c_UNDEFINED;
       }
-      else if(col.s < 55 || (col.s < 115 && col.v > 130)) //grey or not colorful
+      else if((yy > 105 && cr > 105 && cb > 105 && yy < 130 && cr < 125 && cb < 125) || col.s < 30 || (col.s < 115 && col.v > 130)) //grey or not colorful
       {
-        segImg_[iparams_.width * y + x] = c_WHITE;
-        // if(col.v < 30)
-        // {
-        //   segImg_[iparams_.width * y + x] = c_UNDEFINED;
-        // }
-        // else if(col.v < 160)
-        // {
-        //   segImg_[iparams_.width * y + x] = c_WHITE;
-        // }
-        // else
-        // {
-        //   segImg_[iparams_.width * y + x] = c_WHITE;
-        // }
+        if(col.v < 30)
+        {
+          segImg_[iparams_.width * y + x] = c_UNDEFINED;
+        }
+        else if(col.v < 140)
+        {
+          segImg_[iparams_.width * y + x] = c_ROBOT_WHITE;
+        }
+        else
+        {
+          segImg_[iparams_.width * y + x] = c_WHITE;
+        }
       }
       else //colored
       {
-        if(col.h < 5 / 2 || col.h >= 345 / 2)
+        if(col.h < 2 / 2 || col.h >= 345 / 2)
         {
           //red
           segImg_[iparams_.width * y + x] = c_PINK;
         }
-        else if(col.h < 35 / 2)
+        else if(col.h < 44 / 2)
         {
           //yellow-red
           segImg_[iparams_.width * y + x] = c_ORANGE;
         }
-        else if(col.h < 75 / 2)
+        else if(col.h < 95 / 2)
         {
           //yellow
           segImg_[iparams_.width * y + x] = c_YELLOW;

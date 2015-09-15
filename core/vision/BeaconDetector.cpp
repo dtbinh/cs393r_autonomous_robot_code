@@ -18,16 +18,16 @@ BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE
 }
 
 //returns true if b1 is stacked on top of and touching b2
-inline bool stacked(Blob* b1, Blob* b2, unsigned int touch_threshold = 5)
+inline bool stacked(MergeBlob::Blob* b1, MergeBlob::Blob* b2, unsigned int touch_threshold = 5)
 {
   unsigned int b1_y_min = b1->boundingbox_vertex_y;
-  unsigned int b1_y_max = b1_y_min + boundingbox_height;
+  unsigned int b1_y_max = b1_y_min + b1->boundingbox_height;
   unsigned int b1_x_min = b1->boundingbox_vertex_x;
-  unsigned int b1_x_max = b1_x_min + boundingbox_length;
+  unsigned int b1_x_max = b1_x_min + b1->boundingbox_length;
   unsigned int b2_y_min = b2->boundingbox_vertex_y;
-  unsigned int b2_y_max = b2_y_min + boundingbox_height;
+  unsigned int b2_y_max = b2_y_min + b1->boundingbox_height;
   unsigned int b2_x_min = b2->boundingbox_vertex_x;
-  unsigned int b2_x_max = b2_x_min + boundingbox_length;
+  unsigned int b2_x_max = b2_x_min + b1->boundingbox_length;
 
   //test y touching
   if(b1_y_max < (b2_y_min - touch_threshold))
@@ -42,43 +42,90 @@ inline bool stacked(Blob* b1, Blob* b2, unsigned int touch_threshold = 5)
   }
 }
 
-bool checkColorChain(Blob* blob, Color last_color, BeaconType& beacon, std::vector<Blob*>& blobs)
+bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& beacon, std::vector<MergeBlob::Blob*>& blobs)
 {
-  // if(blobs.size() == 0) //first in the chain must be white
-  // {
-  //   if(blob->color == c_WHITE)
-  //   {
-  //     blobs.push_back(blob);
-  //   }
-  //   else
-  //   {
-  //     return false;
-  //   }
-  // }
-  // else
-  // {
-  // }
+  if(blobs.size() == 0) 
+  {
+    //first in the chain must be white
+    if(blob->color != c_WHITE)
+    {
+      return false;
+    }
+  }
+  else if(blobs.size() == 1)
+  {
+    if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
+    {
+      return false;
+    }
+  }
+  else if(blobs.size() == 2)
+  {
+    if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
+    {
+      return false;
+    }
 
-  
-  // for(unsigned int i = 0; i < blob->blobs_connected_to_top.size(); i++)
-  // {
-  //   if(checkColorChain())
-  //   {
-  //     return true;
-  //   }
-  // }
-  // return false;
+    //have two (and not three) valid colors stacked on top of white!
+    if(blob->blobs_connected_to_top.size() == 0)
+    {
+      if(blob->color == c_PINK && last_color == c_BLUE)
+      {
+        beacon = WO_BEACON_PINK_BLUE;
+      }
+      else if(blob->color == c_PINK && last_color == c_YELLOW)
+      {
+        beacon = WO_BEACON_PINK_YELLOW;
+      }
+      else if(blob->color == c_BLUE && last_color == c_PINK)
+      {
+        beacon = WO_BEACON_BLUE_PINK;
+      }
+      else if(blob->color == c_BLUE && last_color == c_YELLOW)
+      {
+        beacon = WO_BEACON_BLUE_YELLOW;
+      }
+      else if(blob->color == c_YELLOW && last_color == c_BLUE)
+      {
+        beacon = WO_BEACON_YELLOW_BLUE;
+      }
+      else if(blob->color == c_YELLOW && last_color == c_PINK)
+      {
+        beacon = WO_BEACON_YELLOW_PINK;
+      }
+      return true;
+    }
+  }
+  else
+  {
+    //too many colors 
+    return false;
+  }
+
+  blobs.push_back(blob);
+  last_color = (Color) blob->color;
+  for(unsigned int i = 0; i < blob->blobs_connected_to_top.size(); i++)
+  {
+    if(checkColorChain(blob->blobs_connected_to_top[i], last_color, beacon, blobs))
+    {
+      return true;
+    }
+  }
+
+  //no valid chains! clean up and try again.
+  blobs.pop_back();
+  return false;
 }
 
 void BeaconDetector::findBeacons(MergeBlob* mb)
 {
-  std::vector<Blob*> relevant_blobs;
+  std::vector<MergeBlob::Blob*> relevant_blobs;
   unsigned int min_blob_size = 20;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
-    unsigned int size = mb->blob[i]->boundingbox_length * mb->blob[i]->boundingbox_height;
-    double ar = mb->blob[i]->boundingbox_length / mb->blob[i]->boundingbox_height;
-    if(num_pixels > min_blob_size && ar > 0.9 && ar < 1.5 && (mb->blob[i]->color == c_WHITE || mb->blob[i]->color == c_YELLOW || mb->blob[i]->color == c_BLUE || mb->blob[i]->color == c_PINK))
+    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
+    if(size > min_blob_size && ar > 0.9 && ar < 1.5 && (mb->blob[i].color == c_WHITE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
     {
       relevant_blobs.push_back(&mb->blob[i]);
     }
@@ -93,6 +140,30 @@ void BeaconDetector::findBeacons(MergeBlob* mb)
       {
         relevant_blobs[j]->blobs_connected_to_top.push_back(relevant_blobs[i]);
       }
+    }
+  }
+
+  //find beacons
+  for(unsigned int i = 0; i < relevant_blobs.size(); i++)
+  {
+    Color last_color;
+    WorldObjectType beacon_type;
+    std::vector<MergeBlob::Blob*> blobs;
+    if(checkColorChain(relevant_blobs[i], last_color, beacon_type, blobs))
+    {
+      //get bottom of the beacon
+      unsigned int x = (blobs[0]->centroid_x + blobs[1]->centroid_x + blobs[2]->centroid_x) / 3;
+      unsigned int y = blobs[0]->boundingbox_vertex_y + blobs[0]->boundingbox_height;
+
+      //populate beacon
+      WorldObject* beacon = &vblocks_.world_object->objects_[beacon_type];
+      beacon->imageCenterX = x;
+      beacon->imageCenterY = y;
+      Position p = cmatrix_.getWorldPosition(x, y);
+      beacon->visionBearing = cmatrix_.bearing(p);
+      beacon->visionElevation = cmatrix_.elevation(p);
+      beacon->visionDistance = cmatrix_.groundDistance(p);
+      beacon->seen = true;
     }
   }
 }

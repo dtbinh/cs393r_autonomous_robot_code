@@ -1,6 +1,7 @@
 #ifndef MERGING_BLOB_H_INCLUDED
 #define MERGING_BLOB_H_INCLUDED
 #include <iostream>
+#include <vector>
 
 class MergeBlob
 {
@@ -59,6 +60,8 @@ class MergeBlob
 			int *pixel_index_x;
 			int *pixel_index_y;
 
+			std::vector<Blob*> blobs_connected_to_top;
+
 			Blob()
 			{
 				centroid_x = -1;
@@ -83,7 +86,6 @@ class MergeBlob
 		};
 
 		Blob *blob;
-		std::vector<Blob*> blobs_connected_to_top;
 
 		MergeBlob(unsigned char *image, int x , int y , int neg_factor_x , int neg_factor_y , int pixel_threshold)
 		{

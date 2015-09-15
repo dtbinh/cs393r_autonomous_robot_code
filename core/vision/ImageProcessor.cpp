@@ -171,7 +171,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
-    double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
+    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
     if(size > min_blob_size && mb->blob[i].color == c_BLUE && ar > 1.6 && ar < 3.0)
     {
       unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
@@ -241,6 +241,8 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
     }
 
     float centroid_height = 20.0;
+    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
     double dist = cmatrix_.groundDistance(cmatrix_.getWorldPosition(mb->blob[i].centroid_x, mb->blob[i].centroid_y, centroid_height));
 
     float d1 = 137.679;
@@ -250,11 +252,9 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
     unsigned int pixels_at_dist = (pixels_at_d2-pixels_at_d1) / (d2-d1) * (dist-d1) + pixels_at_d1;
     unsigned int min_blob_size = 0.9 * pixels_at_dist;
     unsigned int max_blob_size = 1.1 * pixels_at_dist;
-    printf("min=%d,max=%d,dist=%g\n", min_blob_size, max_blob_size,dist);
+    printf("min=%d,max=%d,dist=%g,size=%d,ar=%g\n", min_blob_size, max_blob_size,dist,size,ar);
 
-    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
-    double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && size < max_blob_size && ar > 0.85 && ar < 1.15)
+    if(size > min_blob_size && size < max_blob_size && ar > 0.8 && ar < 1.2)
     {
       unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
       unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;

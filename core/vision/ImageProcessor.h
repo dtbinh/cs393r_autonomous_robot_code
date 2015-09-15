@@ -50,14 +50,10 @@ class ImageProcessor {
     BallCandidate* getBestBallCandidate();
     bool isImageLoaded();
 
-    bool findBeacons();
-
-    void detectBall();
-    bool findBall(Point2d& point);
-    //bool findBall(MergeBlob::Blob* blob);
-
+    bool findBall(MergeBlob::Blob* blob);
 
     void detectGoal(unsigned char* img, MergeBlob* mb);
+    void detectBall(unsigned char* img, MergeBlob* mb);
 
 
   private:

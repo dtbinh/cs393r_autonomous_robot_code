@@ -126,16 +126,16 @@ void ImageProcessor::processFrame()
   if(!classifier_->classifyImage(color_table_))
     return;
 
-  beacon_detector_->findBeacons(getSegImg());
+  //beacon_detector_->findBeacons(getSegImg());
 
-  MergeBlob mergeblob(getSegImg(), 320, 240, 4, 2, 10);
+  mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
   // printf("Found %d blobs\n", mergeblob.get_blob_number());
-  for(int i = 0; i < mergeblob.get_blob_number(); i++)
+  for(int i = 0; i < mergeblob->get_blob_number(); i++)
   {
-    MergeBlob::Blob* blob = &mergeblob.blob[i];
+    MergeBlob::Blob* blob = &mergeblob->blob[i];
     if(blob->color == c_ORANGE)
     {
       // printf("Found orange blob\n");
@@ -149,7 +149,7 @@ void ImageProcessor::processFrame()
 
       getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
       getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
-      getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
+      getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_YELLOW;
       getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x] = c_BLUE;
       getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
     }
@@ -158,6 +158,8 @@ void ImageProcessor::processFrame()
   // detectBall();
   // detectGoal();
   // findBeacons();
+
+  delete mergeblob;
 }
 
 void ImageProcessor::detectGoal()

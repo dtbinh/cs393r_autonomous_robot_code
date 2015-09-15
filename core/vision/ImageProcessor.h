@@ -14,6 +14,7 @@
 #include <math/Pose3D.h>
 #include <vision/BeaconDetector.h>
 #include <vision/Union_find.h>
+//#include <vision/BallDetector.h>
 
 class Point2d
 {
@@ -53,8 +54,13 @@ class ImageProcessor {
     void detectBall();
     bool findBall(Point2d& point);
 
+     //void detectBall();
+     //bool findBall(Blob& blob);
+
     void detectGoal();
     bool findGoal(Point2d& point);
+
+
   private:
     int getTeamColor();
     double getCurrentTime();
@@ -78,6 +84,7 @@ class ImageProcessor {
     RobotCalibration* calibration_;
     bool enableCalibration_;
     BeaconDetector* beacon_detector_;
+    MergeBlob* mergeblob;
 };
 
 #endif

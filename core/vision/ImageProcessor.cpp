@@ -128,6 +128,7 @@ void ImageProcessor::processFrame()
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
 
+  // detectBall();
   if(camera_ == Camera::TOP)
   {
     beacon_detector_->findBeacons(getSegImg(), mergeblob);
@@ -158,9 +159,6 @@ void ImageProcessor::processFrame()
       getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
     }
   }
-
-  // detectBall();
-  // findBeacons();
 
   delete mergeblob;
 }
@@ -201,22 +199,73 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   }
 }
 
-void ImageProcessor::detectBall()
+void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
 {
-  Point2d point;
-  if(!findBall(point))
-    return; // function defined elsewhere that fills in point.x, point.y by reference
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  ball->imageCenterX = point.x;
-  ball->imageCenterY = point.y;
+  for(int i = 0; i < mb->get_blob_number(); i++)
+  {
+    if(mb->blob[i].color != c_ORANGE)
+    {
+      continue;
+    }
 
-  Position p = cmatrix_.getWorldPosition(point.x, point.y);
-  ball->visionBearing = cmatrix_.bearing(p);
-  ball->visionElevation = cmatrix_.elevation(p);
-  ball->visionDistance = cmatrix_.groundDistance(p);
+    //make sure blob doesn't contain other blobs
+    bool contains_other_blobs = false;
+    for(int j = 0; j < mb->get_blob_number(); j++)
+    {
+      unsigned int orange_y_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int orange_y_max = orange_y_min + mb->blob[i].boundingbox_height;
+      unsigned int orange_x_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int orange_x_max = orange_x_min + mb->blob[i].boundingbox_length;
+      unsigned int other_y_min = mb->blob[j].boundingbox_vertex_y;
+      unsigned int other_y_max = other_y_min + mb->blob[j].boundingbox_height;
+      unsigned int other_x_min = mb->blob[j].boundingbox_vertex_x;
+      unsigned int other_x_max = other_x_min + mb->blob[j].boundingbox_length;
+      if(orange_y_min < other_y_min && orange_y_max > other_y_max && orange_x_min < other_x_min && orange_x_max > other_x_max)
+      {
+        //other blob is contained inside the orange blob
+        contains_other_blobs = true;
+        break;
+      }
+    }
+    if(contains_other_blobs)
+    {
+      continue;
+    }
 
-  ball->seen = true;
+    float centroid_height = 20.0;
+    double dist = cmatrix_.groundDistance(cmatrix_.getWorldPosition(mb->blob[i].centroid_x, mb->blob[i].centroid_y, centroid_height));
+
+    unsigned int min_blob_size = 50 + 1 * (50 - dist);
+    unsigned int max_blob_size = 50 + 1 * (50 - dist);
+
+    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
+    if(size > min_blob_size && size < max_blob_size && ar > 0.85 && ar < 1.15)
+    {
+      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+
+      unsigned int x = mb->blob[i].centroid_x;
+      unsigned int y = mb->blob[i].centroid_y;
+      ball->imageCenterX = x;
+      ball->imageCenterY = y;
+      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+      ball->visionBearing = cmatrix_.bearing(p);
+      ball->visionElevation = cmatrix_.elevation(p);
+      ball->fromTopCamera = (camera_ == Camera::TOP);
+      ball->visionDistance = cmatrix_.groundDistance(p);
+      ball->seen = true;
+    }
+  }
 }
 
 bool ImageProcessor::findBall(Point2d& point)

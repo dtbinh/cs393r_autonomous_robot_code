@@ -126,9 +126,9 @@ void ImageProcessor::processFrame()
   if(!classifier_->classifyImage(color_table_))
     return;
 
-  //beacon_detector_->findBeacons(getSegImg());
-
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
+  
+  beacon_detector_->findBeacons(mergeblob);
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 

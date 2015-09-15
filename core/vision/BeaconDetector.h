@@ -2,12 +2,7 @@
 
 #include <vision/ObjectDetector.h>
 #include <vision/Union_find.h>
-
-
-inline unsigned int idx(unsigned int x, unsigned int y)
-{
-  return 320 * y + x;
-}
+#include <vision/utils.h>
 
 class TextLogger;
 
@@ -18,7 +13,7 @@ class BeaconDetector : public ObjectDetector {
   BeaconDetector(DETECTOR_DECLARE_ARGS);
   void init(TextLogger* tl){ textlogger = tl; }
   void findBeacons(unsigned char* img);
-  void findBeacons(MergeBlob* mb);
+  void findBeacons(unsigned char* img, MergeBlob* mb);
  private:
   TextLogger* textlogger;
 

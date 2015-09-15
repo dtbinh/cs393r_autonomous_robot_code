@@ -20,51 +20,87 @@ BeaconDetector::BeaconDetector(DETECTOR_DECLARE_ARGS) : DETECTOR_INITIALIZE
 //returns true if b1 is stacked on top of and touching b2
 inline bool stacked(MergeBlob::Blob* b1, MergeBlob::Blob* b2, unsigned int touch_threshold = 5)
 {
+  if(b1->color == b2->color)
+  {
+    return false; 
+  }
   unsigned int b1_y_min = b1->boundingbox_vertex_y;
   unsigned int b1_y_max = b1_y_min + b1->boundingbox_height;
   unsigned int b1_x_min = b1->boundingbox_vertex_x;
   unsigned int b1_x_max = b1_x_min + b1->boundingbox_length;
   unsigned int b2_y_min = b2->boundingbox_vertex_y;
-  unsigned int b2_y_max = b2_y_min + b1->boundingbox_height;
+  unsigned int b2_y_max = b2_y_min + b2->boundingbox_height;
   unsigned int b2_x_min = b2->boundingbox_vertex_x;
-  unsigned int b2_x_max = b2_x_min + b1->boundingbox_length;
+  unsigned int b2_x_max = b2_x_min + b2->boundingbox_length;
+
+  //test fully enclosed
+  if(b1_y_min < b2_y_min && b1_y_max > b2_y_max && b1_x_min < b2_x_min && b1_x_max > b2_x_max)
+  {
+    //b2 is enclosed
+    b2->beacon_candidate = false;
+    return false;
+  }
+  if(b2_y_min < b1_y_min && b2_y_max > b1_y_max && b2_x_min < b1_x_min && b2_x_max > b1_x_max)
+  {
+    //b1 is enclosed
+    b1->beacon_candidate = false;
+    return false;
+  }
 
   //test y touching
-  if(b1_y_max < (b2_y_min - touch_threshold))
+  if(!(b1_y_max > (b2_y_min - touch_threshold) && b1_y_max < b2_y_max))
   {
     return false;
   }
 
   //test x touching
-  if((b1_x_min > (b2_x_max + touch_threshold)) || (b2_x_min > (b1_x_max + touch_threshold)))
+  if((b1_x_min > b2_x_max) || (b2_x_min > b1_x_max))
   { 
     return false;
   }
+
+  return true;
 }
 
 bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& beacon, std::vector<MergeBlob::Blob*>& blobs)
 {
-  if(blobs.size() == 0) 
+  if(!blob->beacon_candidate)
   {
-    //first in the chain must be white
-    if(blob->color != c_WHITE)
-    {
-      return false;
-    }
+    return false;
   }
-  else if(blobs.size() == 1)
+
+  if(blob->color == c_ORANGE)
   {
-    if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
-    {
-      return false;
-    }
+    return false;
   }
-  else if(blobs.size() == 2)
+
+  if(blobs.size() == 0 && blob->blobs_connected_to_bottom.size() != 0) //can't start with a non-base blob
   {
-    if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
-    {
-      return false;
-    }
+    return false;
+  }
+
+  // if(blobs.size() == 0) 
+  // {
+  //   //first in the chain must be white
+  //   if(blob->color != c_WHITE)
+  //   {
+  //     return false;
+  //   }
+  // }
+  // else if(blobs.size() == 1)
+  // {
+  //   if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
+  //   {
+  //     return false;
+  //   }
+  // }
+  // else 
+  if(blobs.size() == 1)
+  {
+    // if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
+    // {
+    //   return false;
+    // }
 
     //have two (and not three) valid colors stacked on top of white!
     if(blob->blobs_connected_to_top.size() == 0)
@@ -93,14 +129,21 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
       {
         beacon = WO_BEACON_YELLOW_PINK;
       }
+      blobs.push_back(blob);
+      last_color = (Color) blob->color;
       return true;
     }
+    else
+    {
+      //too many colors 
+      return false;
+    }
   }
-  else
-  {
-    //too many colors 
-    return false;
-  }
+  // else
+  // {
+  //   //too many colors 
+  //   return false;
+  // }
 
   blobs.push_back(blob);
   last_color = (Color) blob->color;
@@ -117,17 +160,27 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
   return false;
 }
 
-void BeaconDetector::findBeacons(MergeBlob* mb)
+void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
 {
   std::vector<MergeBlob::Blob*> relevant_blobs;
-  unsigned int min_blob_size = 20;
+  unsigned int min_blob_size = 200;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && ar > 0.9 && ar < 1.5 && (mb->blob[i].color == c_WHITE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
+    if(size > min_blob_size && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
     {
       relevant_blobs.push_back(&mb->blob[i]);
+
+      // unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      // unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      // unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      // unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+      // drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      // drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      // drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      // drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
     }
   }
 
@@ -136,14 +189,22 @@ void BeaconDetector::findBeacons(MergeBlob* mb)
   {
     for(unsigned int j = 0; j < relevant_blobs.size(); j++)
     {
-      if(stacked(relevant_blobs[i], relevant_blobs[j]))
+      if(i==j)
+      {
+        continue;
+      }
+      if(stacked(relevant_blobs[i], relevant_blobs[j])) //todo: figure out why this is backwards
       {
         relevant_blobs[j]->blobs_connected_to_top.push_back(relevant_blobs[i]);
+        relevant_blobs[i]->blobs_connected_to_bottom.push_back(relevant_blobs[j]);
+        // printf("blob %d, color %d is stacked on top of blob %d, color %d\n", i,relevant_blobs[i]->color, j,relevant_blobs[j]->color);
+        // drawLine(img, relevant_blobs[i]->centroid_x,relevant_blobs[i]->centroid_y,relevant_blobs[j]->centroid_x,relevant_blobs[j]->centroid_y,c_UNDEFINED);
       }
     }
   }
 
   //find beacons
+  bool draw_arrows = true;
   for(unsigned int i = 0; i < relevant_blobs.size(); i++)
   {
     Color last_color;
@@ -151,19 +212,86 @@ void BeaconDetector::findBeacons(MergeBlob* mb)
     std::vector<MergeBlob::Blob*> blobs;
     if(checkColorChain(relevant_blobs[i], last_color, beacon_type, blobs))
     {
+      int x = (blobs[1]->centroid_x + blobs[0]->centroid_x)/2;
+      int y = (blobs[1]->centroid_y + blobs[0]->centroid_y)/2;
+
       //get bottom of the beacon
-      unsigned int x = (blobs[0]->centroid_x + blobs[1]->centroid_x + blobs[2]->centroid_x) / 3;
-      unsigned int y = blobs[0]->boundingbox_vertex_y + blobs[0]->boundingbox_height;
+      int cx = (blobs[1]->centroid_x + blobs[0]->centroid_x)/2;
+      int cy = (blobs[1]->centroid_y + blobs[0]->centroid_y)/2;
+      int dx = -(blobs[1]->centroid_x - blobs[0]->centroid_x);
+      int dy = -(blobs[1]->centroid_y - blobs[0]->centroid_y);
+      float projection_factor = ((beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)? (2.9/2.0)+0.5 : 1.5); //increase projection distance for blue/yellow
+      int bx = blobs[0]->centroid_x + projection_factor * dx;
+      int by = blobs[0]->centroid_y + projection_factor * dy;
 
       //populate beacon
       WorldObject* beacon = &vblocks_.world_object->objects_[beacon_type];
       beacon->imageCenterX = x;
       beacon->imageCenterY = y;
-      Position p = cmatrix_.getWorldPosition(x, y);
+      float centroid_height = ((beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)? 290.0 : 265.0);
+      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+      Position bp = cmatrix_.getWorldPosition(bx, by);
       beacon->visionBearing = cmatrix_.bearing(p);
       beacon->visionElevation = cmatrix_.elevation(p);
-      beacon->visionDistance = cmatrix_.groundDistance(p);
+      if(beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)
+      {
+        float dist = cmatrix_.groundDistance(bp);
+        beacon->visionDistance = dist*dist*0.0015+350;
+      }
+      else
+      {
+        beacon->visionDistance = (cmatrix_.groundDistance(bp)-700)*0.75+700;
+      }
+      printf("Found beacon %d at distance %g (%g)\n", beacon_type, beacon->visionDistance, cmatrix_.groundDistance(bp));
+      beacon->fromTopCamera = true;
       beacon->seen = true;
+
+      if(draw_arrows)
+      {
+        unsigned char arrow_height = 5;
+        unsigned char tip_size = 2;
+        switch(beacon_type)
+        {
+        case WO_BEACON_PINK_YELLOW:
+          drawLine(img, x, y, x, y - arrow_height, c_YELLOW);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_PINK);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_PINK);
+          drawLine(img, x, y, cx, cy, c_PINK);
+          break;
+        case WO_BEACON_PINK_BLUE:
+          drawLine(img, x, y, x, y - arrow_height, c_BLUE);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_PINK);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_PINK);
+          drawLine(img, x, y, cx, cy, c_PINK);
+          break;
+        case WO_BEACON_YELLOW_BLUE:
+          drawLine(img, x, y, x, y - arrow_height, c_BLUE);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_YELLOW);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_YELLOW);
+          drawLine(img, x, y, cx, cy, c_YELLOW);
+          break;
+        case WO_BEACON_YELLOW_PINK:
+          drawLine(img, x, y, x, y - arrow_height, c_PINK);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_YELLOW);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_YELLOW);
+          drawLine(img, x, y, cx, cy, c_YELLOW);
+          break;
+        case WO_BEACON_BLUE_YELLOW:
+          drawLine(img, x, y, x, y - arrow_height, c_YELLOW);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_BLUE);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_BLUE);
+          drawLine(img, x, y, cx, cy, c_BLUE);
+          break;
+        case WO_BEACON_BLUE_PINK:
+          drawLine(img, x, y, x, y - arrow_height, c_PINK);
+          drawLine(img, x, y - arrow_height, x + tip_size, y - arrow_height + tip_size, c_BLUE);
+          drawLine(img, x, y - arrow_height, x - tip_size, y - arrow_height + tip_size, c_BLUE);
+          drawLine(img, x, y, cx, cy, c_BLUE);
+          break;
+        default:
+          break;
+        }
+      }
     }
   }
 }
@@ -172,16 +300,6 @@ void BeaconDetector::findBeacons(unsigned char* img)
 {
 	detectTransitions(img);
 	detectBeacons(img);
-}
-
-inline std::pair<Color, unsigned int> mode(std::vector<Color> colors, unsigned int max)
-{
-  std::vector<int> histogram(max, 0);
-  for(unsigned int i = 0; i < colors.size(); ++i)
-    ++histogram[colors[i]];
-  Color max_value = (Color) (std::max_element(histogram.begin(), histogram.end()) - histogram.begin());
-  unsigned int count = histogram[max_value];
-  return std::pair<Color, unsigned int>(max_value, count);
 }
 
 void BeaconDetector::detectTransitions(unsigned char* img, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y)
@@ -277,67 +395,6 @@ void BeaconDetector::detectTransitions(unsigned char* img, unsigned int min_x, u
       {
         transitions[idx(x, y)] = NO_TRANSITION;
       }
-    }
-  }
-}
-
-void drawPoint(unsigned char* img, int x, int y, Color c)
-{
-  img[idx(x, y) + 0] = c;
-}
-
-void drawLine(unsigned char* img, int x1, int y1, int x2, int y2, Color c)
-{
-  int delta_x(x2 - x1);
-  // if x1 == x2, then it does not matter what we set here
-  signed char const ix((delta_x > 0) - (delta_x < 0));
-  delta_x = std::abs(delta_x) << 1;
-
-  int delta_y(y2 - y1);
-  // if y1 == y2, then it does not matter what we set here
-  signed char const iy((delta_y > 0) - (delta_y < 0));
-  delta_y = std::abs(delta_y) << 1;
-
-  drawPoint(img, x1, y1, c);
-
-  if(delta_x >= delta_y)
-  {
-    // error may go below zero
-    int error(delta_y - (delta_x >> 1));
-
-    while(x1 != x2)
-    {
-      if((error >= 0) && (error || (ix > 0)))
-      {
-        error -= delta_x;
-        y1 += iy;
-      }
-      // else do nothing
-
-      error += delta_y;
-      x1 += ix;
-
-      drawPoint(img, x1, y1, c);
-    }
-  }
-  else
-  {
-    // error may go below zero
-    int error(delta_x - (delta_y >> 1));
-
-    while(y1 != y2)
-    {
-      if((error >= 0) && (error || (iy > 0)))
-      {
-        error -= delta_y;
-        x1 += ix;
-      }
-      // else do nothing
-
-      error += delta_x;
-      y1 += iy;
-
-      drawPoint(img, x1, y1, c);
     }
   }
 }

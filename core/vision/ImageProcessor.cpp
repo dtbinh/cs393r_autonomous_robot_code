@@ -127,8 +127,12 @@ void ImageProcessor::processFrame()
     return;
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 10);
-  
-  beacon_detector_->findBeacons(mergeblob);
+
+  if(camera_ == Camera::TOP)
+  {
+    beacon_detector_->findBeacons(getSegImg(), mergeblob);
+    detectGoal(getSegImg(), mergeblob);
+  }
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
@@ -151,7 +155,7 @@ void ImageProcessor::processFrame()
       ball->visionBearing = cmatrix_.bearing(p);
       ball->visionElevation = cmatrix_.elevation(p);
       ball->visionDistance = cmatrix_.groundDistance(p);
-      printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
+      // printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
 
       getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
       getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
@@ -162,64 +166,44 @@ void ImageProcessor::processFrame()
   }
 
   // detectBall();
-  // detectGoal();
   // findBeacons();
 
   delete mergeblob;
 }
 
-void ImageProcessor::detectGoal()
+void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
 {
-  Point2d point;
-  if(!findGoal(point))
-    return; // function defined elsewhere that fills in point.x, point.y by reference
   WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
 
-  goal->imageCenterX = point.x;
-  goal->imageCenterY = point.y;
-
-  Position p = cmatrix_.getWorldPosition(point.x, point.y);
-  goal->visionBearing = cmatrix_.bearing(p);
-  goal->visionElevation = cmatrix_.elevation(p);
-  goal->visionDistance = cmatrix_.groundDistance(p);
-
-  goal->seen = true;
-}
-
-bool ImageProcessor::findGoal(Point2d& point)
-{
-  double ball_cx = 0.0;
-  double ball_cy = 0.0;
-  double num_ball_hits = 0.0;
-  double min_goal_size = 500;
-  for(unsigned int x = 0; x < 320; x++)
+  unsigned int min_blob_size = 800;
+  for(int i = 0; i < mb->get_blob_number(); i++)
   {
-    for(unsigned int y = 0; y < 240; y++)
+    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
+    if(size > min_blob_size && mb->blob[i].color == c_BLUE && ar > 1.6 && ar < 3.0)
     {
-      unsigned int idx = 320 * y + x;
-      unsigned char color = getSegImg()[idx];
+      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
 
-      if(color == c_BLUE) //is goal colored
-      {
-        ball_cx += x;
-        ball_cy += y;
-        num_ball_hits += 1.0;
-      }
+      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+
+      unsigned int x = mb->blob[i].centroid_x;
+      unsigned int y = mb->blob[i].centroid_y;
+      goal->imageCenterX = x;
+      goal->imageCenterY = y;
+      float centroid_height = 200.0;
+      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+      goal->visionBearing = cmatrix_.bearing(p);
+      goal->visionElevation = cmatrix_.elevation(p);
+      goal->fromTopCamera = true;
+      goal->visionDistance = cmatrix_.groundDistance(p);
+      goal->seen = true;
     }
-  }
-
-  if(num_ball_hits < min_goal_size)
-  {
-    point.x = point.y = 0;
-    //printf("no goal hits\n");
-    return false;
-  }
-  else
-  {
-    point.x = (int) ball_cx / num_ball_hits;
-    point.y = (int) ball_cy / num_ball_hits;
-    //printf("goal at x=%d, y=%d\n", point.x, point.y);
-    return true;
   }
 }
 

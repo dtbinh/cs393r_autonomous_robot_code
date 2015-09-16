@@ -216,15 +216,21 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       Position bp = cmatrix_.getWorldPosition(bx, by);
       beacon->visionBearing = cmatrix_.bearing(p);
       beacon->visionElevation = cmatrix_.elevation(p);
-      if(beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)
-      {
-        float dist = cmatrix_.groundDistance(p);
-        beacon->visionDistance = dist; //dist*dist*0.0015+350;
-      }
-      else
-      {
-        beacon->visionDistance = (cmatrix_.groundDistance(bp)-700)*0.75+700;
-      }
+      // if(beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)
+      // {
+      //   float dist = cmatrix_.groundDistance(p);
+      //   beacon->visionDistance = dist; //dist*dist*0.0015+350;
+      // }
+      // else
+      // {
+      //   beacon->visionDistance = (cmatrix_.groundDistance(bp)-700)*0.75+700;
+      // }
+
+      float column_diameter = 110.0;
+      float column_height = 99.0;
+      float avg_width = (blobs[0]->boundingbox_length+blobs[1]->boundingbox_length)/2.0;
+      float avg_height = (blobs[0]->boundingbox_height+blobs[1]->boundingbox_height)/2.0;
+      beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
       printf("Found beacon %d at distance %g (%g)\n", beacon_type, beacon->visionDistance, cmatrix_.groundDistance(bp));///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;

@@ -128,43 +128,43 @@ void ImageProcessor::processFrame()
 
   mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 3);
 
-  detectBall(getSegImg(), mergeblob);
+  //detectBall(getSegImg(), mergeblob);
   if(camera_ == Camera::TOP)
   {
     beacon_detector_->findBeacons(getSegImg(), mergeblob);
     detectGoal(getSegImg(), mergeblob);
   }
 
-  // WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  // // printf("Found %d blobs\n", mergeblob.get_blob_number());
-  // for(int i = 0; i < mergeblob->get_blob_number(); i++)
-  // {
-  //   MergeBlob::Blob* blob = &mergeblob->blob[i];
-  //   if(blob->color == c_ORANGE)
-  //   {
-  //     // printf("Found orange blob\n");
-  //     // mergeblob.DisplayBlob(i);
-  //     findBall(blob);
+  // printf("Found %d blobs\n", mergeblob.get_blob_number());
+  for(int i = 0; i < mergeblob->get_blob_number(); i++)
+  {
+    MergeBlob::Blob* blob = &mergeblob->blob[i];
+    if(blob->color == c_ORANGE)
+    {
+      // printf("Found orange blob\n");
+      // mergeblob.DisplayBlob(i);
+      findBall(blob);
 
-  //     // for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
-  //     // {
-  //     //   getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
-  //     // }
+      // for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
+      // {
+      //   getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
+      // }
 
-  //     // Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
-  //     // ball->visionBearing = cmatrix_.bearing(p);
-  //     // ball->visionElevation = cmatrix_.elevation(p);
-  //     // ball->visionDistance = cmatrix_.groundDistance(p);
-  //     // // printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
+      // Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
+      // ball->visionBearing = cmatrix_.bearing(p);
+      // ball->visionElevation = cmatrix_.elevation(p);
+      // ball->visionDistance = cmatrix_.groundDistance(p);
+      // // printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
 
-  //     // getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
-  //     //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
-  //     //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_YELLOW;
-  //     //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x] = c_BLUE;
-  //     //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
-  //   }
-  // }
+      // getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
+      //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
+      //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_YELLOW;
+      //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x] = c_BLUE;
+      //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
+    }
+  }
 
   delete mergeblob;
 }
@@ -297,6 +297,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   int box_height = blob->boundingbox_height;
   int box_length = blob->boundingbox_length;
   int long_side = (box_length > box_height)? box_length : box_height;
+  int short_side = (box_length <= box_height)? box_length : box_height;
   int ball_pixels = blob->pixel_index_x[0];
 
   
@@ -305,21 +306,37 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   int real_centroid_y;
   int real_radius;
 
-  double box_ratio = (double)box_length / (double)box_height;
+  double box_ratio = (double)long_side / (double)short_side;
   double pixel_density = ball_pixels / ((box_height + 3)*(box_length + 1) / 8.0);
 
-  printf("box_length = %d , box_height = %d , pixel_density = %f \n", box_length , box_height ,  pixel_density );
+  printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
 
   //for(int i = 0 ; i < box_length; ++i)
 
   //drawLine(img, blob->boundingbox_vertex_x, blob->boundingbox_vertex_y, blob->boundingbox_vertex_x + box_length, blob->boundingbox_vertex_y, c_UNDEFINED);
-      //drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      //drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      //drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+  //drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+  //drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+  //drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+
+  if(camera_ == Camera::TOP)
+  {
+    if( box_height > 40 || box_length > 40)
+    {
+      printf("TOP camera: too big!");
+      return false;
+    }
+  }
+  else if(camera_ == Camera::BOTTOM)
+  {
+    if( box_height > 60 || box_length > 60)
+    {
+      printf("BOTTOM camera: too big!");
+      return false;
+    }
+  }
 
 
-
-  if( pixel_density < 0.65 ) 
+  if( pixel_density < 0.60 ) 
   {
     printf("not a ball  box_ratio = %f\n" , box_ratio);
     return false;
@@ -328,6 +345,11 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   {
     printf("a rectangle\n");
     return false;
+  }
+
+  for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
+  {
+    getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
   }
 
    

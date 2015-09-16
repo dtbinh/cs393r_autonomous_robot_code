@@ -328,6 +328,10 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     {
       return false;
     }
+    else if( blob->centroid_y < 80)
+    {
+      return false;
+    }
   }
   else if(camera_ == Camera::BOTTOM)
   {
@@ -339,7 +343,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   }
 
 
-  if( pixel_density < 0.7 || pixel_density > 0.9) 
+  if( pixel_density < 0.65 || pixel_density > 0.9) 
   {
     //printf("not a ball  box_ratio = %f\n" , box_ratio);
     return false;
@@ -357,17 +361,8 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
 
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  unsigned int x = blob->centroid_x;
-  unsigned int y = blob->centroid_y;
-  ball->imageCenterX = x;
-  ball->imageCenterY = y;
-  Position p = cmatrix_.getWorldPosition(x, y, 20);
-  ball->visionBearing = cmatrix_.bearing(p);
-  ball->visionElevation = cmatrix_.elevation(p);
-  ball->fromTopCamera = (camera_ == Camera::TOP);
-  //ball->fromBottomCamera = (camera == Camera :: BOTTOM);
-  ball->visionDistance = cmatrix_.groundDistance(p);
-  ball->seen = true;
+  
+  
 
   //Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
   //double distance = cmatrix_.groundDistance(p);
@@ -381,7 +376,12 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);
       real_radius = (box_length + box_height) / 4;
 
-      printf("A ball real_centroid_x=%d,real_centroid_y=%d, real_radius=%d \n", real_centroid_x, real_centroid_y, real_radius);
+      if(real_radius < 4)
+      {
+        return false;
+      }
+
+      //printf("A ball real_centroid_x=%d,real_centroid_y=%d, real_radius=%d \n", real_centroid_x, real_centroid_y, real_radius);
       getSegImg()[320*real_centroid_y + real_centroid_x] = c_UNDEFINED;
   }
   else
@@ -464,6 +464,17 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     // real_radius = sqrt((real_centroid_x-x1)*(real_centroid_x-x1) + (real_centroid_y-y1)*(real_centroid_y-y1));
   }
 
+  unsigned int x = real_centroid_x;
+  unsigned int y = real_centroid_y;
+  ball->imageCenterX = x;
+  ball->imageCenterY = y;
+  Position p = cmatrix_.getWorldPosition(x, y, 20);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->fromTopCamera = (camera_ == Camera::TOP);
+  //ball->fromBottomCamera = (camera == Camera :: BOTTOM);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+  ball->seen = true;
   ball->radius = real_radius;
 
 

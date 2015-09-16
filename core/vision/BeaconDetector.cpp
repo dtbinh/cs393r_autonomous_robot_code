@@ -40,10 +40,22 @@ inline bool stacked(MergeBlob::Blob* b1, MergeBlob::Blob* b2, unsigned int touch
     b2->beacon_candidate = false;
     return false;
   }
+  if(b1_y_min < b2_y_min && b1_y_max > b2_y_max)
+  {
+    //b2 is enclosed in y
+    // b2->beacon_candidate = false;
+    return false;
+  }
   if(b2_y_min < b1_y_min && b2_y_max > b1_y_max && b2_x_min < b1_x_min && b2_x_max > b1_x_max)
   {
     //b1 is enclosed
     b1->beacon_candidate = false;
+    return false;
+  }
+  if(b2_y_min < b1_y_min && b2_y_max > b1_y_max)
+  {
+    //b1 is enclosed in y
+    // b1->beacon_candidate = false;
     return false;
   }
 
@@ -60,12 +72,12 @@ inline bool stacked(MergeBlob::Blob* b1, MergeBlob::Blob* b2, unsigned int touch
   }
 
   //test dimension matching
-  unsigned int height_diff_threshold = 10;
-  unsigned int length_diff_threshold = 12;
-  if(fabs(b1->boundingbox_height - b2->boundingbox_height) > height_diff_threshold || fabs(b1->boundingbox_length - b2->boundingbox_length) > length_diff_threshold)
-  {
-    return false;
-  }
+  // unsigned int height_diff_threshold = 10;
+  // unsigned int length_diff_threshold = 15;
+  // if(fabs(b1->boundingbox_height - b2->boundingbox_height) > height_diff_threshold || fabs(b1->boundingbox_length - b2->boundingbox_length) > length_diff_threshold)
+  // {
+  //   return false;
+  // }
 
   return true;
 }
@@ -144,26 +156,44 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
 void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
 {
   std::vector<MergeBlob::Blob*> relevant_blobs;
-  unsigned int min_blob_size = 225;
-  unsigned int min_point_count = 23;
+  unsigned int min_blob_size = 120;
+  // unsigned int min_point_count = 16;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
     unsigned int blob_points = mb->blob[i].pixel_index_x[0];
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double density = (double) blob_points * 8.0 / (double) size;
     double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && blob_points > min_point_count && ar > 0.5 && ar < 1.5 && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
+    if(size > min_blob_size && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
     {
       relevant_blobs.push_back(&mb->blob[i]);
 
-      // unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
-      // unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-      // unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
-      // unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+      if(ar < 0.5 || ar > 1.5 || density < 0.7)
+      {
+        relevant_blobs[relevant_blobs.size()-1]->beacon_candidate = false;
 
-      // drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      // drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      // drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      // drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+        // unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+        // unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+        // unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+        // unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+        // drawLine(img, bx_min, by_min, bx_max, by_min, c_ROBOT_WHITE);
+        // drawLine(img, bx_min, by_max, bx_max, by_max, c_ROBOT_WHITE);
+        // drawLine(img, bx_min, by_min, bx_min, by_max, c_ROBOT_WHITE);
+        // drawLine(img, bx_max, by_min, bx_max, by_max, c_ROBOT_WHITE);
+      }
+      // else
+      // {
+      //   unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      //   unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      //   unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      //   unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+      //   drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+      // }
     }
   }
 
@@ -176,7 +206,7 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       {
         continue;
       }
-      if(stacked(relevant_blobs[i], relevant_blobs[j])) //todo: figure out why this is backwards
+      if(stacked(relevant_blobs[i], relevant_blobs[j], 10)) //todo: figure out why this is backwards
       {
         relevant_blobs[j]->blobs_connected_to_top.push_back(relevant_blobs[i]);
         relevant_blobs[i]->blobs_connected_to_bottom.push_back(relevant_blobs[j]);
@@ -231,7 +261,8 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       float avg_width = (blobs[0]->boundingbox_length+blobs[1]->boundingbox_length)/2.0;
       float avg_height = (blobs[0]->boundingbox_height+blobs[1]->boundingbox_height)/2.0;
       beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
-      printf("Found beacon %d at distance %g (%g)\n", beacon_type, beacon->visionDistance, cmatrix_.groundDistance(bp));///////////////////////////////
+      beacon->visionDistance = (beacon->visionDistance-500)*0.9+500;
+      printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;
 

@@ -225,7 +225,7 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       {
         beacon->visionDistance = (cmatrix_.groundDistance(bp)-700)*0.75+700;
       }
-      // printf("Found beacon %d at distance %g (%g)\n", beacon_type, beacon->visionDistance, cmatrix_.groundDistance(bp));
+      //printf("Found beacon %d at distance %g (%g)\n", beacon_type, beacon->visionDistance, cmatrix_.groundDistance(bp));///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;
 

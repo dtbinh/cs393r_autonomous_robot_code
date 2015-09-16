@@ -135,7 +135,6 @@ void ImageProcessor::processFrame()
     detectGoal(getSegImg(), mergeblob);
   }
 
-   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
   // printf("Found %d blobs\n", mergeblob.get_blob_number());
   for(int i = 0; i < mergeblob->get_blob_number(); i++)
@@ -309,7 +308,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   double box_ratio = (double)long_side / (double)short_side;
   double pixel_density = ball_pixels / ((box_height + 3)*(box_length + 1) / 8.0);
 
-  printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
+  //printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
 
   //for(int i = 0 ; i < box_length; ++i)
 
@@ -322,7 +321,11 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   {
     if( box_height > 40 || box_length > 40)
     {
-      printf("TOP camera: too big!");
+      //printf("TOP camera: too big!");
+      return false;
+    }
+    else if( box_height < 4 || box_length < 4)
+    {
       return false;
     }
   }
@@ -330,20 +333,20 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   {
     if( box_height > 60 || box_length > 60)
     {
-      printf("BOTTOM camera: too big!");
+      //printf("BOTTOM camera: too big!");
       return false;
     }
   }
 
 
-  if( pixel_density < 0.60 ) 
+  if( pixel_density < 0.7 || pixel_density > 0.9) 
   {
-    printf("not a ball  box_ratio = %f\n" , box_ratio);
+    //printf("not a ball  box_ratio = %f\n" , box_ratio);
     return false;
   }
   else if( box_ratio >  1.5 )
   {
-    printf("a rectangle\n");
+    //printf("a rectangle\n");
     return false;
   }
 
@@ -352,10 +355,22 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
   }
 
-   
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
-  Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
-  double distance = cmatrix_.groundDistance(p);
+  unsigned int x = blob->centroid_x;
+  unsigned int y = blob->centroid_y;
+  ball->imageCenterX = x;
+  ball->imageCenterY = y;
+  Position p = cmatrix_.getWorldPosition(x, y, 20);
+  ball->visionBearing = cmatrix_.bearing(p);
+  ball->visionElevation = cmatrix_.elevation(p);
+  ball->fromTopCamera = (camera_ == Camera::TOP);
+  //ball->fromBottomCamera = (camera == Camera :: BOTTOM);
+  ball->visionDistance = cmatrix_.groundDistance(p);
+  ball->seen = true;
+
+  //Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
+  //double distance = cmatrix_.groundDistance(p);
 
   //int theoretical_long_side_pixels = (10000/distance);
   //if(long_side < 0.67*theoretical_long_side_pixels || long_side > 1.33*theoretical_long_side_pixels) return false;
@@ -449,6 +464,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     // real_radius = sqrt((real_centroid_x-x1)*(real_centroid_x-x1) + (real_centroid_y-y1)*(real_centroid_y-y1));
   }
 
+  ball->radius = real_radius;
 
 
   // double ball_cx = 0.0;

@@ -155,15 +155,15 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
     {
       relevant_blobs.push_back(&mb->blob[i]);
 
-      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
-      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
-      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+      // unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      // unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      // unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      // unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
 
-      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+      // drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      // drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      // drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      // drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
     }
   }
 

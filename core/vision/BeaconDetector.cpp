@@ -59,6 +59,14 @@ inline bool stacked(MergeBlob::Blob* b1, MergeBlob::Blob* b2, unsigned int touch
     return false;
   }
 
+  //test dimension matching
+  unsigned int height_diff_threshold = 30;
+  unsigned int length_diff_threshold = 30;
+  if(fabs(b1->boundingbox_height - b2->boundingbox_height) > height_diff_threshold || fabs(b1->boundingbox_length - b2->boundingbox_length) > length_diff_threshold)
+  {
+    return false;
+  }
+
   return true;
 }
 
@@ -79,30 +87,8 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
     return false;
   }
 
-  // if(blobs.size() == 0) 
-  // {
-  //   //first in the chain must be white
-  //   if(blob->color != c_WHITE)
-  //   {
-  //     return false;
-  //   }
-  // }
-  // else if(blobs.size() == 1)
-  // {
-  //   if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
-  //   {
-  //     return false;
-  //   }
-  // }
-  // else 
   if(blobs.size() == 1)
   {
-    // if(!(blob->color == c_BLUE || blob->color == c_YELLOW || blob->color == c_PINK))
-    // {
-    //   return false;
-    // }
-
-    //have two (and not three) valid colors stacked on top of white!
     if(blob->blobs_connected_to_top.size() == 0)
     {
       if(blob->color == c_PINK && last_color == c_BLUE)
@@ -139,11 +125,6 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
       return false;
     }
   }
-  // else
-  // {
-  //   //too many colors 
-  //   return false;
-  // }
 
   blobs.push_back(blob);
   last_color = (Color) blob->color;
@@ -168,7 +149,7 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
   {
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = mb->blob[i].boundingbox_length / mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
+    if(size > min_blob_size && ar > 0.75 && ar < 2.0 && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
     {
       relevant_blobs.push_back(&mb->blob[i]);
 

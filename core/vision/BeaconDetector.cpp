@@ -144,8 +144,8 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
 void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
 {
   std::vector<MergeBlob::Blob*> relevant_blobs;
-  unsigned int min_blob_size = 200;
-  unsigned int min_point_count = 20;
+  unsigned int min_blob_size = 225;
+  unsigned int min_point_count = 23;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
     unsigned int blob_points = mb->blob[i].pixel_index_x[0];
@@ -155,15 +155,15 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
     {
       relevant_blobs.push_back(&mb->blob[i]);
 
-      // unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
-      // unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-      // unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
-      // unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
 
-      // drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      // drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      // drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      // drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
     }
   }
 
@@ -211,15 +211,15 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       WorldObject* beacon = &vblocks_.world_object->objects_[beacon_type];
       beacon->imageCenterX = x;
       beacon->imageCenterY = y;
-      float centroid_height = ((beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)? 290.0 : 265.0);
+      float centroid_height = ((beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)? 300.0 : 100.0);
       Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
       Position bp = cmatrix_.getWorldPosition(bx, by);
       beacon->visionBearing = cmatrix_.bearing(p);
       beacon->visionElevation = cmatrix_.elevation(p);
       if(beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)
       {
-        float dist = cmatrix_.groundDistance(bp);
-        beacon->visionDistance = dist*dist*0.0015+350;
+        float dist = cmatrix_.groundDistance(p);
+        beacon->visionDistance = dist; //dist*dist*0.0015+350;
       }
       else
       {

@@ -145,11 +145,13 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
 {
   std::vector<MergeBlob::Blob*> relevant_blobs;
   unsigned int min_blob_size = 200;
+  unsigned int min_point_count = 20;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
+    unsigned int blob_points = mb->blob[i].pixel_index_x[0];
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && ar > 0.5 && ar < 2.5 && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
+    if(size > min_blob_size && blob_points > min_point_count && ar > 0.5 && ar < 1.5 && (mb->blob[i].color == c_ORANGE || mb->blob[i].color == c_YELLOW || mb->blob[i].color == c_BLUE || mb->blob[i].color == c_PINK))
     {
       relevant_blobs.push_back(&mb->blob[i]);
 

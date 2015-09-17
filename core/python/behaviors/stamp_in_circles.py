@@ -1,12 +1,13 @@
-import memory, pose, commands, cfgstiff
+import memory, pose, commands, cfgstiff, math
 from task import Task
 from state_machine import *
 
+direction = 1.
+last_direction_change_time = 0.
 class Ready(Task):
   def run(self):
     commands.standStraight()
     if self.getTime() > 5.0:
-      memory.speech.say("ready to play")
       self.finish()
 
 class Playing(StateMachine):
@@ -14,20 +15,18 @@ class Playing(StateMachine):
     def run(self):
       commands.stand()
       if self.getTime() > 5.0:
-        memory.speech.say("playing stand complete")
         self.finish()
-
-  class Walk(Node):
-    def run(self):
-      commands.setWalkVelocity(0.5,0,0)
 
   class TurnInPlace(Node):
     def run(self):
-      commands.setWalkVelocity(0,0,0.5)
-
-  class Curve(Node):
-    def run(self):
-      commands.setWalkVelocity(0.5,0,0.25)
+      global direction, last_direction_change_time
+      turn_amount = 2.0*math.pi
+      turn_vel = 0.2
+      turn_time = turn_amount / turn_vel
+      commands.setWalkVelocity(0, 0, turn_vel * direction)
+      if((self.getTime() - last_direction_change_time) > turn_time):
+        direction = direction * -1.0
+        last_direction_change_time = self.getTime()
 
   class Off(Node):
     def run(self):
@@ -38,12 +37,8 @@ class Playing(StateMachine):
 
   def setup(self):
     stand = self.Stand()
-    walk = self.Walk()
     tip = self.TurnInPlace()
-    curve = self.Curve()
     sit = pose.Sit()
     off = self.Off()
-    #self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
-  
-    self.trans(stand, C, tip, T(5.0))
+    self.trans(stand, C, tip, C, sit, C, off)
 

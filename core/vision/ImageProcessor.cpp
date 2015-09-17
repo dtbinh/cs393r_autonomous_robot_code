@@ -146,17 +146,6 @@ void ImageProcessor::processFrame()
       // mergeblob.DisplayBlob(i);
       findBall(blob);
 
-      // for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
-      // {
-      //   getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
-      // }
-
-      // Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
-      // ball->visionBearing = cmatrix_.bearing(p);
-      // ball->visionElevation = cmatrix_.elevation(p);
-      // ball->visionDistance = cmatrix_.groundDistance(p);
-      // // printf("Found orange blob at img_x=%d,img_y=%d, raw_dist=%g , num_pixel=%d\n", blob->centroid_x, blob->centroid_y, ball->visionDistance, blob->pixel_index_x[0]);
-
       // getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
       //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
       //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_YELLOW;
@@ -172,12 +161,12 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
 {
   WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
 
-  unsigned int min_blob_size = 8000;
+  unsigned int min_blob_size = 3500;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
     unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && mb->blob[i].color == c_BLUE && ar > 1.25 && ar < 4.0)
+    if(size > min_blob_size && mb->blob[i].color == c_BLUE && ar > 1.2 && ar < 4)
     {
       unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
       unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
@@ -193,13 +182,15 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
       unsigned int y = mb->blob[i].centroid_y;
       goal->imageCenterX = x;
       goal->imageCenterY = y;
-      float centroid_height = 200.0;
+      float centroid_height = 210.0;
       Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
       goal->visionBearing = cmatrix_.bearing(p);
       goal->visionElevation = cmatrix_.elevation(p);
       goal->fromTopCamera = true;
       goal->visionDistance = cmatrix_.groundDistance(p);
       goal->seen = true;
+
+      printf("found at goal : length = %d, height = %d , size = %d , Distance = %f\n", mb->blob[i].boundingbox_length, mb->blob[i].boundingbox_height , size , goal->visionDistance);
     }
   }
 }
@@ -281,7 +272,7 @@ void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
       ball->fromTopCamera = (camera_ == Camera::TOP);
       ball->visionDistance = cmatrix_.groundDistance(p);
       ball->seen = true;
-      // printf("found at %d,%d", x, y);
+      //printf("found at goal %d,%d", x, y);
     }
   }
 }
@@ -310,12 +301,6 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
 
   //printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
 
-  //for(int i = 0 ; i < box_length; ++i)
-
-  //drawLine(img, blob->boundingbox_vertex_x, blob->boundingbox_vertex_y, blob->boundingbox_vertex_x + box_length, blob->boundingbox_vertex_y, c_UNDEFINED);
-  //drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-  //drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-  //drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
 
   if(camera_ == Camera::TOP)
   {

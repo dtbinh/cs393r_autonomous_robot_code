@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <sys/time.h>
-
+#include <common/Enum.h>
 #include <constants/ImageConstants.h>
 
 #define FUNCTION_IS_NOT_USED __attribute__ ((unused))
@@ -34,6 +34,13 @@
 #define SIM_IMAGE_SIZE (SIM_IMAGE_X * SIM_IMAGE_Y * 3)
 
 #define NUM_SONAR_VALS 10
+
+ENUM_CLASS(SupportBase,
+  SensorFoot,
+  LeftFoot,
+  RightFoot,
+  TorsoBase
+);
 
 enum Joint {
   HeadYaw,

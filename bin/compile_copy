@@ -27,6 +27,9 @@ def getIP(args):
       pass
   return ip,args
 
+def filterCompileArgs(args):
+  return [a for a in args if a not in ['kicks','config_file']]
+
 def filterCopyArgs(args):
   newArgs = []
   for arg in args:
@@ -42,15 +45,18 @@ def main():
   args = sys.argv[1:]
   ip,args = getIP(args)
 
-  compileCommand = ['./compile'] + args
-  print ' '.join(compileCommand)
-  sysCall(compileCommand,'ERROR: Compile failed, not performing copy',shell=False)
+  compileArgs = filterCompileArgs(args)
+  if compileArgs:
+    compileCommand = ['./compile'] + compileArgs
+    print ' '.join(compileCommand)
+    sysCall(compileCommand,'ERROR: Compile failed, not performing copy',shell=False)
 
   copyArgs = filterCopyArgs(args)
-  copyCommand = ['./copy_robot'] + copyArgs
-  if ip: copyCommand += [ip]
-  print ' '.join(copyCommand)
-  sysCall(copyCommand,'ERROR: Copy failed',shell=False)
+  if copyArgs:
+    copyCommand = ['./copy_robot'] + copyArgs
+    if ip: copyCommand += [ip]
+    print ' '.join(copyCommand)
+    sysCall(copyCommand,'ERROR: Copy failed',shell=False)
 
 if __name__ == '__main__':
   main()

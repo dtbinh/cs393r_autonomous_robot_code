@@ -1,5 +1,4 @@
-#ifndef ENUM_H_D82U9SWU
-#define ENUM_H_D82U9SWU
+#pragma once
 
 /*
 * @file Tools/Enum.h
@@ -51,7 +50,8 @@ public:
   * @param index The index of the enum element.
   * @return Its name.
   */
-  const char* getName(size_t e) {return e >= names.size() ? 0 : names[e].c_str();}
+  const char* getName(size_t e) { return valid(e) ? names[e].c_str() : 0; }
+  bool valid(size_t e) { return e < names.size(); } 
   size_t fromName(const char* s) { 
     for(int i = 0; i < names.size(); i++)
       if(names[i] == s)
@@ -78,5 +78,27 @@ public:
     return fromName_##Enum(s.c_str()); \
   } \
 
-#endif /* end of include guard: ENUM_H_D82U9SWU */
-
+#ifndef SWIG
+#define ENUM_CLASS(Enum, ...) \
+enum class Enum {__VA_ARGS__, NUM_##Enum##s}; \
+class Enum##Methods { \
+  public:\
+    inline static const char* getName(Enum e) { \
+      static EnumName en(#__VA_ARGS__, (size_t) Enum::NUM_##Enum##s); \
+      return en.getName((size_t)e); \
+    } \
+    inline static Enum fromName(const char* s) { \
+      static EnumName en(#__VA_ARGS__, (size_t) Enum::NUM_##Enum##s); \
+      return (Enum)en.fromName(s); \
+    } \
+    inline static Enum fromName(const std::string& s) { \
+      return fromName(s.c_str()); \
+    } \
+    inline static bool valid(Enum e) { \
+      static EnumName en(#__VA_ARGS__, (size_t) Enum::NUM_##Enum##s); \
+      return en.valid((size_t)e); \
+    } \
+};
+#else
+#define ENUM_CLASS(...)
+#endif

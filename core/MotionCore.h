@@ -61,13 +61,13 @@ public:
   bool use_com_kick_;
 
   KinematicsModule *kinematics_;
-  KickModule *kick_;
   MotionModule *motion_;
   SensorModule *sensor_;
   SonarModule *sonar_;
   GetupModule *getup_;
   SpecialMotionModule *specialM_;
   WalkModule *walk_;
+  KickModule *kick_;
 
   TextLogger textlog_;
 

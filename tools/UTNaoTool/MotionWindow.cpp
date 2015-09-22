@@ -1,33 +1,17 @@
-#include <QtGui>
-#include "MotionWindow.h"
+#include <tool/MotionWindow.h>
 
-//#include "../../core/common/Common.h"
 using namespace std;
 
-MotionWindow::MotionWindow() : QWidget() {
-  QGridLayout *layout = new QGridLayout;
-
-  robot_=new MotionWidget(this);
- 
-  layout->addWidget(robot_, 0, 0, 5, 8);
-        
-  setLayout(layout);
-  resize(1000,600);
-  setWindowTitle(tr("Motion System"));
-
-  connect(robot_, SIGNAL(modeChanged(QString)), this, SLOT(updateTitle(QString)));
+MotionWindow::MotionWindow(QMainWindow* pa) : ConfigWindow(pa) {
+  setupUi(this);
+  connect(keyframes_, SIGNAL(playingSequence(const Keyframe&, const Keyframe&, int)), motion_, SLOT(drawSequence(const Keyframe&, const Keyframe&, int)));
+  connect(keyframes_, SIGNAL(showingKeyframe(const Keyframe&)), motion_, SLOT(drawKeyframe(const Keyframe&)));
+  connect(keyframes_, SIGNAL(updatedSupportBase(SupportBase)), motion_, SLOT(setSupportBase(SupportBase)));
 }
 
-MotionWindow::~MotionWindow() {
-  delete robot_;
-}
-
-
-void MotionWindow::update(Memory* mem) {
-  robot_->updateMemory(mem);
-  robot_->update();
-}
-
-void MotionWindow::updateTitle(QString ti) {
-  setWindowTitle("Motion System - "+ti);
+void MotionWindow::updateMemory(Memory* mem) {
+  motion_->updateMemory(mem);
+  motion_->update();
+  cache_ = MemoryCache::read(mem);
+  keyframes_->updateMemory(cache_);
 }

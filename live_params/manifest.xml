@@ -11,6 +11,10 @@
   <depend package="roscpp"/>
   <depend package="roslib"/>
 
+  <export>
+    <cpp cflags="-std=c++11 -I${prefix}/include/" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib" />
+  </export>
+
 </package>
 
 

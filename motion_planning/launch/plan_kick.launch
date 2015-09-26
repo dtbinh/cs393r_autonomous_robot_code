@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="/robot_description" textfile="$(find motion_planning)/nao.urdf"/>
+  
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <remap from="joint_states" to="/joint_states" />
+  </node>
+  
+  <node pkg="motion_planning" type="plan_kick" name="plan_kick">
+  </node>
+</launch>

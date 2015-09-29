@@ -6,7 +6,7 @@ namespace motion_planning
       m_nh(nh)
   {
     m_nh.param("loop_rate", m_frame_rate, 30.0);
-    m_nh.param("lift_height", m_lift_height, 0.025);
+    m_nh.param("lift_height", m_lift_height, 0.035);
     m_nh.param("kick_time", m_kick_time, 0.5);
     m_nh.param("kick_dist", m_kick_dist, 0.1);
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
@@ -53,7 +53,7 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 2.5);
+    planMove(0.0, -foot_separation, 0.0, 0.025, 0.005, 2.5);
     std::cerr << "Planning lift" << std::endl;
     planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 1.5);
     // std::cerr << "Planning kick" << std::endl;

@@ -53,16 +53,16 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.025, 0.0, 2.0);
-    // std::cerr << "Planning lift" << std::endl;
-    // planMove(0.0, -foot_separation, m_lift_height, 0.5, 0.025, 0.0, 6.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.03, 0.0, 2.0);
+    std::cerr << "Planning lift" << std::endl;
+    planMove(0.0, -foot_separation, m_lift_height, 0.1, 0.03, 0.0, 2.0);
     // std::cerr << "Planning lift 2" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.0, 0.025, 0.0, 2.0);
     std::cerr << "Planning kick" << std::endl;
-    planMove(m_kick_dist, -foot_separation, m_lift_height, 0.0, 0.05, -0.05, m_kick_time);
+    planMove(m_kick_dist, -foot_separation, m_lift_height, -0.3, 0.03, 0, 0.5);
 
     std::cerr << "Planning lunge" << std::endl;
-    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.05, -0.05, 0.25);
+    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.03, 0, 0.5);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);

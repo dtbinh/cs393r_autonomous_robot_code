@@ -10,9 +10,9 @@ namespace motion_planning
     m_nh.param("kick_time", m_kick_time, 0.25);
     m_nh.param("kick_dist", m_kick_dist, 0.1);
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
-
+                                      
     std::string joint_string =       "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
-    std::string initial_pos_string = "      0,         0,            0,        0,      -0.1,        0.1,        -0.1,          0,            0,        0,      -0.1,        0.1,        -0.1,          0,            1.4,             0,         0,          0,            1.4,             0,         0,          0,         0,     0,         0,     0";
+    std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.15,         0,          0,            1.4,          0.15,         0,          0,         0,     0,         0,     0";
     m_joint_names = matec_utils::parameterStringToStringVector(joint_string);
     std::string urdf_path = ros::package::getPath("motion_planning") + "/nao.urdf";
     m_urdf_model.initFile(urdf_path);

@@ -55,7 +55,7 @@ namespace motion_planning
     std::cerr << "Planning shift" << std::endl;
     planMove(0.0, -foot_separation, 0.0, 0.025, 0.005, 2.5);
     std::cerr << "Planning lift" << std::endl;
-    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 1.5);
+    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.005, 1.5);
     // std::cerr << "Planning kick" << std::endl;
     // planMove(m_kick_dist, -foot_separation, m_lift_height, 0.025, 0.0, m_kick_time);
 

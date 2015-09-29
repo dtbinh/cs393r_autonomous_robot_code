@@ -10,6 +10,8 @@
 #include <tf/transform_broadcaster.h>
 #include <matec_msgs/Odometry.h>
 #include <matec_utils/string_parameter_parsers.h>
+#include <iostream>
+#include <fstream>
 
 namespace motion_planning
 {
@@ -27,6 +29,7 @@ namespace motion_planning
     double m_lift_height;
     double m_retract_dist;
     double m_kick_dist;
+    std::string m_kick_filename;
 
     ros::Publisher m_com_pub;
     ros::Publisher m_js_pub;
@@ -51,6 +54,7 @@ namespace motion_planning
     void comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, matec_utils::Matrix& jacobian);
     void comRecursive(boost::shared_ptr<dynamics_tree::DynamicsTreeNode> node);
     void planPose(std::vector<double> initial, std::vector<double>& final, double foot_x, double foot_y, double foot_z, double com_x, double com_y, double dt, int maxiter = 1000);
+    void exportKick(std::string filename);
   };
 }
 

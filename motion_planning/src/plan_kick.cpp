@@ -9,6 +9,7 @@ namespace motion_planning
     m_nh.param("lift_height", m_lift_height, 0.02);
     m_nh.param("retract_dist", m_retract_dist, 0.02);
     m_nh.param("kick_dist", m_kick_dist, 0.1);
+    m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
 
     std::string joint_string = "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, LWristYaw, LHand, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, RWristYaw, RHand";
     std::string initial_pos_string = "      0,         0,            0,        0,         0,          0,           0,          0,            0,        0,         0,          0,           0,          0,         1.4,             0,         0,          0,         0,     0,         1.4,             0,         0,          0,         0,     0";
@@ -49,7 +50,7 @@ namespace motion_planning
     std::cerr << "Planning shift" << std::endl;
     planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 1.0);
     std::cerr << "Planning lift" << std::endl;
-    planMove( 0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.75);
+    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.75);
     std::cerr << "Planning kick" << std::endl;
     planMove(m_kick_dist, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);
 
@@ -59,6 +60,8 @@ namespace motion_planning
     planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 0.5);
     std::cerr << "Planning balance" << std::endl;
     planMove(0.0, -foot_separation, 0.0, 0.025, -0.05, 0.5);
+
+    exportKick(m_kick_filename);
   }
 
   PlanKick::~PlanKick()
@@ -298,6 +301,47 @@ namespace motion_planning
       m_joint_plan.push_back(next_positions);
     }
     std::cerr << std::endl;
+  }
+
+  void PlanKick::exportKick(std::string filename)
+  {
+    std::ofstream data_file;
+    data_file.open(filename.c_str());
+
+    //write joints
+    data_file << "names = [";
+    for(unsigned int i = 0; i < m_joint_names.size(); i++)
+    {
+      if(i != 0)
+      {
+        data_file << ", ";
+      }
+      data_file << "'" << m_joint_names.at(i) << "'";
+    }
+    data_file << "]" << std::endl;
+
+    data_file << "trajectory = [";
+    for(unsigned int i = 0; i < m_joint_plan.size(); i++)
+    {
+      if(i != 0)
+      {
+        data_file << ", ";
+      }
+      data_file << "[";
+      for(unsigned int j = 0; j < m_joint_names.size(); j++)
+      {
+        if(j != 0)
+        {
+          data_file << ", ";
+        }
+        data_file << m_joint_plan[i][j];
+      }
+      data_file << "]";
+    }
+    data_file << "]" << std::endl;
+
+    data_file.close();
+    std::cerr << "Wrote trajectory to " << filename << std::endl;
   }
 
   void PlanKick::spin()

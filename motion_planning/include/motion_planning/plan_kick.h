@@ -27,7 +27,7 @@ namespace motion_planning
     double m_frame_rate;
 
     double m_lift_height;
-    double m_retract_dist;
+    double m_kick_time;
     double m_kick_dist;
     std::string m_kick_filename;
 

@@ -12,7 +12,7 @@
     <child link="Neck"/>
     <origin rpy="0 0 0" xyz="0 0 0.1265"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="1.0"/>
+    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="1.25"/>
   </joint>
   <link name="Neck">
     <inertial>
@@ -38,7 +38,7 @@
     <child link="Head"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="1.532" lower="-0.671952" upper="0.514872" velocity="1.0"/>
+    <limit effort="1.532" lower="-0.671952" upper="0.514872" velocity="1.25"/>
   </joint>
   <link name="Head">
     <inertial>
@@ -64,7 +64,7 @@
     <child link="LPelvis"/>
     <origin rpy="0 0 0" xyz="0 0.05 -0.085"/>
     <axis xyz="0 0.707106 -0.707106"/>
-    <limit effort="3.348" lower="-1.14529" upper="0.740718" velocity="1.0"/>
+    <limit effort="3.348" lower="-1.14529" upper="0.740718" velocity="1.75"/>
   </joint>
   <link name="LPelvis">
     <inertial>
@@ -90,7 +90,7 @@
     <child link="LHip"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="3.348" lower="-0.379435" upper="0.79046" velocity="1.0"/>
+    <limit effort="3.348" lower="-0.379435" upper="0.79046" velocity="1.75"/>
   </joint>
   <link name="LHip">
     <inertial>
@@ -116,7 +116,7 @@
     <child link="LThigh"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.023" lower="-1.53589" upper="0.48398" velocity="1.0"/>
+    <limit effort="3.023" lower="-1.53589" upper="0.48398" velocity="1.75"/>
   </joint>
   <link name="LThigh">
     <inertial>
@@ -142,7 +142,7 @@
     <child link="LTibia"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.023" lower="-0.0923279" upper="2.11255" velocity="1.0"/>
+    <limit effort="3.023" lower="-0.0923279" upper="2.11255" velocity="1.75"/>
   </joint>
   <link name="LTibia">
     <inertial>
@@ -168,7 +168,7 @@
     <child link="LAnklePitch"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1029"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.023" lower="-1.18944" upper="0.922581" velocity="1.0"/>
+    <limit effort="3.023" lower="-1.18944" upper="0.922581" velocity="1.75"/>
   </joint>
   <link name="LAnklePitch">
     <inertial>
@@ -194,7 +194,7 @@
     <child link="l_ankle"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="3.348" lower="-0.397761" upper="0.768992" velocity="1.0"/>
+    <limit effort="3.348" lower="-0.397761" upper="0.768992" velocity="1.75"/>
   </joint>
   <link name="l_ankle">
     <inertial>
@@ -220,7 +220,7 @@
     <child link="RPelvis"/>
     <origin rpy="0 0 0" xyz="0 -0.05 -0.085"/>
     <axis xyz="0 0.707106 0.707106"/>
-    <limit effort="3.348" lower="-1.14529" upper="0.740718" velocity="1.0"/>
+    <limit effort="3.348" lower="-1.14529" upper="0.740718" velocity="1.75"/>
     <mimic joint="LHipYawPitch" multiplier="1.0" offset="0"/>
   </joint>
   <link name="RPelvis">
@@ -247,7 +247,7 @@
     <child link="RHip"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="3.348" lower="-0.79046" upper="0.379435" velocity="1.0"/>
+    <limit effort="3.348" lower="-0.79046" upper="0.379435" velocity="1.75"/>
   </joint>
   <link name="RHip">
     <inertial>
@@ -273,7 +273,7 @@
     <child link="RThigh"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.0226" lower="-1.53589" upper="0.48398" velocity="1.0"/>
+    <limit effort="3.0226" lower="-1.53589" upper="0.48398" velocity="1.75"/>
   </joint>
   <link name="RThigh">
     <inertial>
@@ -299,7 +299,7 @@
     <child link="RTibia"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.0226" lower="-0.0923279" upper="2.11255" velocity="1.0"/>
+    <limit effort="3.0226" lower="-0.0923279" upper="2.11255" velocity="1.75"/>
   </joint>
   <link name="RTibia">
     <inertial>
@@ -325,7 +325,7 @@
     <child link="RAnklePitch"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1029"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.0226" lower="-1.1863" upper="0.932006" velocity="1.0"/>
+    <limit effort="3.0226" lower="-1.1863" upper="0.932006" velocity="1.75"/>
   </joint>
   <link name="RAnklePitch">
     <inertial>
@@ -351,7 +351,7 @@
     <child link="r_ankle"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="3.348" lower="-0.768992" upper="0.397761" velocity="1.0"/>
+    <limit effort="3.348" lower="-0.768992" upper="0.397761" velocity="1.75"/>
   </joint>
   <link name="r_ankle">
     <inertial>
@@ -396,8 +396,8 @@
     <child link="LShoulder"/>
     <origin rpy="0 0 0" xyz="0 0.098 0.1"/>
     <axis xyz="0 1.0 0"/>
-    <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.0"/> -->
-    <limit effort="1.329" lower="0" upper="1.4" velocity="1.0"/>
+    <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.25"/> -->
+    <limit effort="1.329" lower="0" upper="1.4" velocity="1.25"/>
   </joint>
   <link name="LShoulder">
     <inertial>
@@ -423,8 +423,8 @@
     <child link="LBicep"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
-    <!-- <limit effort="1.7835" lower="-0.314159" upper="1.32645" velocity="1.0"/> -->
-    <limit effort="1.7835" lower="0" upper="1.32645" velocity="1.0"/>
+    <!-- <limit effort="1.7835" lower="-0.314159" upper="1.32645" velocity="1.25"/> -->
+    <limit effort="1.7835" lower="0" upper="1.32645" velocity="1.25"/>
   </joint>
   <link name="LBicep">
     <inertial>
@@ -450,7 +450,7 @@
     <child link="LElbow"/>
     <origin rpy="0 0 0" xyz="0.105 0.015 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="1.0"/>
+    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="0.1"/>
   </joint>
   <link name="LElbow">
     <inertial>
@@ -464,7 +464,7 @@
     <child link="LForeArm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="1.532" lower="-1.54462" upper="-0.0349066" velocity="1.0"/>
+    <limit effort="1.532" lower="-1.54462" upper="-0.0349066" velocity="0.1"/>
   </joint>
   <link name="LForeArm">
     <inertial>
@@ -490,7 +490,7 @@
     <child link="l_wrist"/>
     <origin rpy="0 0 0" xyz="0.05595 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="0.4075" lower="-1.82387" upper="1.82387" velocity="1.0"/>
+    <limit effort="0.4075" lower="-1.82387" upper="1.82387" velocity="1.25"/>
   </joint>
   <link name="l_wrist">
     <inertial>
@@ -516,7 +516,7 @@
     <child link="l_gripper"/>
     <origin rpy="0 0 0" xyz="0.05775 0 -0.01231"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="0.292" lower="0" upper="1.0" velocity="1.0"/>
+    <limit effort="0.292" lower="0" upper="1.0" velocity="1.25"/>
   </joint>
   <link name="l_gripper">
     <inertial>
@@ -529,8 +529,8 @@
     <child link="RShoulder"/>
     <origin rpy="0 0 0" xyz="0 -0.098 0.1"/>
     <axis xyz="0 1.0 0"/>
-    <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.0"/> -->
-    <limit effort="1.329" lower="0" upper="1.4" velocity="1.0"/>
+    <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.25"/> -->
+    <limit effort="1.329" lower="0" upper="1.4" velocity="1.25"/>
   </joint>
   <link name="RShoulder">
     <inertial>
@@ -556,8 +556,8 @@
     <child link="RBicep"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
-    <!-- <limit effort="1.783" lower="-1.32645" upper="0.314159" velocity="1.0"/> -->
-    <limit effort="1.783" lower="-1.32645" upper="0" velocity="1.0"/>
+    <!-- <limit effort="1.783" lower="-1.32645" upper="0.314159" velocity="1.25"/> -->
+    <limit effort="1.783" lower="-1.32645" upper="0" velocity="1.25"/>
   </joint>
   <link name="RBicep">
     <inertial>
@@ -583,7 +583,7 @@
     <child link="RElbow"/>
     <origin rpy="0 0 0" xyz="0.105 -0.015 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="1.0"/>
+    <limit effort="1.547" lower="-2.08567" upper="2.08567" velocity="0.1"/>
   </joint>
   <link name="RElbow">
     <inertial>
@@ -597,7 +597,7 @@
     <child link="RForeArm"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
-    <limit effort="1.532" lower="0.0349066" upper="1.54462" velocity="1.0"/>
+    <limit effort="1.532" lower="0.0349066" upper="1.54462" velocity="0.1"/>
   </joint>
   <link name="RForeArm">
     <inertial>
@@ -623,7 +623,7 @@
     <child link="r_wrist"/>
     <origin rpy="0 0 0" xyz="0.05595 0 0"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="0.4075" lower="-1.82387" upper="1.82387" velocity="1.0"/>
+    <limit effort="0.4075" lower="-1.82387" upper="1.82387" velocity="1.25"/>
   </joint>
   <link name="r_wrist">
     <inertial>
@@ -649,7 +649,7 @@
     <child link="r_gripper"/>
     <origin rpy="0 0 0" xyz="0.05775 0 -0.01213"/>
     <axis xyz="1.0 0 0"/>
-    <limit effort="0.292" lower="0" upper="1.0" velocity="1.0"/>
+    <limit effort="0.292" lower="0" upper="1.0" velocity="1.25"/>
   </joint>
   <link name="r_gripper">
     <inertial>

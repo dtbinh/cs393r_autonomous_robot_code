@@ -7,18 +7,23 @@ namespace motion_planning
   {
     m_nh.param("loop_rate", m_frame_rate, 30.0);
     m_nh.param("lift_height", m_lift_height, 0.02);
-    m_nh.param("retract_dist", m_retract_dist, 0.02);
+    m_nh.param("kick_time", m_kick_time, 0.25);
     m_nh.param("kick_dist", m_kick_dist, 0.1);
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
 
-    std::string joint_string = "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, LWristYaw, LHand, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, RWristYaw, RHand";
-    std::string initial_pos_string = "      0,         0,            0,        0,         0,          0,           0,          0,            0,        0,         0,          0,           0,          0,         1.4,             0,         0,          0,         0,     0,         1.4,             0,         0,          0,         0,     0";
+    std::string joint_string =       "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
+    std::string initial_pos_string = "      0,         0,            0,        0,      -0.1,        0.1,        -0.1,          0,            0,        0,      -0.1,        0.1,        -0.1,          0,            1.4,             0,         0,          0,            1.4,             0,         0,          0,         0,     0,         0,     0";
     m_joint_names = matec_utils::parameterStringToStringVector(joint_string);
     std::string urdf_path = ros::package::getPath("motion_planning") + "/nao.urdf";
     m_urdf_model.initFile(urdf_path);
 
-    for(unsigned int i = 0; i < m_joint_names.size(); i++)
+    for(unsigned int i = 0; i < (m_joint_names.size()-4); i++)
     {
+//      if(m_joint_names.at(i) == "LElbowYaw" || m_joint_names.at(i) == "LElbowRoll" || m_joint_names.at(i) == "RElbowYaw" || m_joint_names.at(i) == "RElbowRoll")
+//      {
+//        continue;
+//      }
+
       std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
       m_joint_ids.push_back(i);
 
@@ -48,18 +53,18 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 1.0);
+    planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 0.75);
     std::cerr << "Planning lift" << std::endl;
-    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.75);
+    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.3);
     std::cerr << "Planning kick" << std::endl;
-    planMove(m_kick_dist, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);
+    planMove(m_kick_dist, -foot_separation, m_lift_height, 0.025, 0.0, m_kick_time);
 
     std::cerr << "Planning return" << std::endl;
-    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);
+    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.3);
     std::cerr << "Planning set" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 0.5);
+    planMove(0.0, -foot_separation, 0.0, 0.025, 0.0, 0.3);
     std::cerr << "Planning balance" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.025, -0.05, 0.5);
+    planMove(0.0, -foot_separation, 0.0, 0.025, -0.05, 0.75);
 
     exportKick(m_kick_filename);
   }
@@ -92,9 +97,6 @@ namespace motion_planning
     Eigen::AngleAxis<double> angle_axis((matec_utils::Matrix3) delta.topLeftCorner(3, 3));
 
     matec_utils::Vector6 twist; //expressed here in f1 coordinates
-//    twist(0) = weights(0) * fixAngle(angle_axis.angle() * angle_axis.axis().x()) / dt;
-//    twist(1) = weights(1) * fixAngle(angle_axis.angle() * angle_axis.axis().y()) / dt;
-//    twist(2) = weights(2) * fixAngle(angle_axis.angle() * angle_axis.axis().z()) / dt;
 
     matrixToRPY((matec_utils::Matrix3) delta.topLeftCorner(3, 3), dR, dP, dY);
     dx = delta(0, 3);
@@ -157,7 +159,6 @@ namespace motion_planning
         return;
       }
 
-      //J_{com}=\left[\begin{array}{cccc}J_{0}^{com} &amp; J_{1}^{com} &amp; &#8230; &amp; J_{N}^{com}\end{array}\right]' title='J_{com}=\left[\begin{array}{cccc}J_{0}^{com} &amp; J_{1}^{com} &amp; &#8230; &amp; J_{N}^{com}\end{array}\right]
       matec_utils::Matrix4 goalTpartial_com = matec_utils::Matrix4::Identity();
       goalTpartial_com.topRightCorner(3, 1) = joint_node->supported_com;
       goalTpartial_com = goal_node->iTO * goalTpartial_com.inverse();
@@ -190,17 +191,17 @@ namespace motion_planning
       JT = J.transpose();
       JJT = J * JT;
 
-      double twist_scale = 0.01;
+      double twist_scale = 0.1;
       double dx, dy, dz, dR, dP, dY;
       matec_utils::Vector6 foot_twist = frameTwist(leftTright, leftTtarget, dt, dx, dy, dz, dR, dP, dY);
       foot_twist *= twist_scale;
 
       //transpose
       //dQ = J^T * e * (<e, J*J^T*e> / <J*J^T*e, J*J^T*e>)
-      matec_utils::Vector JJTe = JJT * foot_twist;
-      boost::this_thread::interruption_point();
-      matec_utils::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
-      boost::this_thread::interruption_point();
+//      matec_utils::Vector JJTe = JJT * foot_twist;
+//      boost::this_thread::interruption_point();
+//      matec_utils::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
+//      boost::this_thread::interruption_point();
 
       //pinv
       matec_utils::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
@@ -224,10 +225,10 @@ namespace motion_planning
       com_twist *= twist_scale;
 
       //transpose
-      matec_utils::Vector JJTe_com = JcomJcomT * com_twist;
-      boost::this_thread::interruption_point();
-      matec_utils::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
-      boost::this_thread::interruption_point();
+//      matec_utils::Vector JJTe_com = JcomJcomT * com_twist;
+//      boost::this_thread::interruption_point();
+//      matec_utils::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
+//      boost::this_thread::interruption_point();
 
       //pinv
       matec_utils::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
@@ -243,34 +244,35 @@ namespace motion_planning
       //simulate forward (euler)
       for(unsigned int j = 0; j < m_joint_ids.size() && ros::ok(); j++)
       {
+        unsigned int joint_id = m_joint_ids[j];
         unsigned int num_velocities = 0;
         double combined_joint_velocity = 0.0;
-        if(trans_velocities[j] != 0.0)
-        {
-          combined_joint_velocity += trans_velocities[j];
-          num_velocities++;
-        }
+//        if(trans_velocities[j] != 0.0)
+//        {
+//          combined_joint_velocity += trans_velocities[j];
+//          num_velocities++;
+//        }
         if(pinv_velocities[j] != 0.0)
         {
           combined_joint_velocity += pinv_velocities[j];
           num_velocities++;
         }
-        if(com_trans_velocities[j] != 0.0)
-        {
-          combined_joint_velocity += com_trans_velocities[j];
-          num_velocities++;
-        }
+//        if(com_trans_velocities[j] != 0.0)
+//        {
+//          combined_joint_velocity += com_trans_velocities[j];
+//          num_velocities++;
+//        }
         if(com_pinv_velocities[j] != 0.0)
         {
           combined_joint_velocity += com_pinv_velocities[j];
           num_velocities++;
         }
 
-        double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[j] - m_joint_vels[j] * dt));
-        double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[j] + m_joint_vels[j] * dt));
+        double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * dt));
+        double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));
 
-        next_positions.at(j) += dt * combined_joint_velocity / (double) num_velocities;
-        next_positions.at(j) = matec_utils::clamp(next_positions.at(j), local_min, local_max);
+        next_positions.at(joint_id) += dt * combined_joint_velocity / (double) num_velocities;
+        next_positions.at(joint_id) = matec_utils::clamp(next_positions.at(joint_id), local_min, local_max);
       }
     }
 
@@ -310,7 +312,7 @@ namespace motion_planning
 
     //write joints
     data_file << "names = [";
-    for(unsigned int i = 0; i < m_joint_names.size(); i++)
+    for(unsigned int i = 0; i < (m_joint_names.size() - 4); i++)
     {
       if(i != 0)
       {
@@ -328,7 +330,7 @@ namespace motion_planning
         data_file << ", ";
       }
       data_file << "[";
-      for(unsigned int j = 0; j < m_joint_names.size(); j++)
+      for(unsigned int j = 0; j < (m_joint_names.size() - 4); j++)
       {
         if(j != 0)
         {

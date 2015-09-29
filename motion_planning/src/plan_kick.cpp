@@ -53,7 +53,7 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.025, 0.0, 6.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.025, 0.005, 6.0);
     // std::cerr << "Planning lift" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.5, 0.025, 0.0, 6.0);
     // std::cerr << "Planning lift 2" << std::endl;

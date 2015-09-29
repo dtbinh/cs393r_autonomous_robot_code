@@ -12,7 +12,7 @@ namespace motion_planning
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
                                       
     std::string joint_string =       "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
-    std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.15,         0,          0,            1.4,          0.15,         0,          0,         0,     0,         0,     0";
+    std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.3,         0,          -0.05,            1.4,          -0.3,         0,          0.05,         0,     0,         0,     0";
     m_joint_names = matec_utils::parameterStringToStringVector(joint_string);
     std::string urdf_path = ros::package::getPath("motion_planning") + "/nao.urdf";
     m_urdf_model.initFile(urdf_path);
@@ -337,6 +337,12 @@ namespace motion_planning
           data_file << ", ";
         }
         data_file << m_joint_plan[i][j];
+
+        //sanity check
+        if(m_joint_plan[i][j] > m_joint_maxes[j] || m_joint_plan[i][j] < m_joint_mins[j])
+        {
+          std::cerr << "BAD JOINT CLAMP! plan idx: " << i << " joint idx: " << j << " val: " << m_joint_plan[i][j] << " min: " << m_joint_mins[j] << " max: " << m_joint_maxes[j] << std::endl;
+        }
       }
       data_file << "]";
     }

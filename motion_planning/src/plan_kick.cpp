@@ -53,9 +53,11 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.025, 0.005, 6.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.025, 0.005, 6.0);
     std::cerr << "Planning lift" << std::endl;
-    planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0075, 6.0);
+    planMove(0.0, -foot_separation, m_lift_height, 0.5, 0.025, 0.005, 6.0);
+    std::cerr << "Planning lift 2" << std::endl;
+    planMove(0.0, -foot_separation, m_lift_height, 0.0, 0.025, 0.005, 2.0);
     // std::cerr << "Planning kick" << std::endl;
     // planMove(m_kick_dist, -foot_separation, m_lift_height, 0.025, 0.0, m_kick_time);
 
@@ -172,11 +174,11 @@ namespace motion_planning
     jacobian /= m_tree.getTotalMass();
   }
 
-  void PlanKick::planPose(std::vector<double> last_positions, std::vector<double>& next_positions, double foot_x, double foot_y, double foot_z, double com_x, double com_y, double dt, int maxiter)
+  void PlanKick::planPose(std::vector<double> last_positions, std::vector<double>& next_positions, double foot_x, double foot_y, double foot_z, double foot_pitch, double com_x, double com_y, double dt, int maxiter)
   {
     next_positions = last_positions;
 
-    matec_utils::Matrix4 leftTtarget = matec_utils::Matrix4::Identity();
+    matec_utils::Matrix4 leftTtarget = matec_utils::pureRotation(0.0, foot_pitch, 0.0);
     leftTtarget.topRightCorner(3, 1) << foot_x, foot_y, foot_z;
 
     for(int i = 0; i < maxiter; i++)
@@ -279,12 +281,15 @@ namespace motion_planning
     std::cerr << "Failed to solve!" << std::endl;
   }
 
-  void PlanKick::planMove(double xf, double yf, double zf, double cxf, double cyf, double dt)
+  void PlanKick::planMove(double xf, double yf, double zf, double pf, double cxf, double cyf, double dt)
   {
     m_tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_odom);
 
     matec_utils::Matrix4 leftTright;
     m_tree.lookupTransform("l_ankle", "r_ankle", leftTright);
+
+    double R, P, Y;
+    matrixToRPY((matec_utils::Matrix3) leftTright.topLeftCorner(3, 3), R, P, Y);
 
     geometry_msgs::PointStamped com;
     m_tree.centerOfMass("l_ankle", com);
@@ -295,11 +300,12 @@ namespace motion_planning
       double x = leftTright(0, 3) + i * (xf - leftTright(0, 3)) / (double) num_frames;
       double y = leftTright(1, 3) + i * (yf - leftTright(1, 3)) / (double) num_frames;
       double z = leftTright(2, 3) + i * (zf - leftTright(2, 3)) / (double) num_frames;
+      double p = P + i * (pf - P) / (double) num_frames;
       double cx = com.point.x + i * (cxf - com.point.x) / (double) num_frames;
       double cy = com.point.y + i * (cyf - com.point.y) / (double) num_frames;
 
       std::vector<double> next_positions = m_joint_plan.at(m_joint_plan.size() - 1);
-      planPose(m_joint_plan.at(m_joint_plan.size() - 1), next_positions, x, y, z, cx, cy, 1.0 / m_frame_rate, 100000);
+      planPose(m_joint_plan.at(m_joint_plan.size() - 1), next_positions, x, y, z, p, cx, cy, 1.0 / m_frame_rate, 100000);
       m_joint_plan.push_back(next_positions);
     }
     std::cerr << std::endl;

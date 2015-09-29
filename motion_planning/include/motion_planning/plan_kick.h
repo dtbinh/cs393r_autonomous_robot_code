@@ -50,10 +50,10 @@ namespace motion_planning
     dynamics_tree::DynamicsGraph m_graph;
     dynamics_tree::DynamicsTree m_tree;
 
-    void planMove(double foot_x, double foot_y, double foot_z, double com_x, double com_y, double dt);
+    void planMove(double foot_x, double foot_y, double foot_z, double foot_pitch, double com_x, double com_y, double dt);
     void comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, matec_utils::Matrix& jacobian);
     void comRecursive(boost::shared_ptr<dynamics_tree::DynamicsTreeNode> node);
-    void planPose(std::vector<double> initial, std::vector<double>& final, double foot_x, double foot_y, double foot_z, double com_x, double com_y, double dt, int maxiter = 1000);
+    void planPose(std::vector<double> initial, std::vector<double>& final, double foot_x, double foot_y, double foot_z, double foot_pitch, double com_x, double com_y, double dt, int maxiter = 1000);
     void exportKick(std::string filename);
   };
 }

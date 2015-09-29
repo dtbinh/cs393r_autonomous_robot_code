@@ -424,7 +424,7 @@
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
     <!-- <limit effort="1.7835" lower="-0.314159" upper="1.32645" velocity="1.25"/> -->
-    <limit effort="1.7835" lower="0" upper="1.32645" velocity="1.25"/>
+    <limit effort="1.7835" lower="0.3" upper="1.32645" velocity="1.25"/>
   </joint>
   <link name="LBicep">
     <inertial>
@@ -557,7 +557,7 @@
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1.0"/>
     <!-- <limit effort="1.783" lower="-1.32645" upper="0.314159" velocity="1.25"/> -->
-    <limit effort="1.783" lower="-1.32645" upper="0" velocity="1.25"/>
+    <limit effort="1.783" lower="-1.32645" upper="-0.3" velocity="1.25"/>
   </joint>
   <link name="RBicep">
     <inertial>

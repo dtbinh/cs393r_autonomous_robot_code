@@ -10,6 +10,7 @@ namespace motion_planning
     m_nh.param("kick_time", m_kick_time, 0.5);
     m_nh.param("kick_dist", m_kick_dist, 0.08);
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
+    m_nh.param("sparse_kick_filename", m_sparse_kick_filename, std::string("kick_trajectory.yaml"));
                                       
     std::string joint_string =       "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
     std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.3,         0,          -0.05,            1.4,          -0.3,         0,          0.05,         0,     0,         0,     0";
@@ -53,18 +54,18 @@ namespace motion_planning
     m_joint_plan.push_back(m_js.position);
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.03, 0.005, 1.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.03, 0.0, 1.0);
     // std::cerr << "Planning lift" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.1, -0.1, 0.0, 2.0);
     // std::cerr << "Planning lift 2" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.0, 0.025, 0.0, 2.0);
     std::cerr << "Planning kick" << std::endl;
-    planMove(m_kick_dist, -foot_separation, m_lift_height, 0.0, 0.03, 0, 0.25);
+    planMove(m_kick_dist, -foot_separation, m_lift_height, 0.0, 0.03, 0.0, 0.3);
 
     std::cerr << "Planning lunge" << std::endl;
-    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.03, 0, 0.25);
+    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.08, -0.05, 0.3);
     std::cerr << "Planning delay" << std::endl;
-    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.03, 0, 3.0);
+    planMove(m_kick_dist, -foot_separation, 0.0, 0.0, 0.08, -0.05, 3.0);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);
@@ -74,6 +75,7 @@ namespace motion_planning
     // planMove(0.0, -foot_separation, 0.0, 0.025, -0.05, 1.25);
 
     exportKick(m_kick_filename);
+    exportSparseKick(m_sparse_kick_filename);
   }
 
   PlanKick::~PlanKick()
@@ -314,6 +316,8 @@ namespace motion_planning
       m_joint_plan.push_back(next_positions);
     }
     std::cerr << std::endl;
+
+    m_sparse_joint_plan.push_back(std::pair<unsigned int, std::vector<double> >(num_frames,m_joint_plan.at(m_joint_plan.size() - 1)));
   }
 
   void PlanKick::exportKick(std::string filename)
@@ -358,6 +362,32 @@ namespace motion_planning
       data_file << "]";
     }
     data_file << "]" << std::endl;
+
+    data_file.close();
+    std::cerr << "Wrote trajectory to " << filename << std::endl;
+  }
+
+  void PlanKick::exportSparseKick(std::string filename)
+  {
+    std::ofstream data_file;
+    data_file.open(filename.c_str());
+
+    std::vector<double> inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0};
+      
+    //write joints
+    data_file << "---" << std::endl;
+    data_file << "keyframes:" << std::endl;
+    for(unsigned int i = 0; i < m_sparse_joint_plan.size(); i++)
+    {
+      data_file << "  - name: move " << i << std::endl;
+      data_file << "    frames: " << m_sparse_joint_plan[i].first << std::endl;
+      data_file << "    joints: " << std::endl;
+      for(unsigned int j = 0; j < (m_sparse_joint_plan[i].second.size() - 4); j++)
+      {
+        data_file << "      " << m_joint_names.at(j) << ": " << m_sparse_joint_plan[i].second[j]*(180.0/M_PI)*inverted_joints[j] << std::endl;
+      }
+    }
+    data_file << "..." << std::endl;
 
     data_file.close();
     std::cerr << "Wrote trajectory to " << filename << std::endl;

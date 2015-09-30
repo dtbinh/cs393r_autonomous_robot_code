@@ -30,12 +30,14 @@ namespace motion_planning
     double m_kick_time;
     double m_kick_dist;
     std::string m_kick_filename;
+    std::string m_sparse_kick_filename;
 
     ros::Publisher m_com_pub;
     ros::Publisher m_js_pub;
     tf::TransformBroadcaster m_odom_broadcaster;
 
     std::vector<std::vector<double> > m_joint_plan;
+    std::vector<std::pair<unsigned int, std::vector<double> > > m_sparse_joint_plan;
 
     std::vector<std::string> m_joint_names;
     std::vector<unsigned int> m_joint_ids;
@@ -55,6 +57,7 @@ namespace motion_planning
     void comRecursive(boost::shared_ptr<dynamics_tree::DynamicsTreeNode> node);
     void planPose(std::vector<double> initial, std::vector<double>& final, double foot_x, double foot_y, double foot_z, double foot_pitch, double com_x, double com_y, double dt, int maxiter = 1000);
     void exportKick(std::string filename);
+    void exportSparseKick(std::string filename);
   };
 }
 

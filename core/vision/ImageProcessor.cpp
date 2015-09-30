@@ -297,7 +297,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   int real_radius;
 
   double box_ratio = (double)long_side / (double)short_side;
-  double pixel_density = ball_pixels / ((box_height + 3)*(box_length + 1) / 8.0);
+  double pixel_density = (double)ball_pixels / ((box_height + 3)*(box_length + 1) / 8.0);
 
   //printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
 
@@ -309,33 +309,38 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
       //printf("TOP camera: too big!");
       return false;
     }
-    else if( box_height < 4 || box_length < 4)
+    else if( box_height < 3 || box_length < 3)
     {
       return false;
     }
-    else if( blob->centroid_y < 80)
+    else if( blob->centroid_y < 45)
     {
+      printf("Ball to high\n");
       return false;
     }
   }
   else if(camera_ == Camera::BOTTOM)
   {
-    if( box_height > 60 || box_length > 60)
+    if( box_height > 65 || box_length > 65)
     {
       //printf("BOTTOM camera: too big!");
+      return false;
+    }
+    if( box_height < 10 || box_length < 10)
+    {
       return false;
     }
   }
 
 
-  if( pixel_density < 0.65 || pixel_density > 0.9) 
+  if( pixel_density < 0.62 || pixel_density > 0.88) 
   {
-    //printf("not a ball  box_ratio = %f\n" , box_ratio);
+    printf("not a ball  pixel_density = %f\n" , pixel_density);
     return false;
   }
   else if( box_ratio >  1.5 )
   {
-    //printf("a rectangle\n");
+    printf("a rectangle\n");
     return false;
   }
 
@@ -347,8 +352,6 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
 
   
-  
-
   //Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
   //double distance = cmatrix_.groundDistance(p);
 
@@ -361,12 +364,10 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);
       real_radius = (box_length + box_height) / 4;
 
-      if(real_radius < 4)
+      if(real_radius < 3)
       {
         return false;
       }
-
-      //printf("A ball real_centroid_x=%d,real_centroid_y=%d, real_radius=%d \n", real_centroid_x, real_centroid_y, real_radius);
       getSegImg()[320*real_centroid_y + real_centroid_x] = c_UNDEFINED;
   }
   else
@@ -462,6 +463,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   ball->seen = true;
   ball->radius = real_radius;
 
+  printf("BALL cent_x=%d,cent_y=%d, radius=%d, distance = %f \n", x, y, real_radius , ball->visionDistance);
 
   // double ball_cx = 0.0;
   // double ball_cy = 0.0;

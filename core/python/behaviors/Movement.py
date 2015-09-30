@@ -25,6 +25,10 @@ class Playing(StateMachine):
     def run(self):
       commands.setWalkVelocity(0,0,0.5)
 
+  class GoAround(Node):
+    def run(self):
+      commands.setWalkVelocity(0,-0.5,0.25)
+
   class Curve(Node):
     def run(self):
       commands.setWalkVelocity(0.5,0,0.25)
@@ -42,8 +46,9 @@ class Playing(StateMachine):
     tip = self.TurnInPlace()
     curve = self.Curve()
     sit = pose.Sit()
+    goa = self.GoAround()
     off = self.Off()
     #self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
-  
-    self.trans(stand, C, walk, T(5.0), tip, T(5.0), sit, C, off)
+    #self.trans(stand, C, walk, T(5.0), tip, T(5.0), sit, C, off)
+    self.trans(stand, C, goa, T(100.0), sit, C, off)
 

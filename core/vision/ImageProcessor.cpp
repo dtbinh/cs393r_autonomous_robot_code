@@ -190,7 +190,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
       goal->visionDistance = cmatrix_.groundDistance(p);
       goal->seen = true;
 
-      printf("found at goal : length = %d, height = %d , size = %d , Distance = %f\n", mb->blob[i].boundingbox_length, mb->blob[i].boundingbox_height , size , goal->visionDistance);
+      printf("found at goal : x = %d, y = %d , size = %d , Distance = %f\n", x , y , size , goal->visionDistance);
     }
   }
 }
@@ -335,12 +335,12 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
 
   if( pixel_density < 0.62 || pixel_density > 0.88) 
   {
-    printf("not a ball  pixel_density = %f\n" , pixel_density);
+    //printf("not a ball  pixel_density = %f\n" , pixel_density);
     return false;
   }
   else if( box_ratio >  1.5 )
   {
-    printf("a rectangle\n");
+    //printf("a rectangle\n");
     return false;
   }
 
@@ -358,7 +358,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   //int theoretical_long_side_pixels = (10000/distance);
   //if(long_side < 0.67*theoretical_long_side_pixels || long_side > 1.33*theoretical_long_side_pixels) return false;
 
-  if(abs(box_length - box_height) < 6)
+  if(abs(box_length - box_height) < 10)
   {
       real_centroid_x = blob->boundingbox_vertex_x + (box_length/2);
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);

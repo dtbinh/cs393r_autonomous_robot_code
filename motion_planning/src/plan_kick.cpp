@@ -59,10 +59,10 @@ namespace motion_planning
     std::cerr << "Planning lift" << std::endl;
     planMove(0.0, -foot_separation, m_lift_height, -0, 0.01, 0.0, 0.3);
     std::cerr << "Planning kick" << std::endl;
-    planMove(m_kick_dist, -foot_separation, m_lift_height, -0, 0.01, 0.0, 0.5);
+    planMove(m_kick_dist, -foot_separation, m_lift_height, -0, 0.03, -0.02, 0.5);
 
     std::cerr << "Planning lunge" << std::endl;
-    planMove(m_kick_dist, -foot_separation, -0.0, 0.0, 0.04, -0.02, 0.5);
+    planMove(m_kick_dist, -foot_separation, -0.0, 0.0, 0.04, -0.03, 0.5);
     std::cerr << "Planning delay" << std::endl;
     planMove(m_kick_dist, -foot_separation, -0.0, 0.0, 0.08, -0.05, 3.0);
 
@@ -248,6 +248,15 @@ namespace motion_planning
         std::cerr << ".";
         return;
       }
+
+      //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
+      double pinv_hip_yaw_avg = (pinv_velocities[2] - pinv_velocities[8]) / 2.0;
+      pinv_velocities[2] = pinv_hip_yaw_avg;
+      pinv_velocities[8] = -pinv_hip_yaw_avg;
+      double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
+      com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
+      com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
+      //!NAO SPECIFIC
 
       //simulate forward (euler)
       for(unsigned int j = 0; j < m_joint_ids.size() && ros::ok(); j++)

@@ -62,7 +62,7 @@ namespace motion_planning
     planMove(0.1, -foot_separation, m_lift_height, -0, 0.02, 0.0, 0.5);
 
     std::cerr << "Planning lunge" << std::endl;
-    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -0.02, 0.4);
+    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -0.02, 0.333);
     std::cerr << "Planning delay" << std::endl;
     planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -0.02, 5.0);
 

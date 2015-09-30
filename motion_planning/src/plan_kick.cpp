@@ -8,7 +8,7 @@ namespace motion_planning
     m_nh.param("loop_rate", m_frame_rate, 30.0);
     m_nh.param("lift_height", m_lift_height, 0.04);
     m_nh.param("kick_time", m_kick_time, 0.5);
-    m_nh.param("kick_dist", m_kick_dist, 0.1);
+    m_nh.param("kick_dist", m_kick_dist, 0.08);
     m_nh.param("kick_filename", m_kick_filename, std::string("kick_trajectory.py"));
     m_nh.param("sparse_kick_filename", m_sparse_kick_filename, std::string("kick_trajectory.yaml"));
                                       
@@ -59,12 +59,12 @@ namespace motion_planning
     std::cerr << "Planning lift" << std::endl;
     planMove(0.0, -foot_separation, m_lift_height, -0, 0.01, 0.0, 0.3);
     std::cerr << "Planning kick" << std::endl;
-    planMove(m_kick_dist, -foot_separation, m_lift_height, -0, 0.03, -0.02, 0.5);
+    planMove(0.09, -foot_separation, m_lift_height, -0, 0.03, -0.02, 0.5);
 
     std::cerr << "Planning lunge" << std::endl;
-    planMove(m_kick_dist, -foot_separation, -0.0, 0.0, 0.04, -0.03, 0.5);
+    planMove(0.075, -foot_separation, -0.0, 0.0, 0.04, -0.03, 0.5);
     std::cerr << "Planning delay" << std::endl;
-    planMove(m_kick_dist, -foot_separation, -0.0, 0.0, 0.08, -0.05, 3.0);
+    planMove(0.075, -foot_separation, -0.0, 0.0, 0.08, -0.05, 3.0);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);

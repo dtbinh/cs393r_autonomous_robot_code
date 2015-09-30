@@ -71,8 +71,8 @@ class Playing(StateMachine):
     def run(self):
       global e_distance_set, e_distance_k0, e_distance_k1, e_distance_k2
       global e_angle_x_set_close, e_angle_x_set_far, e_angle_x_threshold, e_angle_k0, e_angle_k1, e_angle_k2
-      global last_PID_walk_velocity_0, last_PID_walk_velocity_1, last_PID_walk_velocity_2
-      global last_PID_angular_velocity_0, last_PID_angular_velocity_1, last_PID_angular_velocity_2 
+      global last_PID_walk_velocity_0, last_PID_walk_velocity_1, last_PID_walk_velocity_2, PID_walk_velocity
+      global last_PID_angular_velocity_0, last_PID_angular_velocity_1, last_PID_angular_velocity_2 , PID_angular_velocity
       global Approaching_state, ball_if_seen, ball_if_seen_counter, ball_if_find_flag
 
       ball = memory.world_objects.getObjPtr(core.WO_BALL)
@@ -84,7 +84,8 @@ class Playing(StateMachine):
 
         ball_if_seen[ball_if_seen_counter] = 1
         seen_times = sum(ball_if_seen)
-        if( seen_times >= 10 )
+        
+        if( seen_times >= 10 ):
           ball_if_find_flag = 1
           if(ball_distance < 175 and ball_image_x > 177 and ball_image_x < 207): #stop and prepare kick
             commands.setWalkVelocity(0,0,0)
@@ -110,13 +111,14 @@ class Playing(StateMachine):
             last_PID_angular_velocity_1 = last_PID_angular_velocity_0
             last_PID_angular_velocity_0 = e_angle_k0 * (ball_image_x - e_angle_x_set)
             PID_angular_velocity = ( last_PID_angular_velocity_0 + last_PID_angular_velocity_1 + last_PID_angular_velocity_2)/3.0
+            print "seen_times = " + str(seen_times) +  " PID_walk_velocity = "  + str(PID_walk_velocity) + " PID_angular_velocity is \n"  +  str(PID_angular_velocity)
             if( PID_angular_velocity > 0.3 ):
               PID_angular_velocity = 0.3
             elif( PID_angular_velocity < -0.3):
               PID_angular_velocity = -0.3
 
             commands.setWalkVelocity(PID_walk_velocity + 0.1 , 0 , PID_angular_velocity)
-            print "walking velocity = " , PID_walk_velocity
+            #print "walking velocity = " , PID_walk_velocity
           else: #finding the goal
             goal = memory.world_objects.getObjPtr(core.WO_OWN_GOAL)
             if(goal.seen):
@@ -135,6 +137,8 @@ class Playing(StateMachine):
       else: #finding_ball
         ball_if_seen[ball_if_seen_counter] = 0
         seen_times = sum(ball_if_seen)
+        print "seen_times = " , seen_times
+
         if( seen_times < 10 ):
           memory.speech.say("finding")
           ball_if_find_flag = 0

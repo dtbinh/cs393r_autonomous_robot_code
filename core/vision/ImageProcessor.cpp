@@ -349,7 +349,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
   }
 
-  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+  
 
   
   //Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
@@ -449,9 +449,9 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     // real_centroid_y = ((x1-x3) + (ml1-ml2)*y2 + (ml2*y1 - ml1*y3))/(2*(ml2-ml1));
     // real_radius = sqrt((real_centroid_x-x1)*(real_centroid_x-x1) + (real_centroid_y-y1)*(real_centroid_y-y1));
   }
-
-  unsigned int x = real_centroid_x;
-  unsigned int y = real_centroid_y;
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+  int x = real_centroid_x;
+  int y = real_centroid_y;
   ball->imageCenterX = x;
   ball->imageCenterY = y;
   Position p = cmatrix_.getWorldPosition(x, y, 20);

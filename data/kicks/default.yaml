@@ -51,78 +51,103 @@ keyframes:
       RElbowYaw: -5.3097
       RElbowRoll: -10.8352
   - name: move 2
-    frames: 15
-    joints: 
-      HeadYaw: 12.9104
-      HeadPitch: 1.97102
-      LHipYawPitch: 4.02165
-      LHipRoll: 2.69035
-      LHipPitch: -30.8271
-      LKneePitch: 48.3427
-      LAnklePitch: -25.1573
-      LAnkleRoll: -13.256
-      RHipYawPitch: -4.02165
-      RHipRoll: -5.1588
-      RHipPitch: -53.7821
-      RKneePitch: 44.9693
-      RAnklePitch: 6.79281
-      RAnkleRoll: 15.5954
-      LShoulderPitch: -80.2141
-      LShoulderRoll: 37.1775
-      LElbowYaw: 4.00576
-      LElbowRoll: -2
-      RShoulderPitch: -80.2141
-      RShoulderRoll: 37.4635
-      RElbowYaw: -2.44491
-      RElbowRoll: -9.37283
-  - name: move 3
     frames: 10
     joints: 
-      HeadYaw: 4.74275
-      HeadPitch: 17.7944
-      LHipYawPitch: -10.6962
-      LHipRoll: -0.255228
-      LHipPitch: -27.6968
-      LKneePitch: 59.8735
-      LAnklePitch: -29.9784
-      LAnkleRoll: -7.91068
-      RHipYawPitch: 10.6962
-      RHipRoll: -0.718408
-      RHipPitch: -36.6082
-      RKneePitch: 39.852
-      RAnklePitch: -16.129
-      RAnkleRoll: 7.88332
-      LShoulderPitch: -64.4303
-      LShoulderRoll: 38.9178
-      LElbowYaw: 3.27243
-      LElbowRoll: -2
-      RShoulderPitch: -64.4699
-      RShoulderRoll: 38.3573
-      RElbowYaw: -4.35477
-      RElbowRoll: -8.91786
+      HeadYaw: -0.277216
+      HeadPitch: 23.3879
+      LHipYawPitch: 0.0214425
+      LHipRoll: 2.58467
+      LHipPitch: -25.2196
+      LKneePitch: 51.7924
+      LAnklePitch: -26.512
+      LAnkleRoll: -13.5586
+      RHipYawPitch: -0.0214425
+      RHipRoll: -3.35854
+      RHipPitch: -25.4629
+      RKneePitch: 52.3608
+      RAnklePitch: -26.8033
+      RAnkleRoll: 14.2754
+      LShoulderPitch: -80.2141
+      LShoulderRoll: 34.0187
+      LElbowYaw: 1.44402
+      LElbowRoll: -2.00355
+      RShoulderPitch: -80.2141
+      RShoulderRoll: 38.8315
+      RElbowYaw: -3.56658
+      RElbowRoll: -9.04019
+  - name: move 3
+    frames: 15
+    joints: 
+      HeadYaw: 18.3165
+      HeadPitch: -2.82871
+      LHipYawPitch: 20.9796
+      LHipRoll: -2.28967
+      LHipPitch: -48.085
+      LKneePitch: 32.362
+      LAnklePitch: -9.48069
+      LAnkleRoll: -11.323
+      RHipYawPitch: -20.9796
+      RHipRoll: -4.80002
+      RHipPitch: -43.2142
+      RKneePitch: 40.4743
+      RAnklePitch: 6.84469
+      RAnkleRoll: 14.4677
+      LShoulderPitch: -80.2141
+      LShoulderRoll: 46.2595
+      LElbowYaw: 4.30881
+      LElbowRoll: -3.02425
+      RShoulderPitch: -80.2141
+      RShoulderRoll: 29.423
+      RElbowYaw: -0.701789
+      RElbowRoll: -9.52152
   - name: move 4
+    frames: 10
+    joints: 
+      HeadYaw: 16.8482
+      HeadPitch: 4.82615
+      LHipYawPitch: 13.0891
+      LHipRoll: -0.462366
+      LHipPitch: -57.531
+      LKneePitch: 40.7974
+      LAnklePitch: -9.97261
+      LAnkleRoll: -5.76872
+      RHipYawPitch: -13.0891
+      RHipRoll: -1.26686
+      RHipPitch: -33.9143
+      RKneePitch: 34.1113
+      RAnklePitch: -8.47137
+      RAnkleRoll: 6.00208
+      LShoulderPitch: -73.9238
+      LShoulderRoll: 48.8036
+      LElbowYaw: 4.03981
+      LElbowRoll: -2
+      RShoulderPitch: -73.9566
+      RShoulderRoll: 31.8834
+      RElbowYaw: -0.961745
+      RElbowRoll: -9.37654
+  - name: move 5
     frames: 150
     joints: 
-      HeadYaw: 4.74275
-      HeadPitch: 17.7944
-      LHipYawPitch: -10.696
-      LHipRoll: -0.255142
-      LHipPitch: -27.6966
-      LKneePitch: 59.8736
-      LAnklePitch: -29.9789
-      LAnkleRoll: -7.91066
-      RHipYawPitch: 10.696
-      RHipRoll: -0.718096
-      RHipPitch: -36.6083
-      RKneePitch: 39.8521
-      RAnklePitch: -16.1284
-      RAnkleRoll: 7.88279
-      LShoulderPitch: -64.4303
-      LShoulderRoll: 38.9178
-      LElbowYaw: 3.27243
+      HeadYaw: 16.8482
+      HeadPitch: 4.82615
+      LHipYawPitch: 13.0891
+      LHipRoll: -0.462366
+      LHipPitch: -57.531
+      LKneePitch: 40.7974
+      LAnklePitch: -9.97261
+      LAnkleRoll: -5.76872
+      RHipYawPitch: -13.0891
+      RHipRoll: -1.26686
+      RHipPitch: -33.9143
+      RKneePitch: 34.1113
+      RAnklePitch: -8.47137
+      RAnkleRoll: 6.00208
+      LShoulderPitch: -73.9238
+      LShoulderRoll: 48.8036
+      LElbowYaw: 4.03981
       LElbowRoll: -2
-      RShoulderPitch: -64.4699
-      RShoulderRoll: 38.3573
-      RElbowYaw: -4.35477
-      RElbowRoll: -8.91786
+      RShoulderPitch: -73.9566
+      RShoulderRoll: 31.8834
+      RElbowYaw: -0.961745
+      RElbowRoll: -9.37654
 ...

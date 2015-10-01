@@ -15,14 +15,14 @@ last_carrot = 0
 
 #parameters
 e_distance_set = 160
-e_distance_k0 = 0.0004
-e_distance_k1 = 0.003
+e_distance_k0 = 0.0007
+e_distance_k1 = 0.002
 e_distance_k2 = 0
 
 e_angle_x_set_close = 192 # x_goal_indel when close
 e_angle_x_set_far = 160 # x_goal_indel when far away
 e_angle_x_threshold = 15
-e_angle_k0 = 0.003
+e_angle_k0 = 0.0015
 e_angle_k1 = 0
 e_angle_k2 = 0
 
@@ -44,6 +44,8 @@ Approaching_state = 0 # dis>450 : 0 ;  350<dis<450 find goal: 1 ; ready to kick:
 ball_if_seen = [0]*40
 ball_if_seen_counter = 0
 ball_if_find_flag = 0
+
+circle_effect = 0
 
 
 #ball_kick_pixel_x_set = 192;
@@ -71,9 +73,10 @@ class Playing(StateMachine):
     def run(self):
       global e_distance_set, e_distance_k0, e_distance_k1, e_distance_k2
       global e_angle_x_set_close, e_angle_x_set_far, e_angle_x_threshold, e_angle_k0, e_angle_k1, e_angle_k2
-      global last_PID_walk_velocity_0, last_PID_walk_velocity_1, last_PID_walk_velocity_2, PID_walk_velocity
-      global last_PID_angular_velocity_0, last_PID_angular_velocity_1, last_PID_angular_velocity_2 , PID_angular_velocity
+      global last_PID_walk_velocity_0, last_PID_walk_velocity_1, last_PID_walk_velocity_2, PID_walk_velocity , PID_walk_velocity_counter , PID_walk_velocity_list
+      global last_PID_angular_velocity_0, last_PID_angular_velocity_1, last_PID_angular_velocity_2 , PID_angular_velocity , PID_angular_velocity_list
       global Approaching_state, ball_if_seen, ball_if_seen_counter, ball_if_find_flag
+      global circle_effect
 
       ball = memory.world_objects.getObjPtr(core.WO_BALL)
       if(ball.seen):
@@ -88,6 +91,7 @@ class Playing(StateMachine):
         if( seen_times >= 20 ):
           ball_if_find_flag = 1
           if(ball_distance < 150 and ball_image_x > 177 and ball_image_x < 207): #stop and prepare kick
+            print "\nball_distance = " + str(ball_distance) +  " ball_image_x = "  + str(PID_walk_velocity) + " PID_angular_velocity is "  +  str(PID_angular_velocity)
             commands.setWalkVelocity(0,0,0)
             self.finish()
           elif((ball_distance > 400 or ball_distance < 300 or Approaching_state == 2) and Approaching_state != 1): #direct walking area
@@ -96,10 +100,10 @@ class Playing(StateMachine):
             #last_PID_walk_velocity_0 = e_distance_k0 * (ball_distance - e_distance_set) #use advanced method maybe
             last_PID_walk_velocity_0 = e_distance_k0 * (ball_distance - e_distance_set) + e_distance_k1 * sum(PID_walk_velocity_list)
             PID_walk_velocity = 0.33*( last_PID_walk_velocity_0 + last_PID_walk_velocity_1 + last_PID_walk_velocity_2 )
-            if( PID_walk_velocity > 0.55):
-              PID_walk_velocity = 0.55
-            if( PID_walk_velocity < 0.35):
-              PID_walk_velocity = 0.35
+            if( PID_walk_velocity > 0.50):
+              PID_walk_velocity = 0.50
+            if( PID_walk_velocity < 0.25):
+              PID_walk_velocity = 0.25
 
             if(ball_distance > 400 and Approaching_state == 0):
               e_angle_x_set = e_angle_x_set_far
@@ -114,13 +118,16 @@ class Playing(StateMachine):
             last_PID_angular_velocity_1 = last_PID_angular_velocity_0
             last_PID_angular_velocity_0 = -e_angle_k0 * (ball_image_x - e_angle_x_set)
             PID_angular_velocity = 0.33*( last_PID_angular_velocity_0 + last_PID_angular_velocity_1 + last_PID_angular_velocity_2)
-            print "seen_times = " + str(seen_times) +  " PID_walk_velocity = "  + str(PID_walk_velocity) + " PID_angular_velocity is \n"  +  str(PID_angular_velocity)
+            #print "\nseen_times = " + str(seen_times) +  " PID_walk_velocity = "  + str(PID_walk_velocity) + " PID_angular_velocity is "  +  str(PID_angular_velocity)
             if( PID_angular_velocity > 0.3 ):
               PID_angular_velocity = 0.3
             elif( PID_angular_velocity < -0.3):
               PID_angular_velocity = -0.3
 
-            commands.setWalkVelocity(PID_walk_velocity, 0 , PID_angular_velocity)
+            commands.setWalkVelocity( PID_walk_velocity, 0 , PID_angular_velocity + 0.04)
+            PID_walk_velocity_list[PID_walk_velocity_counter] = PID_walk_velocity
+            PID_angular_velocity_list[PID_walk_velocity_counter] = PID_angular_velocity
+            PID_walk_velocity_counter = (PID_walk_velocity_counter + 1)%100
             #print "walking velocity = " , PID_walk_velocity
           else: #finding the goal
             Approaching_state = 1
@@ -130,13 +137,13 @@ class Playing(StateMachine):
                 Approaching_state = 2
                 commands.setWalkVelocity( PID_walk_velocity , 0, PID_angular_velocity )
               elif(goal.imageCenterX >= 175): # Using P control here
-                commands.setWalkVelocity(0 , 0.5 , -0.12 )
+                commands.setWalkVelocity(0 , 0.45 , -0.08 )
                 memory.speech.say("three")
               elif(goal.imageCenterX <= 145):
-                commands.setWalkVelocity(0 , -0.5 ,0.12 )
+                commands.setWalkVelocity(0 , -0.45 ,0.08 )
                 memory.speech.say("three")
             else:
-                commands.setWalkVelocity(0 , 0.5 , -0.12 )
+                commands.setWalkVelocity(0 , 0.45 , -0.08 )
                 memory.speech.say("two")
         else:
           ball_if_find_flag = 0
@@ -199,6 +206,10 @@ class Playing(StateMachine):
       dt = numpy.maximum(0.1, delta / velocity)
       commands.setHeadPan(last_carrot, dt)
 
+  class Prepare(Node):
+    def run(self):
+      commands.setWalkVelocity(0.01,0.0,0.0)
+
   class Off(Node):
     def run(self):
       commands.setStiffness(cfgstiff.Zero)
@@ -212,4 +223,5 @@ class Playing(StateMachine):
     sit = pose.Sit()
     off = self.Off() 
     pid_walk = self.PID_walk()
-    self.trans(stand, C, pid_walk, C, self.Kick() , C , sit, C, off)
+    self.trans(self.Stand(), C, pid_walk, C , self.Prepare(), T(5.0) ,self.Stand(), C , self.Kick() , C , self.Stand(), C , sit, C, off)
+    #self.trans(stand, C ,  sit, C, off)

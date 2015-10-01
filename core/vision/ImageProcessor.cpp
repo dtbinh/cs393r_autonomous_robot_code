@@ -190,7 +190,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
       goal->visionDistance = cmatrix_.groundDistance(p);
       goal->seen = true;
 
-      printf("found at goal : x = %d, y = %d , size = %d , Distance = %f\n", x , y , size , goal->visionDistance);
+      //printf("found at goal : x = %d, y = %d , size = %d , Distance = %f\n", x , y , size , goal->visionDistance);
     }
   }
 }
@@ -315,7 +315,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     }
     else if( blob->centroid_y < 45)
     {
-      printf("Ball to high\n");
+      //printf("Ball to high\n");
       return false;
     }
   }
@@ -463,7 +463,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   ball->seen = true;
   ball->radius = real_radius;
 
-  printf("BALL cent_x=%d,cent_y=%d, radius=%d, distance = %f \n", x, y, real_radius , ball->visionDistance);
+  //printf("BALL cent_x=%d,cent_y=%d, radius=%d, distance = %f \n", x, y, real_radius , ball->visionDistance);
 
   // double ball_cx = 0.0;
   // double ball_cy = 0.0;

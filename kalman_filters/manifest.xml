@@ -1,0 +1,16 @@
+<package>
+  <description brief="kalman_filters">
+
+     kalman_filters
+
+  </description>
+  <author>jjames</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/kalman_filters</url>
+  <depend package="roscpp"/>
+  <depend package="eigen_conversions"/>
+
+</package>
+
+

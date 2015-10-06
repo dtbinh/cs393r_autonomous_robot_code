@@ -14,9 +14,9 @@ alpha = 0.6
 last_carrot = 0
 
 #parameters
-e_distance_set = 160
-e_distance_k0 = 0.0007
-e_distance_k1 = 0.002
+e_distance_set = 150
+e_distance_k0 = 0.0006
+e_distance_k1 = 0.003
 e_distance_k2 = 0
 
 e_angle_x_set_close = 192 # x_goal_indel when close
@@ -46,6 +46,7 @@ ball_if_seen_counter = 0
 ball_if_find_flag = 0
 
 circle_effect = 0
+stop_counter = 0
 
 
 #ball_kick_pixel_x_set = 192;
@@ -76,7 +77,7 @@ class Playing(StateMachine):
       global last_PID_walk_velocity_0, last_PID_walk_velocity_1, last_PID_walk_velocity_2, PID_walk_velocity , PID_walk_velocity_counter , PID_walk_velocity_list
       global last_PID_angular_velocity_0, last_PID_angular_velocity_1, last_PID_angular_velocity_2 , PID_angular_velocity , PID_angular_velocity_list
       global Approaching_state, ball_if_seen, ball_if_seen_counter, ball_if_find_flag
-      global circle_effect
+      global circle_effect , stop_counter
 
       ball = memory.world_objects.getObjPtr(core.WO_BALL)
       if(ball.seen):
@@ -90,11 +91,16 @@ class Playing(StateMachine):
         
         if( seen_times >= 20 ):
           ball_if_find_flag = 1
-          if(ball_distance < 150 and ball_image_x > 177 and ball_image_x < 207): #stop and prepare kick
-            print "\nball_distance = " + str(ball_distance) +  " ball_image_x = "  + str(PID_walk_velocity) + " PID_angular_velocity is "  +  str(PID_angular_velocity)
-            commands.setWalkVelocity(0,0,0)
-            self.finish()
+          print "\nball_distance = " + str(ball_distance) +  " ball_image_x = "  + str(ball_image_x) + " stop_counter =  "  +  str(stop_counter) + " PID_walk_velocity = "  + str(PID_walk_velocity)
+          if(ball_distance < 147 and ball_image_x > 177 and ball_image_x < 207): #stop and prepare kick
+            stop_counter = stop_counter + 1
+            if( stop_counter > 2 ):
+              commands.setWalkVelocity(0,0,0)
+              self.finish()
+            else:
+              commands.setWalkVelocity( PID_walk_velocity, 0 , PID_angular_velocity + 0.04)
           elif((ball_distance > 400 or ball_distance < 300 or Approaching_state == 2) and Approaching_state != 1): #direct walking area
+            stop_counter = 0
             last_PID_walk_velocity_2 = last_PID_walk_velocity_1
             last_PID_walk_velocity_1 = last_PID_walk_velocity_0
             #last_PID_walk_velocity_0 = e_distance_k0 * (ball_distance - e_distance_set) #use advanced method maybe
@@ -102,8 +108,8 @@ class Playing(StateMachine):
             PID_walk_velocity = 0.33*( last_PID_walk_velocity_0 + last_PID_walk_velocity_1 + last_PID_walk_velocity_2 )
             if( PID_walk_velocity > 0.50):
               PID_walk_velocity = 0.50
-            if( PID_walk_velocity < 0.25):
-              PID_walk_velocity = 0.25
+            if( PID_walk_velocity < 0.28):
+              PID_walk_velocity = 0.28
 
             if(ball_distance > 400 and Approaching_state == 0):
               e_angle_x_set = e_angle_x_set_far
@@ -131,11 +137,12 @@ class Playing(StateMachine):
             #print "walking velocity = " , PID_walk_velocity
           else: #finding the goal
             Approaching_state = 1
+            stop_counter = 0
             goal = memory.world_objects.getObjPtr(core.WO_OPP_GOAL)
             if(goal.seen):
               if(goal.imageCenterX < 175 and goal.imageCenterX > 145):
                 Approaching_state = 2
-                commands.setWalkVelocity( PID_walk_velocity , 0, PID_angular_velocity )
+                commands.setWalkVelocity( PID_walk_velocity , 0, PID_angular_velocity + 0.04 )
               elif(goal.imageCenterX >= 175): # Using P control here
                 commands.setWalkVelocity(0 , 0.45 , -0.08 )
                 memory.speech.say("three")
@@ -150,6 +157,7 @@ class Playing(StateMachine):
           Approaching_state = 0
           commands.setWalkVelocity(0 , 0 , 0.2)
       else: #finding_ball
+        stop_counter = 0
         ball_if_seen[ball_if_seen_counter] = 0
         seen_times = sum(ball_if_seen)
         print "seen_times = " , seen_times
@@ -158,7 +166,7 @@ class Playing(StateMachine):
           memory.speech.say("finding")
           ball_if_find_flag = 0
           Approaching_state = 0
-          commands.setWalkVelocity(0 , 0 , 0.2)
+          commands.setWalkVelocity(0 , 0 , -0.2)
         else:
           ball_if_find_flag = 1
           commands.setWalkVelocity( PID_walk_velocity , 0, PID_angular_velocity )
@@ -223,5 +231,6 @@ class Playing(StateMachine):
     sit = pose.Sit()
     off = self.Off() 
     pid_walk = self.PID_walk()
-    self.trans(self.Stand(), C, pid_walk, C , self.Prepare(), T(5.0) ,self.Stand(), C , self.Kick() , C , self.Stand(), C , sit, C, off)
+    self.trans(stand, C, pid_walk, C , self.Prepare(), T(5.0) ,self.Stand(), C , self.Kick() , C , stand , C)
+    self.setFinish(None)
     #self.trans(stand, C ,  sit, C, off)

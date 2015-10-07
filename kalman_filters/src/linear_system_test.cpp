@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include <kalman_filters/linear_kalman_filter.hpp>
 
 #include <std_msgs/Float64.h>

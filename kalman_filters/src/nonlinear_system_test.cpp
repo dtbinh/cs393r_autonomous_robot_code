@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include <kalman_filters/unscented_kalman_filter.hpp>
 
 #include <std_msgs/Float64.h>
@@ -9,12 +10,12 @@ Eigen::Matrix<double, 2, 2> A;
 Eigen::Matrix<double, 2, 1> B;
 Eigen::Matrix<double, 2, 2> C;
 
-KF::StateVector g(KF::StateVector& x, KF::ControlVector& u)
+KF::StateVector g(KF::StateVector x, KF::ControlVector u)
 {
   return A * x + B * u;
 }
 
-KF::MeasurementVector h(KF::StateVector& x)
+KF::MeasurementVector h(KF::StateVector x)
 {
   return C * x;
 }
@@ -24,10 +25,21 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "nonlinear_system_test");
   ros::NodeHandle nh("~");
 
+  bool stationary = true;
+
   double dt = 0.01;
-  A << 1, dt, 0, 1;
-  B << 0, dt;
-  C << 1, 0, 0, 1;
+  if(stationary)
+  {
+    A << 1, 0, 0, 1;
+    B << 0, 0;
+    C << 1, 0, 0, 1;
+  }
+  else
+  {
+    A << 1, dt, 0, 1;
+    B << 0, dt;
+    C << 1, 0, 0, 1;
+  }
 
   ros::Publisher truth_pub = nh.advertise<std_msgs::Float64>("/pos_truth", 1, true);
   ros::Publisher truth_pub2 = nh.advertise<std_msgs::Float64>("/vel_truth", 1, true);
@@ -44,7 +56,15 @@ int main(int argc, char **argv)
   KF::ControlVector control;
 
   double control_magnitude = 10.0;
-  state << 0.0, -control_magnitude / 2.0;
+
+  if(stationary)
+  {
+    state << 5.0, 0.0;
+  }
+  else
+  {
+    state << 0.0, -control_magnitude / 2.0;
+  }
   control << 0.0;
 
   double var = 1.0;

@@ -82,13 +82,6 @@ public:
       wm[i] = 1.0 / (2.0 * nlambda);
       wc[i] = wm[i];
     }
-
-    //fix retarded official weights
-    for(unsigned int i = 0; i < (2 * NumStates); i++)
-    {
-      wm[i] = 1.0/(double)wm.size();
-      wc[i] =  1.0/(double)wc.size();
-    }
   }
 
   inline StateCovarianceMatrix covSqrt(StateCovarianceMatrix mat)
@@ -110,32 +103,7 @@ public:
   inline void populateSigmaPoints(StateVector mu_mat, StateCovarianceMatrix sigma_mat, double gamma_val, SigmaPointMatrix& X_mat)
   {
     sigma_mat *= (n + lambda);
-    Eigen::SelfAdjointEigenSolver<StateCovarianceMatrix> es(sigma_mat);
-
-    StateCovarianceMatrix sigma_root = sigma_mat.sqrt();
-    StateCovarianceMatrix sigma_root_2 = es.operatorSqrt();
-    StateCovarianceMatrix sigma_root_3 = CholeskyDecomposition(sigma_mat);
-    StateCovarianceMatrix sigma_root_4 = covSqrt(sigma_mat);
-
-    Eigen::LLT<StateCovarianceMatrix> llt(sigma_mat);
-    StateCovarianceMatrix sigma_root_5 = llt.matrixL();
-
-    StateCovarianceMatrix sigma3 = sigma_root_3 * sigma_root_3.transpose();
-    StateCovarianceMatrix sigma4 = sigma_root_4 * sigma_root_4.transpose();
-    StateCovarianceMatrix sigma5 = sigma_root_5 * sigma_root_5.transpose();
-
-    //TODO: figure out why all of these libraries are so shitty that they can't take a square root...
-    std::cerr << "sigma:\n" << sigma_mat << std::endl;
-    std::cerr << "sigma root:\n" << sigma_root << std::endl;
-    std::cerr << "sigma root 2:\n" << sigma_root_2 << std::endl;
-    std::cerr << "sigma root 3:\n" << sigma_root_3 << std::endl;
-    std::cerr << "sigma 3:\n" << sigma3 << std::endl;
-    std::cerr << "sigma root 4:\n" << sigma_root_4 << std::endl;
-    std::cerr << "sigma 4:\n" << sigma4 << std::endl;
-    std::cerr << "sigma root 5:\n" << sigma_root_5 << std::endl;
-    std::cerr << "sigma 5:\n" << sigma5 << std::endl;
-
-    sigma_root = sigma_root_4;
+    StateCovarianceMatrix sigma_root = CholeskyDecomposition(sigma_mat);
     X_mat[0] = mu_mat;
     for(unsigned int i = 1; i < NumStates; i++)
     {
@@ -156,11 +124,11 @@ public:
       mu_bar += wm[i] * X_bar_star[i];
     }
 
-    sigma_bar = R; //StateCovarianceMatrix::Zero();
+    sigma_bar = R;
     for(unsigned int i = 0; i < (2 * NumStates); i++)
     {
       StateVector no_mean = X_bar_star[i] - mu_bar;
-      sigma_bar += wc[i] * no_mean * no_mean.transpose(); // + R;
+      sigma_bar += wc[i] * no_mean * no_mean.transpose();
     }
 
     populateSigmaPoints(mu_bar, sigma_bar, gamma, X_bar);
@@ -172,12 +140,12 @@ public:
       z_hat += wm[i] * Z_bar[i];
     }
 
-    S = Q; //MeasurementCovarianceMatrix::Zero();
+    S = Q;
     sigma_bar_xz = StateCovarianceMatrix::Zero();
     for(unsigned int i = 0; i < (2 * NumStates); i++)
     {
       StateVector no_mean = Z_bar[i] - z_hat;
-      S += wc[i] * no_mean * no_mean.transpose(); // + Q;
+      S += wc[i] * no_mean * no_mean.transpose();
       sigma_bar_xz += wc[i] * (X_bar[i] - mu_bar) * no_mean.transpose();
     }
 

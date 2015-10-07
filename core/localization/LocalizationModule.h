@@ -3,6 +3,7 @@
 #include <Module.h>
 #include <memory/MemoryCache.h>
 #include <localization/LocalizationParams.h>
+#include <../kalman_filters/include/kalman_filters/linear_kalman_filter.hpp>
 
 class LocalizationModule : public Module {
   public:
@@ -16,6 +17,11 @@ class LocalizationModule : public Module {
     void processFrame();
 
     void loadParams(LocalizationParams params);
+
+    //Kalman filter
+    typedef LinearKalmanFilter<4, 4, 1> KF;
+    KF *ball_filter;
+
   protected:
     MemoryCache cache_;
     TextLogger*& tlogger_;

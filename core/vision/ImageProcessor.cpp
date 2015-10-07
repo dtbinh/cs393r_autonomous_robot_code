@@ -126,7 +126,7 @@ void ImageProcessor::processFrame()
   if(!classifier_->classifyImage(color_table_))
     return;
 
-  mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 3);
+  mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 4);
 
   //detectBall(getSegImg(), mergeblob);
   if(camera_ == Camera::TOP)
@@ -135,22 +135,16 @@ void ImageProcessor::processFrame()
     detectGoal(getSegImg(), mergeblob);
   }
 
-
   // printf("Found %d blobs\n", mergeblob.get_blob_number());
+
   for(int i = 0; i < mergeblob->get_blob_number(); i++)
   {
     MergeBlob::Blob* blob = &mergeblob->blob[i];
     if(blob->color == c_ORANGE)
     {
-      // printf("Found orange blob\n");
       // mergeblob.DisplayBlob(i);
+      // findBall(blob);
       findBall(blob);
-
-      // getSegImg()[320*blob->centroid_y + blob->centroid_x] = c_FIELD_GREEN;
-      //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x] = c_BLUE;
-      //  getSegImg()[320*blob->boundingbox_vertex_y + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_YELLOW;
-      //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x] = c_BLUE;
-      //  getSegImg()[320*(blob->boundingbox_vertex_y + blob->boundingbox_height -1) + blob->boundingbox_vertex_x + blob->boundingbox_length - 1] = c_BLUE;
     }
   }
 
@@ -195,95 +189,9 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   }
 }
 
-void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
-{
-  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
-
-  for(int i = 0; i < mb->get_blob_number(); i++)
-  {
-    if(mb->blob[i].color != c_ORANGE)
-    {
-      continue;
-    }
-
-    //make sure blob doesn't contain other blobs
-    bool contains_other_blobs = false;
-    for(int j = 0; j < mb->get_blob_number(); j++)
-    {
-      if(mb->blob[i].color == c_PINK)
-      {
-        //pink sometimes looks like orange
-        continue;
-      }
-
-      unsigned int orange_y_min = mb->blob[i].boundingbox_vertex_y;
-      unsigned int orange_y_max = orange_y_min + mb->blob[i].boundingbox_height;
-      unsigned int orange_x_min = mb->blob[i].boundingbox_vertex_x;
-      unsigned int orange_x_max = orange_x_min + mb->blob[i].boundingbox_length;
-      unsigned int other_y_min = mb->blob[j].boundingbox_vertex_y;
-      unsigned int other_y_max = other_y_min + mb->blob[j].boundingbox_height;
-      unsigned int other_x_min = mb->blob[j].boundingbox_vertex_x;
-      unsigned int other_x_max = other_x_min + mb->blob[j].boundingbox_length;
-      if(orange_y_min < other_y_min && orange_y_max > other_y_max && orange_x_min < other_x_min && orange_x_max > other_x_max)
-      {
-        //other blob is contained inside the orange blob
-        contains_other_blobs = true;
-        break;
-      }
-    }
-    if(contains_other_blobs)
-    {
-      continue;
-    }
-
-    float centroid_height = 20.0;
-    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
-    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    double dist = cmatrix_.groundDistance(cmatrix_.getWorldPosition(mb->blob[i].centroid_x, mb->blob[i].centroid_y, centroid_height));
-
-    float d1 = 688.865;
-    float d2 = 791.81;
-    float pixels_at_d1 = 525;
-    float pixels_at_d2 = 323;
-    unsigned int pixels_at_dist = ((pixels_at_d2-pixels_at_d1) / (d2-d1)) * (dist-d1) + pixels_at_d1;
-    unsigned int min_blob_size = 100; //0.5 * pixels_at_dist;
-    unsigned int max_blob_size = 400; //2.5 * pixels_at_dist;
-    printf("min=%d,max=%d,dist=%g,size=%d,ar=%g\n", min_blob_size, max_blob_size,dist,size,ar);
-
-    if(size > min_blob_size && size < max_blob_size && ar > 0.7 && ar < 1.2)
-    {
-      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
-      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
-      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
-
-      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
-
-      unsigned int x = mb->blob[i].centroid_x;
-      unsigned int y = mb->blob[i].centroid_y;
-      ball->imageCenterX = x;
-      ball->imageCenterY = y;
-      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
-      ball->visionBearing = cmatrix_.bearing(p);
-      ball->visionElevation = cmatrix_.elevation(p);
-      ball->fromTopCamera = (camera_ == Camera::TOP);
-      ball->visionDistance = cmatrix_.groundDistance(p);
-      ball->seen = true;
-      //printf("found at goal %d,%d", x, y);
-    }
-  }
-}
 
 bool ImageProcessor::findBall(MergeBlob::Blob* blob)
-//bool ImageProcessor::findBall(Point2d& point)
 {
-  //int number_data_sampled = 20;
-  //int *distance_sampled = new int[number_data_sampled];
-  //int *long_side_sampled = new int[number_data_sampled];
-
   int box_height = blob->boundingbox_height;
   int box_length = blob->boundingbox_length;
   int long_side = (box_length > box_height)? box_length : box_height;
@@ -300,7 +208,6 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   double pixel_density = (double)ball_pixels / ((box_height + 3)*(box_length + 1) / 8.0);
 
   //printf("ball_pixels = %d , box_length = %d , box_height = %d , pixel_density = %f \n", ball_pixels , box_length , box_height ,  pixel_density );
-
 
   if(camera_ == Camera::TOP)
   {
@@ -344,30 +251,21 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     return false;
   }
 
-  for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j)
-  {
-    getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
-  }
+  for( int j = 1 ; j <= blob->pixel_index_x[0] ; ++j) getSegImg()[320*blob->pixel_index_y[j] + blob->pixel_index_x[j]] = c_UNDEFINED;
 
-  
-
-  
   //Position p = cmatrix_.getWorldPosition(blob->centroid_x, blob->centroid_y);
   //double distance = cmatrix_.groundDistance(p);
 
   //int theoretical_long_side_pixels = (10000/distance);
   //if(long_side < 0.67*theoretical_long_side_pixels || long_side > 1.33*theoretical_long_side_pixels) return false;
 
-  if(abs(box_length - box_height) < 10)
+  if(abs(box_length - box_height) < 8)
   {
       real_centroid_x = blob->boundingbox_vertex_x + (box_length/2);
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);
       real_radius = (box_length + box_height) / 4;
 
-      if(real_radius < 3)
-      {
-        return false;
-      }
+      if(real_radius < 3) return false;
       getSegImg()[320*real_centroid_y + real_centroid_x] = c_UNDEFINED;
   }
   else
@@ -463,40 +361,8 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   ball->seen = true;
   ball->radius = real_radius;
 
-  //printf("BALL cent_x=%d,cent_y=%d, radius=%d, distance = %f \n", x, y, real_radius , ball->visionDistance);
+  return true;
 
-  // double ball_cx = 0.0;
-  // double ball_cy = 0.0;
-  // double num_ball_hits = 0.0;
-  // for(unsigned int x = 0; x < 320; x++)
-  // {
-  //   for(unsigned int y = 0; y < 240; y++)
-  //   {
-  //     unsigned int idx = 320 * y + x;
-  //     unsigned char color = getSegImg()[idx];
-
-  //     if(color == c_ORANGE) //is ball colored
-  //     {
-  //       ball_cx += x;
-  //       ball_cy += y;
-  //       num_ball_hits += 1.0;
-  //     }
-  //   }
-  // }
-
-  // if(num_ball_hits == 0.0)
-  // {
-  //   point.x = point.y = 0;
-  //   //printf("no ball hits\n");
-  //   return false;
-  // }
-  // else
-  // {
-  //   point.x = (int) ball_cx / num_ball_hits;
-  //   point.y = (int) ball_cy / num_ball_hits;
-  //   //printf("ball at x=%d, y=%d\n", point.x, point.y);
-  //   return true;
-  // }
 }
 
 int ImageProcessor::getTeamColor()
@@ -534,4 +400,87 @@ void ImageProcessor::enableCalibration(bool value)
 bool ImageProcessor::isImageLoaded()
 {
   return vblocks_.image->loaded_;
+}
+
+
+void ImageProcessor::detectBall(unsigned char* img, MergeBlob* mb)
+{
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+
+  for(int i = 0; i < mb->get_blob_number(); i++)
+  {
+    if(mb->blob[i].color != c_ORANGE)
+    {
+      continue;
+    }
+
+    //make sure blob doesn't contain other blobs
+    bool contains_other_blobs = false;
+    for(int j = 0; j < mb->get_blob_number(); j++)
+    {
+      if(mb->blob[i].color == c_PINK)
+      {
+        //pink sometimes looks like orange
+        continue;
+      }
+
+      unsigned int orange_y_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int orange_y_max = orange_y_min + mb->blob[i].boundingbox_height;
+      unsigned int orange_x_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int orange_x_max = orange_x_min + mb->blob[i].boundingbox_length;
+      unsigned int other_y_min = mb->blob[j].boundingbox_vertex_y;
+      unsigned int other_y_max = other_y_min + mb->blob[j].boundingbox_height;
+      unsigned int other_x_min = mb->blob[j].boundingbox_vertex_x;
+      unsigned int other_x_max = other_x_min + mb->blob[j].boundingbox_length;
+      if(orange_y_min < other_y_min && orange_y_max > other_y_max && orange_x_min < other_x_min && orange_x_max > other_x_max)
+      {
+        //other blob is contained inside the orange blob
+        contains_other_blobs = true;
+        break;
+      }
+    }
+    if(contains_other_blobs)
+    {
+      continue;
+    }
+
+    float centroid_height = 20.0;
+    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
+    double dist = cmatrix_.groundDistance(cmatrix_.getWorldPosition(mb->blob[i].centroid_x, mb->blob[i].centroid_y, centroid_height));
+
+    float d1 = 688.865;
+    float d2 = 791.81;
+    float pixels_at_d1 = 525;
+    float pixels_at_d2 = 323;
+    unsigned int pixels_at_dist = ((pixels_at_d2-pixels_at_d1) / (d2-d1)) * (dist-d1) + pixels_at_d1;
+    unsigned int min_blob_size = 100; //0.5 * pixels_at_dist;
+    unsigned int max_blob_size = 400; //2.5 * pixels_at_dist;
+    printf("min=%d,max=%d,dist=%g,size=%d,ar=%g\n", min_blob_size, max_blob_size,dist,size,ar);
+
+    if(size > min_blob_size && size < max_blob_size && ar > 0.7 && ar < 1.2)
+    {
+      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
+      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
+      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+
+      unsigned int x = mb->blob[i].centroid_x;
+      unsigned int y = mb->blob[i].centroid_y;
+      ball->imageCenterX = x;
+      ball->imageCenterY = y;
+      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+      ball->visionBearing = cmatrix_.bearing(p);
+      ball->visionElevation = cmatrix_.elevation(p);
+      ball->fromTopCamera = (camera_ == Camera::TOP);
+      ball->visionDistance = cmatrix_.groundDistance(p);
+      ball->seen = true;
+      //printf("found at goal %d,%d", x, y);
+    }
+  }
 }

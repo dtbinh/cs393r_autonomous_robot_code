@@ -1,7 +1,7 @@
 #ifndef KALMAN_FILTER_H
 #define KALMAN_FILTER_H
 
-#include <ros/ros.h>
+//#include <ros/ros.h>
 #include <Eigen/Dense>
 
 //assumes linear system and constant matrices
@@ -49,6 +49,14 @@ public:
 //    std::cerr << "mu: " << mu.transpose() << std::endl;
 //    std::cerr << "sigma: " << sigma.transpose() << std::endl;
 
+    return mu;
+  }
+
+  double get_sigma_value( int index_x , int index_y){ return sigma(index_x, index_y); }
+  StateVector get_mu(){ return mu; }
+  StateVector update_mu(int index , double value)
+  {
+    mu(index) = value;
     return mu;
   }
 

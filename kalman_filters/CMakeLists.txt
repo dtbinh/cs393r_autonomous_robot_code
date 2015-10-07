@@ -30,6 +30,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 SET(CMAKE_CXX_FLAGS "-std=c++0x")
-rosbuild_add_executable(nonlinear_system_test src/nonlinear_system_test.cpp)
+rosbuild_add_executable(ukf_test src/ukf_test.cpp)
+rosbuild_add_executable(ekf_test src/ekf_test.cpp)
 rosbuild_add_executable(linear_system_test src/linear_system_test.cpp)
 rosbuild_add_executable(stationary_test src/stationary_test.cpp)

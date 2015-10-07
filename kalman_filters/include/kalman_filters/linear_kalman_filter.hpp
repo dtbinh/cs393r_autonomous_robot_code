@@ -1,7 +1,6 @@
 #ifndef KALMAN_FILTER_H
 #define KALMAN_FILTER_H
 
-//#include <ros/ros.h>
 #include <Eigen/Dense>
 
 //assumes linear system and constant matrices
@@ -41,13 +40,6 @@ public:
     K = sigma_bar * C.transpose() * (C * sigma_bar * C.transpose() + Q).inverse();
     mu = mu_bar + K * (z - C * mu_bar);
     sigma = (I - K * C) * sigma_bar;
-
-//    std::cerr << "================================" << std::endl;
-//    std::cerr << "mu_bar: " << mu_bar.transpose() << std::endl;
-//    std::cerr << "sigma_bar: " << sigma_bar.transpose() << std::endl;
-//    std::cerr << "K: " << K.transpose() << std::endl;
-//    std::cerr << "mu: " << mu.transpose() << std::endl;
-//    std::cerr << "sigma: " << sigma.transpose() << std::endl;
 
     return mu;
   }

@@ -1,12 +1,33 @@
-#include <kalman_filters/linear_kalman_filter.hpp>
+#include <kalman_filters/unscented_kalman_filter.hpp>
 
 #include <std_msgs/Float64.h>
 #include <random>
 
+typedef UnscentedKalmanFilter<2, 2, 1> KF;
+
+Eigen::Matrix<double, 2, 2> A;
+Eigen::Matrix<double, 2, 1> B;
+Eigen::Matrix<double, 2, 2> C;
+
+KF::StateVector g(KF::StateVector& x, KF::ControlVector& u)
+{
+  return A * x + B * u;
+}
+
+KF::MeasurementVector h(KF::StateVector& x)
+{
+  return C * x;
+}
+
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "linear_system_test");
+  ros::init(argc, argv, "nonlinear_system_test");
   ros::NodeHandle nh("~");
+
+  double dt = 0.01;
+  A << 1, dt, 0, 1;
+  B << 0, dt;
+  C << 1, 0, 0, 1;
 
   ros::Publisher truth_pub = nh.advertise<std_msgs::Float64>("/pos_truth", 1, true);
   ros::Publisher truth_pub2 = nh.advertise<std_msgs::Float64>("/vel_truth", 1, true);
@@ -15,10 +36,6 @@ int main(int argc, char **argv)
   ros::Publisher estimate_pub2 = nh.advertise<std_msgs::Float64>("/vel_estimate", 1, true);
   ros::Publisher control_pub = nh.advertise<std_msgs::Float64>("/control", 1, true);
 
-  typedef LinearKalmanFilter<2, 2, 1> KF;
-  KF::StateTransitionMatrix A_matrix = KF::StateTransitionMatrix::Identity();
-  KF::InputMatrix B_matrix = KF::InputMatrix::Identity();
-  KF::OutputMatrix C_matrix = KF::OutputMatrix::Identity();
   KF::StateCovarianceMatrix R_matrix = KF::StateCovarianceMatrix::Zero();
   KF::MeasurementCovarianceMatrix Q_matrix = KF::MeasurementCovarianceMatrix::Identity();
 
@@ -27,11 +44,7 @@ int main(int argc, char **argv)
   KF::ControlVector control;
 
   double control_magnitude = 10.0;
-  double dt = 0.01;
-  A_matrix << 1, dt, 0, 1;
-  B_matrix << 0, dt;
-  C_matrix << 1, 0, 0, 1;
-  state << 0.0, -control_magnitude/2.0;
+  state << 0.0, -control_magnitude / 2.0;
   control << 0.0;
 
   double var = 1.0;
@@ -39,7 +52,7 @@ int main(int argc, char **argv)
   std::normal_distribution<double> measurement_distribution(0.0, var);
   Q_matrix *= var;
 
-  KF filter(A_matrix, B_matrix, C_matrix, R_matrix, Q_matrix);
+  KF filter(boost::bind(&g, _1, _2), boost::bind(&h, _1), R_matrix, Q_matrix);
 
   double t = 0;
   while(ros::ok())
@@ -49,6 +62,12 @@ int main(int argc, char **argv)
     noise(1) = measurement_distribution(generator);
     measurement = state + noise;
     estimated_state = filter.process(measurement, control);
+
+    if(std::isnan(estimated_state(0)))
+    {
+      std::cerr << "nan fail!" << std::endl;
+      return 0;
+    }
 
     std_msgs::Float64 msg;
     msg.data = state(0);
@@ -71,7 +90,7 @@ int main(int argc, char **argv)
     else
       control << -control_magnitude;
 
-    state = A_matrix * state + B_matrix * control;
+    state = g(state, control);
 
     ros::Duration(dt).sleep();
   }

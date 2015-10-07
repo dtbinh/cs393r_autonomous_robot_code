@@ -52,7 +52,7 @@ public:
     return mu;
   }
 
-  double get_sigma_value( int index_x , int index_y){ return sigma(index_x, index_y); }
+  double get_sigma_value( int index ){ return sigma(index); }
   StateVector get_mu(){ return mu; }
   StateVector update_mu(int index , double value)
   {

@@ -21,6 +21,8 @@ class LocalizationModule : public Module {
     //Kalman filter
     typedef LinearKalmanFilter<4, 4, 1> KF;
     KF *ball_filter;
+    //KF :: StateVector mu_past_0;
+    //KF :: StateVector mu_past_1;
 
   protected:
     MemoryCache cache_;

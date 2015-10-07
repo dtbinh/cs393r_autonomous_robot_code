@@ -3,7 +3,7 @@
 #include <Eigen/Core>
 #include <memory/MemoryBlock.h>
 #include <math/Geometry.h>
-#define STATE_SIZE 2
+#define STATE_SIZE 4
 
 struct LocalizationBlock : public MemoryBlock {
 public:

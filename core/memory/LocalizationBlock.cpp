@@ -14,7 +14,7 @@ Point2D LocalizationBlock::getBallPosition() {
 }
 
 Point2D LocalizationBlock::getBallVel() {
-  return Point2D(/* fill this in */);
+  return Point2D(state[2], state[3]);
 }
 
 Matrix2f LocalizationBlock::getBallCov() {

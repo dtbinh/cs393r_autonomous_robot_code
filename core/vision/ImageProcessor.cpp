@@ -137,14 +137,18 @@ void ImageProcessor::processFrame()
 
   // printf("Found %d blobs\n", mergeblob.get_blob_number());
 
-  for(int i = 0; i < mergeblob->get_blob_number(); i++)
+  WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
+  if(!ball->seen)
   {
-    MergeBlob::Blob* blob = &mergeblob->blob[i];
-    if(blob->color == c_ORANGE)
+    for(int i = 0; i < mergeblob->get_blob_number(); i++)
     {
-      // mergeblob.DisplayBlob(i);
-      // findBall(blob);
-      findBall(blob);
+      MergeBlob::Blob* blob = &mergeblob->blob[i];
+      if(blob->color == c_ORANGE)
+      {
+        // mergeblob.DisplayBlob(i);
+        // findBall(blob);
+        findBall(blob);
+      }
     }
   }
 
@@ -259,14 +263,15 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   //int theoretical_long_side_pixels = (10000/distance);
   //if(long_side < 0.67*theoretical_long_side_pixels || long_side > 1.33*theoretical_long_side_pixels) return false;
 
-  if(abs(box_length - box_height) < 8)
+  if(abs(box_length - box_height) < 10)
   {
       real_centroid_x = blob->boundingbox_vertex_x + (box_length/2);
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);
       real_radius = (box_length + box_height) / 4;
 
-      if(real_radius < 3) return false;
+      if(real_radius < 4) return false;
       getSegImg()[320*real_centroid_y + real_centroid_x] = c_UNDEFINED;
+      //printf("A ball. real_centroid_x = %d , real_centroid_y = %d \n", real_centroid_x , real_centroid_y );
   }
   else
   {

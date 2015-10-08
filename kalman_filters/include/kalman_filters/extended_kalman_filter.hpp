@@ -54,6 +54,14 @@ public:
 
     return mu;
   }
+  
+  double get_sigma_value( int index ){ return sigma(index); }
+  StateVector get_mu(){ return mu; }
+  StateVector update_mu(int index , double value)
+  {
+    mu(index) = value;
+    return mu;
+  }
 
 private:
   StateTransitionFunction g;

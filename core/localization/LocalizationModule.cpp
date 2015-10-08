@@ -5,11 +5,31 @@
 #include <memory/RobotStateBlock.h>
 //#include <Eigen/Dense>
 
+KF::StateVector LocalizationModule::g(KF::StateVector x, KF::ControlVector u)
+{
+  return A * x + B * u;
+}
+
+KF::MeasurementVector LocalizationModule::h(KF::StateVector x)
+{
+  return C * x;
+}
+
+KF::StateJacobianMatrix LocalizationModule::G(KF::StateVector x, KF::ControlVector u)
+{
+  return A;
+}
+
+KF::MeasurementJacobianMatrix LocalizationModule::H(KF::StateVector x)
+{
+  return C;
+}
+
 // Boilerplate
 LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
-  KF::StateTransitionMatrix A_matrix = KF::StateTransitionMatrix::Identity();
-  KF::InputMatrix B_matrix = KF::InputMatrix::Zero();
-  KF::OutputMatrix C_matrix = KF::OutputMatrix::Identity();
+  // KF::StateTransitionMatrix A_matrix = KF::StateTransitionMatrix::Identity();
+  // KF::InputMatrix B_matrix = KF::InputMatrix::Zero();
+  // KF::OutputMatrix C_matrix = KF::OutputMatrix::Identity();
   KF::StateCovarianceMatrix R_matrix = KF::StateCovarianceMatrix::Zero();
   KF::MeasurementCovarianceMatrix Q_matrix = KF::MeasurementCovarianceMatrix::Identity();
 
@@ -19,20 +39,20 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
   double dt = 1.0/30.0;
   double xvf = 0.99;
   double yvf = 0.99;
-  A_matrix << 1.0 , dt  , 0   , 0   ,
+  A << 1.0 , dt  , 0   , 0   ,
               0   , 1.0 , 0  ,  dt  ,
               0   , 0   , xvf , 0   ,
               0   , 0   , 0   , yvf ;
 
-  //B_matrix << 0;
-  C_matrix << 1 , 0 , 0 , 0 ,
+  B << 0, 0;
+  C << 1 , 0 , 0 , 0 ,
               0 , 1 , 0 , 0 ,
               0 , 0 , 1 , 0 ,
               0 , 0 , 0 , 1 ;
 
   double x_var = 0.5 ;
-  double xv_var = 2;
-  double yv_var = 2;
+  double xv_var = 1;
+  double yv_var = 1;
   double y_var = 0.5 ;
 
   R_matrix <<   x_var ,   0    ,   0    ,   0    ,
@@ -42,14 +62,17 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
 
   double zx_var = 0.5;
   double zy_var = 0.5;
-  double zxv_var = 2;
-  double zyv_var = 2;
+  double zxv_var = 20;
+  double zyv_var = 20;
   Q_matrix <<   zx_var  ,   0     ,   0    ,   0     ,
                   0     , zy_var  ,   0    ,   0     ,
                   0     ,   0     , zxv_var,   0     ,
                   0     ,   0     ,   0    , zyv_var ;
 
-  ball_filter = new KF(A_matrix, B_matrix, C_matrix, R_matrix, Q_matrix);
+  // ball_filter = new KF(A_matrix, B_matrix, C_matrix, R_matrix, Q_matrix);
+  ball_filter = new KF(boost::bind(&LocalizationModule::g, this, _1, _2), boost::bind(&LocalizationModule::h, this, _1), boost::bind(&LocalizationModule::G, this, _1, _2), boost::bind(&LocalizationModule::H, this, _1), R_matrix, Q_matrix);
+  first = true;
+  unseen_count = 0;
 }
 
 // Boilerplate
@@ -124,21 +147,43 @@ void LocalizationModule::processFrame() {
     auto globalBall = relBall.relativeToGlobal(self.loc, self.orientation);
 
     // Update the ball in the WorldObject block so that it can be accessed in python
-    ball.loc = globalBall;
-    ball.distance = ball.visionDistance;
-    ball.bearing = ball.visionBearing;
+
+    if(first || unseen_count > 30)
+    {
+      ball_filter->update_mu(0 , globalBall.x );
+      ball_filter->update_mu(1 , globalBall.y );
+      ball_filter->update_mu(2 , 0 );
+      ball_filter->update_mu(3 , 0 );
+      first = false;
+    }
+
+    unseen_count = 0;
     
     KF :: StateVector mu = ball_filter->get_mu();
-    ball.absVel.x = abs(mu(2));
-    ball.absVel.y = abs(mu(3));
-    //ball.absVel = fill this in
-    double measured_vx = (ball.loc.x - mu(0)) * 30.0;
-    double measured_vy = (ball.loc.y - mu(1)) * 30.0;
+    double measured_vx = (globalBall.x - mu(0)) * 30.0;
+    double measured_vy = (globalBall.y - mu(1)) * 30.0;
 
-    measurement << ball.loc.x , ball.loc.y , measured_vx , measured_vy ;
+    // double vel_thresh = 300.0;
+    // if(fabs(measured_vy) > vel_thresh || fabs(measured_vx) > vel_thresh) //bad ball!
+    // {
+    //   std::cerr << "BAD BALL vel x:" << measured_vx << " y: " << measured_vy << std::endl;
+    //   measurement = mu;
+    // }
+    // else
+    // {
+    measurement << globalBall.x , globalBall.y , measured_vx , measured_vy ;
+    // }
+
     estimated_state = ball_filter -> process(measurement, control);
 
-    printf("x = %f , xv = %f , y = %f , yv = %f  \n" , ball.loc.x , measured_vx , ball.loc.y , measured_vy);
+    ball.loc.x = estimated_state(0);
+    ball.loc.y = estimated_state(1);
+    ball.distance = ball.loc.getDistanceTo(self.loc);
+    ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
+    ball.absVel.x = estimated_state(2);
+    ball.absVel.y = estimated_state(3);
+
+    //printf("x = %f\t, xv = %f\t, y = %f\t, yv = %f , distance = %f \n" , ball.loc.x , measured_vx , ball.loc.y , measured_vy , ball.distance);
 
     Eigen:: Matrix< float , 4 , 4 > cov ;
     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
@@ -151,24 +196,55 @@ void LocalizationModule::processFrame() {
   } 
   //TODO: How do we handle not seeing the ball?
   else {
-    ball.distance = 10000.0f;
-    ball.bearing = 0.0f;
+    unseen_count++;
+    //estimated_state = ball_filter -> process(ball_filter->get_mu(), control);
+    // ball.distance = 10000.0f;
 
+    //ball.distance = 10000.0f;
+    //ball.bearing = 0.0f;
     KF :: StateVector mu = ball_filter->get_mu();
+    ball_filter->update_mu(0 , mu(0));
+    ball_filter->update_mu(1 , mu(1));
+    ball_filter->update_mu(2 , 0 );
+    ball_filter->update_mu(3 , 0 );
 
-    ball_filter->update_mu(0 , mu(0) + mu(2)/30.0 );
-    ball_filter->update_mu(1 , mu(1) + mu(3)/30.0 );
-    ball_filter->update_mu(2 , mu(2) * 0.98 );
-    ball_filter->update_mu(3 , mu(3) * 0.98 );
+    KF :: StateVector mu2 = ball_filter->get_mu();
+
+    ball.loc.x = mu2(0);
+    ball.loc.y = mu2(1);
+    ball.distance = ball.loc.getDistanceTo(self.loc);
+    ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
+    ball.absVel.x = mu2(2);
+    ball.absVel.y = mu2(3);
 
     Eigen:: Matrix< float , 4 , 4 > cov ;
     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
 
-    cache_.localization_mem->state[0] = mu(0) + mu(2)/30.0 ;
-    cache_.localization_mem->state[1] = mu(1) + mu(3)/30.0 ;
-    cache_.localization_mem->state[2] = mu(2) * 0.98 ;
-    cache_.localization_mem->state[3] = mu(3) * 0.98 ;
+    cache_.localization_mem->state[0] = mu2(0);
+    cache_.localization_mem->state[1] = mu2(1);
+    cache_.localization_mem->state[2] = mu2(2);
+    cache_.localization_mem->state[3] = mu2(3);
     cache_.localization_mem->covariance = cov * 10000;
+    
+
+
+    // ball.bearing = 0.0f;
+
+    // ball.loc.x = estimated_state(0);
+    // ball.loc.y = estimated_state(1);
+    // ball.distance = ball.loc.getDistanceTo(self.loc);
+    // //ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
+    // ball.absVel.x = 0;
+    // ball.absVel.y = 0;
+
+    // Eigen:: Matrix< float , 4 , 4 > cov ;
+    // for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
+
+    // cache_.localization_mem->state[0] = estimated_state(0);
+    // cache_.localization_mem->state[1] = estimated_state(1);
+    // cache_.localization_mem->state[2] = 0;
+    // cache_.localization_mem->state[3] = 0;
+    // cache_.localization_mem->covariance = cov * 10000;
   }
 }
 

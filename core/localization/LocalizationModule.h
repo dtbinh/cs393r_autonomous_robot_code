@@ -3,7 +3,12 @@
 #include <Module.h>
 #include <memory/MemoryCache.h>
 #include <localization/LocalizationParams.h>
-#include <../kalman_filters/include/kalman_filters/linear_kalman_filter.hpp>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
+// #include <../kalman_filters/include/kalman_filters/linear_kalman_filter.hpp>
+#include <../kalman_filters/include/kalman_filters/extended_kalman_filter.hpp>
+
+typedef ExtendedKalmanFilter<4, 4, 1> KF;
 
 class LocalizationModule : public Module {
   public:
@@ -19,10 +24,21 @@ class LocalizationModule : public Module {
     void loadParams(LocalizationParams params);
 
     //Kalman filter
-    typedef LinearKalmanFilter<4, 4, 1> KF;
+    bool first;
+    unsigned int unseen_count;
     KF *ball_filter;
     //KF :: StateVector mu_past_0;
     //KF :: StateVector mu_past_1;
+
+    Eigen::Matrix<double, 4, 4> A;
+    Eigen::Matrix<double, 4, 1> B;
+    Eigen::Matrix<double, 4, 4> C;
+
+
+    KF::StateVector g(KF::StateVector x, KF::ControlVector u);
+    KF::MeasurementVector h(KF::StateVector x);
+    KF::StateJacobianMatrix G(KF::StateVector x, KF::ControlVector u);
+    KF::MeasurementJacobianMatrix H(KF::StateVector x);
 
   protected:
     MemoryCache cache_;

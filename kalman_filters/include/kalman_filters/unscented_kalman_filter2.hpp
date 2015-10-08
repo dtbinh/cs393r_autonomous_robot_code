@@ -77,19 +77,13 @@ public:
     lambda = alpha * alpha * (n + kappa) - n;
     c = (n + lambda);
 
-//    wm(0) = lambda / c;
-//    wc(0) = lambda / c + (1.0 - alpha * alpha + beta);
-//    for(unsigned int i = 1; i < (2 * NumStates); i++)
-//    {
-//      wm(i) = 1.0 / (2.0 * c);
-//      wc(i) = wm(i);
-//    }
-
-    //the official weighting scheme is blatantly retarded. Here's a better one that sums to 1 (i.e., an actual weighted mean...)
-    double w0 = 1e-3;
-    wm = WeightVector::Ones() * (1 - w0) / (2.0 * n);
-    wm(0) = w0;
-    wc = wm;
+   wm(0) = lambda / c;
+   wc(0) = lambda / c + (1.0 - alpha * alpha + beta);
+   for(unsigned int i = 1; i < (2 * NumStates); i++)
+   {
+     wm(i) = 1.0 / (2.0 * c);
+     wc(i) = wm(i);
+   }
 
     Wm = wm.asDiagonal();
     Wc = wc.asDiagonal();
@@ -129,7 +123,6 @@ public:
     }
   }
 
-  //Probabilistic Robotics, pg. 70, Table 3.4
   StateVector process(MeasurementVector z, ControlVector u)
   {
     populateSigmaPoints(x, P, c, X);

@@ -76,12 +76,17 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
 }
 
 // Boilerplate
+LocalizationModule::~LocalizationModule() {
+  delete pfilter_;
+}
+
 void LocalizationModule::specifyMemoryDependency() {
   requiresMemoryBlock("world_objects");
   requiresMemoryBlock("localization");
   requiresMemoryBlock("vision_frame_info");
   requiresMemoryBlock("robot_state");
   requiresMemoryBlock("game_state");
+  requiresMemoryBlock("vision_odometry");
 }
 
 // Boilerplate
@@ -91,6 +96,7 @@ void LocalizationModule::specifyMemoryBlocks() {
   getOrAddMemoryBlock(cache_.frame_info,"vision_frame_info");
   getOrAddMemoryBlock(cache_.robot_state,"robot_state");
   getOrAddMemoryBlock(cache_.game_state,"game_state");
+  getOrAddMemoryBlock(cache_.odometry,"vision_odometry");
 }
 
 
@@ -114,14 +120,24 @@ void LocalizationModule::initFromMemory() {
 void LocalizationModule::initFromWorld() {
   reInit();
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
-  cache_.localization_mem->player = self.loc;
+  pfilter_->init(self.loc, self.orientation);
 }
 
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
-  cache_.localization_mem->player = Point2D(-750,0);
+  pfilter_->init(Point2D(-750,0), 0.0f);
   cache_.localization_mem->state = decltype(cache_.localization_mem->state)::Zero();
   cache_.localization_mem->covariance = decltype(cache_.localization_mem->covariance)::Identity();
+}
+
+void LocalizationModule::moveBall(const Point2D& position) {
+  // Optional: This method is called when the player is moved within the localization
+  // simulator window.
+}
+
+void LocalizationModule::movePlayer(const Point2D& position, float orientation) {
+  // Optional: This method is called when the player is moved within the localization
+  // simulator window.
 }
 
 void LocalizationModule::processFrame() {
@@ -138,6 +154,13 @@ void LocalizationModule::processFrame() {
   KF::ControlVector control;
   control << 0.0;
 
+  // Process the current frame and retrieve our location/orientation estimate
+  // from the particle filter
+  pfilter_->processFrame();
+  self.loc = pfilter_->pose().translation;
+  self.orientation = pfilter_->pose().rotation;
+  log(40, "Localization Update: x=%2.f, y=%2.f, theta=%2.2f", self.loc.x, self.loc.y, self.orientation * RAD_T_DEG);
+    
   //TODO: modify this block to use your Kalman filter implementation
   if(ball.seen) {
     // Compute the relative position of the ball from vision readings
@@ -147,7 +170,6 @@ void LocalizationModule::processFrame() {
     auto globalBall = relBall.relativeToGlobal(self.loc, self.orientation);
 
     // Update the ball in the WorldObject block so that it can be accessed in python
-
     if(first || unseen_count > 30)
     {
       ball_filter->update_mu(0 , globalBall.x );

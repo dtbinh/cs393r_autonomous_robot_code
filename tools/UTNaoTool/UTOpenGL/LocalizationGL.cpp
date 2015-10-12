@@ -3,6 +3,7 @@
 using namespace Eigen;
 
 void LocalizationGL::drawUncertaintyEllipse(Point2D loc, Point2D sd) {
+  glDisable(GL_LIGHTING);
   glPushMatrix();
 
   basicGL.setLineWidth(3.0);
@@ -11,6 +12,7 @@ void LocalizationGL::drawUncertaintyEllipse(Point2D loc, Point2D sd) {
   basicGL.drawEllipse(sd);
 
   glPopMatrix();
+  glEnable(GL_LIGHTING);
 }
 
 void LocalizationGL::drawUncertaintyEllipse(Point2D loc, Matrix2f cov) {
@@ -31,10 +33,7 @@ void LocalizationGL::drawUncertaintyAngle(Pose2D pose, double var) {
 }
 
 void LocalizationGL::drawUncertaintyAngle(Point2D loc, double orientation, double sdOri) {
-  // kill warnings
-  orientation = orientation;
-  sdOri = sdOri;
-
+  glDisable(GL_LIGHTING);
   glPushMatrix();
 
   basicGL.translate(loc,15);
@@ -56,6 +55,7 @@ void LocalizationGL::drawUncertaintyAngle(Point2D loc, double orientation, doubl
   basicGL.drawLine(start,end);
 
   glPopMatrix();
+  glEnable(GL_LIGHTING);
 }
 
 
@@ -162,17 +162,25 @@ void LocalizationGL::drawRelativeObjectUncerts(WorldObjectBlock* gtObjects, Worl
 }
 
 void LocalizationGL::drawObservationLine(Vector3<float> origin, Vector3<float> end, RGB color) {
+  glDisable(GL_LIGHTING);
   glPushMatrix();
   basicGL.setLineWidth(50);
   basicGL.colorRGBAlpha(color,0.25);
   basicGL.drawLine(origin,end);
   glPopMatrix();
+  glEnable(GL_LIGHTING);
 }
 
-
+void LocalizationGL::drawParticles(const std::vector<Particle>& particles) {
+  for(const auto& p : particles) {
+    auto start = Point2D(p.x,p.y);
+    auto end = start + Point2D::getPointFromPolar(100, p.t);
+    basicGL.drawArrow(start, end, Colors::Indigo, Colors::Red, p.w, 5);
+  }
+}
 
 void LocalizationGL::drawOdometry(Point2D loc, AngRad ori, OdometryBlock* odometry){
-
+  glDisable(GL_LIGHTING);
   glPushMatrix();
   basicGL.translate(loc,15);
   basicGL.rotateZ(ori);
@@ -192,145 +200,5 @@ void LocalizationGL::drawOdometry(Point2D loc, AngRad ori, OdometryBlock* odomet
     basicGL.drawArc(heading, heading + disp * 25, 200);
 
   glPopMatrix();
-
+  glEnable(GL_LIGHTING);
 }
-
-
-
-void LocalizationGL::drawRotatedUncertaintyEllipse(Point2D loc, double p00, double p01, double p10, double p11) {
-
-  // kill warnings
-  p10 = p10;
-
-  double d1=0;
-  double d2=0;
-  SolveQuadratic(&d1,&d2,1.0,-1*(p00+p11),(p00*p11)-(p01*p01));
-  //  cout << d1 << "," << d2 << endl << flush;
-  double bigD = max(d1,d2);
-  double smallD = min(d1,d2);
-
-  double rot = 0.0;
-  if (fabs(smallD - p00) > fabs(smallD - p11)) {
-    rot = atan2(p01,smallD-p00);
-  }
-  else {
-    rot = atan2(smallD-p11,p01);
-  }
-  Point2D sd;
-  sd.x=bigD;
-  sd.y=smallD;
-  // cout << sd << endl << flush;
-  //  drawUncertaintyEllipse(loc,sd);
-  drawRotatedUncertaintyEllipse(loc,sd,-rot);
-}
-
-void LocalizationGL::drawRotatedUncertaintyEllipse(Point2D loc, Point2D sd, double rot) {
-  glPushMatrix();
-
-  basicGL.setLineWidth(3.0);
-
-  basicGL.translate(loc,50);
-  basicGL.rotateZ(rot);
-  basicGL.drawEllipse(sd);
-
-  glPopMatrix();
-}
-
-
-void LocalizationGL::SolveQuadratic(double* x, double *y, double a, double b, double c) {
-  double x1 = 0.0;
-  double x2 = 0.0;
-  double x3 = 0.0;
-  double x4 = 0.0;
-
-  //are all the coefficients 0? if so both roots are 0
-  if(a == 0 && b == 0 && c == 0){
-    *x = 0;
-    *y = 0;
-    return;
-  }
-
-  //is a zero? if so solve the resulting linear equasion and notify user
-  if(a == 0 && b != 0 && c !=0){
-    cout << "The values entered do not make a quadratic expression"  << endl << flush;
-  }
-
-  //if b is zero and c is zero tell user
-  if(a == 0 && b != 0 && c == 0){
-    *x = 0;
-    *y = 0;
-    return;
-  }
-  //if b and c are equal to zero then ax^=0 and since a cannot be zero without x being
-  // zero also let user know
-  if(a != 0 && b == 0 && c == 0){
-    *x = 0;
-    *y = 0;
-    return;
-  }
-  //factor out x from ax^+bx=0 and either x = 0 or ax + b =0
-  //then solve the linear equation
-  if(a != 0 && b != 0 && c == 0){
-    *x = 0;
-    *y = -b/a;
-    return;
-  }
-
-  //now we get to use the square root function and let the user
-  //know they have some imaginary numbers to deal with
-  if(a < 0 && b == 0 && c < 0) {
-    x1 = -b/(2*a);
-    x4 = (b*b)-(4*a*c);
-    x4 = -x4;
-    x2 = sqrt(x4)/(2*a);
-    x3 = -sqrt(x4)/(2*a);
-
-
-    cout << "The roots are not real numbers" << endl << flush;
-    return;
-  }
-
-  if(a > 0 && b == 0 && c > 0) {
-    x1 = -b/(2*a);
-    x4 = (b*b)-(4*a*c);
-    x4 = -x4;
-    x2 = sqrt(x4)/(2*a);
-    x3 = -sqrt(x4)/(2*a);
-    cout << "The roots are not real numbers:" << endl << flush;
-    return;
-  }
-
-  //now a and c are opposite signs so the answer will be real
-
-  if(a > 0 && b == 0 && c < 0) {
-    *x = (-b + (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    *y = (-b - (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    return;
-  }
-  if(a < 0 && b == 0 && c > 0) {
-    *x = (-b + (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    *y = (-b - (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    return;
-  }
-
-
-  //ok now if we end up not having to take the square root of a neg
-  // do the math
-  if(a != 0 && b != 0 && c != 0 && (4*a*c) <= pow(b,2)){
-    *x = (-b + (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    *y = (-b - (sqrt(pow(b,2)-(4*a*c))))/(2*a);
-    return;
-  }
-
-  //here we have to deal with non x intercepts ie: sqrt(-1)
-  // alter the formula slightly to give correct output and
-  // let the user know
-  if(a != 0 && b != 0 && c != 0 && (4*a*c)> pow(b,2)){
-    x1 = -b/(2*a);
-    x4 = (b*b)-(4*a*c);
-    x4 = -x4;
-    x2 = sqrt(x4)/(2*a);
-    x3 = -sqrt(x4)/(2*a);
-  }
-}
-

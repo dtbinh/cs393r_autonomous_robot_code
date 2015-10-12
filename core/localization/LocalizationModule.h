@@ -10,9 +10,13 @@
 
 typedef ExtendedKalmanFilter<4, 4, 1> KF;
 
+class ParticleFilter;
+class Point2D;
+
 class LocalizationModule : public Module {
   public:
     LocalizationModule();
+    ~LocalizationModule();
     void specifyMemoryDependency();
     void specifyMemoryBlocks();
     void initSpecificModule();
@@ -22,7 +26,7 @@ class LocalizationModule : public Module {
     void processFrame();
 
     void loadParams(LocalizationParams params);
-
+    
     //Kalman filter
     bool first;
     unsigned int unseen_count;
@@ -40,8 +44,11 @@ class LocalizationModule : public Module {
     KF::StateJacobianMatrix G(KF::StateVector x, KF::ControlVector u);
     KF::MeasurementJacobianMatrix H(KF::StateVector x);
 
+    void moveBall(const Point2D& position);
+    void movePlayer(const Point2D& position, float orientation);
   protected:
     MemoryCache cache_;
     TextLogger*& tlogger_;
     LocalizationParams params_;
+    ParticleFilter* pfilter_;
 };

@@ -57,7 +57,7 @@ struct LocSimAgent {
 
 class LocalizationSimulation : public Simulation {
   public:
-    LocalizationSimulation();
+    LocalizationSimulation(int seed = Random::SEED);
     LocalizationSimulation(std::string pathfile);
     LocalizationSimulation(LocSimAgent::Type type);
     ~LocalizationSimulation();
@@ -77,6 +77,7 @@ class LocalizationSimulation : public Simulation {
     void flip();
     void outputBadPaths(float maxDistError, float maxRotError);
   private:
+    int seed_;
     int ballmove_;
     std::map<LocSimAgent::Type, LocSimAgent> agents_;
     MemoryCache gtcache_;
@@ -98,4 +99,8 @@ class LocalizationSimulation : public Simulation {
     void processLocalizationFrame();
     void placeObjects(LocSimAgent& agent);
     void moveBall();
+    void moveBall(Point2D position);
+    void teleportBall(Point2D position);
+    void movePlayer(Point2D position, float orientation, int = 0);
+    void teleportPlayer(Point2D position, float orientation, int = 0);
 };

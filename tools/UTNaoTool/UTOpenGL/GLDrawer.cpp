@@ -102,36 +102,39 @@ void GLDrawer::drawField() {
   }
 
   objectsGL.drawGreenCarpet();
-  //objectsGL.drawGoal(gtcache_.world_object->objects_[WO_OPP_GOAL].loc,1.0);
-  objectsGL.drawGoal(gtcache_.world_object->objects_[WO_OWN_GOAL].loc,1.0);
-  return;
-  for (int i = LINE_OFFSET; i < LINE_OFFSET + NUM_LINES; i++){
-    WorldObject* wo = &(gtcache_.world_object->objects_[i]);
-    objectsGL.drawFieldLine(wo->loc, wo->endLoc);
+  if(display_[SHOWGOALS]) {
+    objectsGL.drawGoal(gtcache_.world_object->objects_[WO_OPP_GOAL].loc,1.0);
+    objectsGL.drawGoal(gtcache_.world_object->objects_[WO_OWN_GOAL].loc,1.0);
   }
-  WorldObject* wo = &(gtcache_.world_object->objects_[WO_OPP_GOAL]);
-  glColor3f(1,1,0);
-  if (gtcache_.robot_state == NULL){
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP");
-  } else if (gtcache_.robot_state->team_ == TEAM_RED) {
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP - BLUE");
-  } else {
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP - RED");
-  }
+  if(display_[SHOWLINES]) {
+    for (int i = LINE_OFFSET; i < LINE_OFFSET + NUM_LINES; i++){
+      WorldObject* wo = &(gtcache_.world_object->objects_[i]);
+      objectsGL.drawFieldLine(wo->loc, wo->endLoc);
+    }
+    WorldObject* wo = &(gtcache_.world_object->objects_[WO_OPP_GOAL]);
+    glColor3f(1,1,0);
+    if (gtcache_.robot_state == NULL){
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP");
+    } else if (gtcache_.robot_state->team_ == TEAM_RED) {
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP - BLUE");
+    } else {
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OPP - RED");
+    }
 
-  wo = &(gtcache_.world_object->objects_[WO_OWN_GOAL]);
-  glColor3f(1,1,0);
-  if (gtcache_.robot_state == NULL){
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN");
-  } else if (gtcache_.robot_state->team_ == TEAM_RED) {
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN - RED");
-  } else {
-    parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN - BLUE");
-  }
+    wo = &(gtcache_.world_object->objects_[WO_OWN_GOAL]);
+    glColor3f(1,1,0);
+    if (gtcache_.robot_state == NULL){
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN");
+    } else if (gtcache_.robot_state->team_ == TEAM_RED) {
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN - RED");
+    } else {
+      parent_->renderText(wo->loc.x/FACT,wo->loc.y/FACT,1000/FACT,"OWN - BLUE");
+    }
 
-  objectsGL.drawPenaltyCross(gtcache_.world_object->objects_[WO_OPP_PENALTY_CROSS].loc,1.0);
-  objectsGL.drawPenaltyCross(gtcache_.world_object->objects_[WO_OWN_PENALTY_CROSS].loc,1.0);
-  objectsGL.drawCenterCircle(gtcache_.world_object->objects_[WO_CENTER_CIRCLE].loc, 1.0);
+    objectsGL.drawPenaltyCross(gtcache_.world_object->objects_[WO_OPP_PENALTY_CROSS].loc,1.0);
+    objectsGL.drawPenaltyCross(gtcache_.world_object->objects_[WO_OWN_PENALTY_CROSS].loc,1.0);
+    objectsGL.drawCenterCircle(gtcache_.world_object->objects_[WO_CENTER_CIRCLE].loc, 1.0);
+  }
 }
 
 void GLDrawer::drawBall(){
@@ -321,13 +324,14 @@ void GLDrawer::drawAlternateRobots(vector<MemoryCache> caches) {
     auto& localization_mem = cache.localization_mem;
     auto& odometry = cache.odometry;
     auto& robot_state = cache.robot_state;
+    auto& self = cache.world_object->objects_[robot_state->WO_SELF];
     if (localization_mem == NULL){
       // draw normal one since we can't draw multiple from kf mem
       drawRobot();
       drawBall();
       return;
     }
-    float alpha = 0.5f;
+    float alpha = 1.0f;
 
     Point2D ball = localization_mem->getBallPosition();
     Point2D bvel = localization_mem->getBallVel();
@@ -344,6 +348,13 @@ void GLDrawer::drawAlternateRobots(vector<MemoryCache> caches) {
       basicGL.colorRGBAlpha(color,alpha);
       localizationGL.drawUncertaintyEllipse(ball, bcov);
     }
+
+    // draw particles
+    localizationGL.drawParticles(localization_mem->particles);
+
+    // draw position
+    basicGL.colorRGBAlpha(color,alpha);
+    robotGL.drawSimpleRobot(&self);
   }
 }
 

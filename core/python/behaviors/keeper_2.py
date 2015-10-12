@@ -119,10 +119,10 @@ class Blocker(Node):
 
       print "Avg : av_x = " + str(av_x) + " av_y = " + str(av_y) + " av_xv = " + str(av_xv) +" av_yv = " + str(av_yv)
 
-      if(av_bearing > 0.75):
-        av_bearing = 0.75
-      elif(av_bearing < -0.75):
-        av_bearing = -0.75
+      if(av_bearing > 1):
+        av_bearing = 1
+      elif(av_bearing < -1):
+        av_bearing = -1
 
       d_turning = abs(av_bearing - last_av_bearing)/4.0
       if(d_turning < 0.1):
@@ -139,7 +139,7 @@ class Blocker(Node):
       if(av_xv > -300 or av_xv == 0 or (abs(av_yv)+0.1)/(abs(av_xv)+0.1) > 0.8):
         print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
         return
-      elif( px > -350 ):
+      elif( px > -650 ):
         print(" No!!!!: Ball too short           seen_times = ")  + str(seen_times)
         return 
       elif( av_distance < 1100 ):

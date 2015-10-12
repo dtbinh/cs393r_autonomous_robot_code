@@ -50,10 +50,10 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
               0 , 0 , 1 , 0 ,
               0 , 0 , 0 , 1 ;
 
-  double x_var = 0.5 ;
-  double xv_var = 1;
-  double yv_var = 1;
-  double y_var = 0.5 ;
+  double x_var = 1 ;
+  double xv_var = 5;
+  double yv_var = 5;
+  double y_var = 1 ;
 
   R_matrix <<   x_var ,   0    ,   0    ,   0    ,
                   0   ,  y_var ,   0    ,   0    ,
@@ -62,8 +62,8 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
 
   double zx_var = 0.5;
   double zy_var = 0.5;
-  double zxv_var = 20;
-  double zyv_var = 20;
+  double zxv_var = 1000;
+  double zyv_var = 1000;
   Q_matrix <<   zx_var  ,   0     ,   0    ,   0     ,
                   0     , zy_var  ,   0    ,   0     ,
                   0     ,   0     , zxv_var,   0     ,
@@ -185,16 +185,7 @@ void LocalizationModule::processFrame() {
     double measured_vx = (globalBall.x - mu(0)) * 30.0;
     double measured_vy = (globalBall.y - mu(1)) * 30.0;
 
-    // double vel_thresh = 300.0;
-    // if(fabs(measured_vy) > vel_thresh || fabs(measured_vx) > vel_thresh) //bad ball!
-    // {
-    //   std::cerr << "BAD BALL vel x:" << measured_vx << " y: " << measured_vy << std::endl;
-    //   measurement = mu;
-    // }
-    // else
-    // {
     measurement << globalBall.x , globalBall.y , measured_vx , measured_vy ;
-    // }
 
     estimated_state = ball_filter -> process(measurement, control);
 
@@ -219,16 +210,25 @@ void LocalizationModule::processFrame() {
   //TODO: How do we handle not seeing the ball?
   else {
     unseen_count++;
-    //estimated_state = ball_filter -> process(ball_filter->get_mu(), control);
-    // ball.distance = 10000.0f;
 
     //ball.distance = 10000.0f;
     //ball.bearing = 0.0f;
     KF :: StateVector mu = ball_filter->get_mu();
-    ball_filter->update_mu(0 , mu(0));
-    ball_filter->update_mu(1 , mu(1));
-    ball_filter->update_mu(2 , 0 );
-    ball_filter->update_mu(3 , 0 );
+
+    if( unseen_count > 30 )
+    {
+      ball_filter->update_mu(0 , mu(0));
+      ball_filter->update_mu(1 , mu(1));
+      ball_filter->update_mu(2 , 0 );
+      ball_filter->update_mu(3 , 0 );
+    }
+    else
+    { 
+      ball_filter->update_mu(0 , mu(0) + (mu(2)/30) );
+      ball_filter->update_mu(1 , mu(1) + (mu(3)/30) );
+      ball_filter->update_mu(2 , mu(2)*0.98);
+      ball_filter->update_mu(3 , mu(3)*0.98);
+    }
 
     KF :: StateVector mu2 = ball_filter->get_mu();
 
@@ -248,25 +248,6 @@ void LocalizationModule::processFrame() {
     cache_.localization_mem->state[3] = mu2(3);
     cache_.localization_mem->covariance = cov * 10000;
     
-
-
-    // ball.bearing = 0.0f;
-
-    // ball.loc.x = estimated_state(0);
-    // ball.loc.y = estimated_state(1);
-    // ball.distance = ball.loc.getDistanceTo(self.loc);
-    // //ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
-    // ball.absVel.x = 0;
-    // ball.absVel.y = 0;
-
-    // Eigen:: Matrix< float , 4 , 4 > cov ;
-    // for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
-
-    // cache_.localization_mem->state[0] = estimated_state(0);
-    // cache_.localization_mem->state[1] = estimated_state(1);
-    // cache_.localization_mem->state[2] = 0;
-    // cache_.localization_mem->state[3] = 0;
-    // cache_.localization_mem->covariance = cov * 10000;
   }
 }
 

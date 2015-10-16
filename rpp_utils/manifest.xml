@@ -11,6 +11,7 @@
   <depend package="roscpp"/>
   <depend package="basic_msgs"/>
   <depend package="basic_srvs"/>
+  <depend package="geometric_shapes"/>
 
   <export>
     <cpp cflags="-std=c++11 -I${prefix}/include/" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib" />

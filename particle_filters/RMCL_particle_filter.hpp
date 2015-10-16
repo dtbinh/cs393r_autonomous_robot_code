@@ -1,16 +1,18 @@
 #ifndef RMCL_PARTICLE_FILTER_H
 #define RMCL_PARTICLE_FILTER_H
 
-//#include <Eigen/core>
+
+//#include <Eigen/Dense>
 #include "eigen/Eigen/dense"
-#include "eigen/Eigen/core"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#include <fstream>
-#include <iomanip>
+//#include <fstream>
+//#include <iomanip>
+
 #define PI 3.14159265358979323846
+#define ThetaRatio 2500/PI
 
 using namespace std;
 
@@ -20,6 +22,7 @@ class RMCLParticleFilter
 public:
     typedef Eigen::Matrix< double, SizeParticle , NumParticle> ParticleStateSet;
     typedef Eigen::Matrix< double, 1 , NumParticle> ParticleWeightSet;
+    typedef Eigen::Matrix< int   , 1 , NumParticle> ParticleLabelSet;
 
     typedef Eigen::Matrix< double, SizeParticle , 1> ParticleVector;
     typedef Eigen::Matrix< double, SizeParticle , 1> WhiteNoiseVector;
@@ -34,6 +37,7 @@ public:
     RMCLParticleFilter(StateTransitionMatrix A_matrix, ControlMatrix B_matrix, MeasurementCovarianceMatrix Q_matrix, WhiteCovarianceVector N_matrix )
     {
         X = ParticleStateSet :: Zero();
+        L = ParticleLabelSet :: Zero();
         W = ParticleWeightSet :: Constant(100);
         X_bar = ParticleStateSet :: Zero();
 
@@ -44,11 +48,11 @@ public:
 
         field_length = 5000;
         field_width  = 2500;
-        Wslow = 0.02;
-        Wfast = 0.02;
+        Wslow = 0.16;
+        Wfast = 0.16;
         Waverage = 0;
         Alphaslow = 0.05;
-        Alphafast = 0.65;
+        Alphafast = 0.5;
 
         for(int i = 0 ; i < NumParticle ; i++)
         {
@@ -63,13 +67,11 @@ public:
     {
         Eigen::Matrix< double , 2 , 2 > cov;
         Eigen::Matrix< double , 2 , 1 > beacon_location, z_tmp, x_tmp;
-        WhiteNoiseVector noise;
 
         //Step1 sampling and moving
         for( int i = 0 ; i < NumParticle ; i++)
         {
-            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
-            X_bar.col(i) = A*X.col(i) + B*u + noise;
+            X_bar.col(i) = A*X.col(i) + B*u;
 
             if(X_bar(2,i) >= 2*PI) X_bar(2,i) -= 2*PI;
             else if(X_bar(2,i) < 0) X_bar(2,i) += 2*PI;
@@ -87,20 +89,18 @@ public:
                 case 8 : beacon_location << 0.0   , -1000.0;break;
                 case 10: beacon_location << 1500.0, -1000.0;break;
             }
+
+            z_tmp << z(i)       , z(i+1) ;
+            cov   << Q(i  ,i)   , Q(i  ,i+1) ,
+                     Q(i+1,i)   , Q(i+1,i+1) ;
+
             for ( int j = 0 ; j < NumParticle ; j++)
             {
                 double distance = getdistance( X_bar(0,j) , X_bar(1,j) , beacon_location(0) , beacon_location(1));
                 double theta = gettheta(X_bar(0,j) , X_bar(1,j) , X_bar(2,j) , beacon_location(0) , beacon_location(1));
-                z_tmp << z(i)       , z(i+1) ;
-                x_tmp << distance   , theta  ;
-                cov   << Q(i  ,i)   , Q(i  ,i+1) ,
-                         Q(i+1,i)   , Q(i+1,i+1) ;
-                W(j) *= gaussian2d(z_tmp,x_tmp,cov);
 
-//                if(W(j)>1){
-//                    cout << "============================================================" << endl;
-//                    cout << "distance = " << distance << "\ttheta = " << theta << "\tX_bar(j) = " << X_bar(2,j) << "\tW(" << j << ")= "<< W(j)<< endl;
-//                }
+                x_tmp << distance   , theta  ;
+                W(j) *= gaussian2d(z_tmp,x_tmp,cov);
             }
         }
 
@@ -111,14 +111,17 @@ public:
         W /= W.sum(); //Normalize
         low_variance_sampler(); //Resampler
 
-//      k_mean(&NAO_LOCATION, X);
-
+        L = L.Zero();
+        NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
+        //ofstream fout2("nao_location.txt");
+        //fout2 << NAO_LOCATION(0) << '\t' << NAO_LOCATION(1) << '\t' << NAO_LOCATION(2) << '\n' ;
     }
 
 private:
     ParticleStateSet X;
     ParticleStateSet X_bar;
     ParticleWeightSet W;
+    ParticleLabelSet L;
     ParticleVector NAO_LOCATION;
 
     StateTransitionMatrix A;
@@ -131,6 +134,7 @@ private:
     double Waverage;
     double Alphaslow;
     double Alphafast;
+    double Randomratio;
 
     int field_length;
     int field_width;
@@ -166,38 +170,198 @@ private:
     void low_variance_sampler()
     {
         int i , j = 0;
-        double max_p = 1.0 - (Wfast/Wslow);
-        if(max_p < 0) max_p = 0;
-        int num_random = NumParticle * max_p;
+        Randomratio = 1.0 - (Wfast/Wslow);
+        if(Randomratio < 0) Randomratio = 0;
+        int num_random = NumParticle * Randomratio;
         int num_resample = NumParticle - num_random;
 
-        cout << "max_p = " << max_p << "\tWaverage = " << Waverage <<endl;
+        cout << "Randomratio = " << Randomratio << "\tWaverage = " << Waverage <<endl;
 
         ParticleWeightSet c; c(0) = W(0);
         for( i = 1 ; i < NumParticle ; i++){ c(i) = c(i-1) + W(i);}
 
         double thres =  (rand()*1.0/RAND_MAX)/num_resample;
+        WhiteNoiseVector noise;
         for( i = 0 ; i < num_resample ; i++)
         {
             while( thres > c(j)) ++j;
-            X.col(i) = X_bar.col(j);
+
+            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
+            X.col(i) = X_bar.col(j) + noise;
+            if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
+            else if(X(2,i) < 0) X(2,i) += 2*PI;
+
             thres += 1.0/num_resample;
         }
         for( i = num_resample ; i < NumParticle ; i++)
-        {//The distribution should be modified
-            X(0,i) = random(field_length);
-            X(1,i) = random(field_width);
-            X(2,i) = random(2*PI)+PI;
-        }
+            { X.col(i) << random(field_length) , random(field_width) , random(2*PI)+PI ; }
 
         W << W.Constant(100);
 
-        //ofstream fout0("next_dots.txt");
-        //for(int i = 0 ; i < NumParticle ; i++) fout0 << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
-        //for( i = 0 ; i < NumParticle ; i++){cout << "c(" << i <<") = " << setprecision(15) << c(i) << endl ;}
+//        ofstream fout0("normal_dots.txt");
+//        ofstream fout1("random_dots.txt");
+//        for(int i = 0 ; i < num_resample ; i++) fout0 << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
+//        for(int i = num_resample ; i < NumParticle ; i++) fout1 << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
+//        for( i = 0 ; i < NumParticle ; i++){cout << "c(" << i <<") = " << setprecision(15) << c(i) << endl ;}
     }
 
-  //void k_mean(&ParticleVector L, ParticleStateSet X)
+
+
+
+
+    ParticleVector kmeans( double ratio )
+    {
+        int i , j , l = 0;
+        ParticleVector nao_location;
+
+        //1. decide a proper p;
+        int num_random = NumParticle * ratio;
+        int num_resample = NumParticle - num_random;
+        int k = (int)(ratio*10);
+        if( !k ) k = 1;
+        if( k == 1)
+        {
+            double** p = getMeans(num_resample,1);
+            nao_location << p[0][0] , p[0][1] , p[0][2];
+//            ofstream fout2("nao_location.txt");
+//            fout2 << nao_location(0) << '\t' << nao_location(1) << '\t' << nao_location(2) << '\n' ;
+//            fout2.close();
+            delete []p[0];
+            delete []p;
+
+            return nao_location;
+        }
+        //2. Initial first K center
+
+        int *DistXYT = new int[num_resample];
+        double **means  = new double*[k];
+        for( i = 0 ; i < k ; ++i) means[i] = new double[SizeParticle];
+
+
+        int first_means_index = rand()%num_resample ;
+        for( i = 0 ; i < SizeParticle ; ++i) means[0][i] = X(i,first_means_index);
+
+        double sum_DistXYT = 0;
+        double random_bound = 0;
+        for( i = 0 ; i < num_resample ; ++i)
+        {
+            DistXYT[i] = getDistXYT(X.col(i) , means[0]);
+            sum_DistXYT += DistXYT[i];
+        }
+        random_bound = rand()*sum_DistXYT/RAND_MAX ;
+        while( random_bound > 0) random_bound -= DistXYT[l++];
+        for( i = 0 ; i < SizeParticle ; ++i) means[1][i] = X(i,l-1);
+
+        for( j = 1 ; j < k ; ++j)
+        {
+            l = 0;
+            sum_DistXYT = 0;
+            for( i = 0 ; i < num_resample ; ++i)
+            {
+                double tmp_dist = getDistXYT( X.col(i) , means[j] );
+                //cout << "tmp_dist = " << tmp_dist << endl;
+                if(DistXYT[i] > tmp_dist)
+                {
+                    DistXYT[i] = tmp_dist;
+                    L(i) = j;
+                }
+                sum_DistXYT += DistXYT[i];
+            }
+            random_bound = rand()*sum_DistXYT/RAND_MAX ;
+            while( random_bound > 0) random_bound -= DistXYT[l++];
+            for( i = 0 ; i < SizeParticle&&(j!=k-1) ; ++i) means[j+1][i] = X(i,l-1);
+        }
+
+        //3. Kmeans **center , X and L initialized
+        double oldvar = -1;
+        double newvar = getVar( num_resample , k , means);
+
+        while( abs(newvar - oldvar) > 100 )
+        {
+            for( i = 0 ; i < k ; ++i) delete []means[i];
+            delete []means;
+
+            means = getMeans( num_resample , k ) ;
+            for( i = 0 ; i < num_resample ; ++i) L(i) = judgeCluster( i , k , means);
+            oldvar = newvar;
+            newvar = getVar( num_resample , k , means );
+        }
+
+        //4. Weighted average
+        int *counter = new int[k];
+        for( int i = 0 ; i < k ; ++i) counter[i] = 0;
+        for( int i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
+        for( int i = 0 ; i < SizeParticle ; ++i )
+        {
+            double tmp = 0;
+            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[k]*means[j][i];
+            nao_location(i) = tmp/num_resample;
+        }
+
+//        ofstream fout2("nao_location.txt");
+//        for( i = 0 ; i < k ; ++i) fout2 << means[i][0] << '\t' << means[i][1] << '\t' << means[i][2] << endl;
+//        fout2.close();
+        for( i = 0 ; i < k ; ++i) delete []means[i];
+        delete []means;
+        delete []counter;
+        delete []DistXYT;
+        return nao_location;
+    }
+
+    double getDistXYT( ParticleVector a , double *b)
+        {    return sqrt( (a(0)-b[0])*(a(0)-b[0]) + (a(1)-b[1])*(a(1)-b[1]) + ThetaRatio*ThetaRatio*(a(2)-b[2])*(a(2)-b[2])) ;}
+
+    double getVar( int length , int k , double **means )
+    {
+        double var = 0;
+        for(int i = 0 ; i < length ; ++i)
+        {
+           //cout << "Get Var  == >   L(" << i << ") = " << L(i) << endl;
+           double tmp = getDistXYT( X.col(i) , means[L(i)]) ;
+           var +=  tmp*tmp;
+        }
+        return var;
+    }
+
+    double** getMeans( int length , int k)
+    {
+        int i , j;
+        int *counter = new int[k];
+        double **means = new double*[k];
+        for( i = 0 ; i < k ; ++i) means[i] = new double[SizeParticle];
+        for( i = 0 ; i < k ; ++i) counter[i] = 0;
+
+        for( i = 0 ; i < length ; ++i )
+        {
+            //cout << "Get Means  == >   L(" << i << ") = " << L(i) << endl;
+            for( j = 0 ; j < SizeParticle ; ++j) means[L(i)][j] += X(j,i);
+            ++counter[L(i)];
+        }
+
+        for( i = 0 ; i < k ; ++i) {
+            for( j = 0 ; j < SizeParticle ; ++j) means[i][j] /= counter[i];
+        }
+
+        delete []counter;
+        return means;
+    }
+
+    int judgeCluster( int index , int k , double **means)
+    {
+        double min_dist = getDistXYT( X.col(index) , means[0]);
+        int label = 0;
+
+        for( int i = 1 ; i < k ; ++i)
+        {
+            double tmp_dist = getDistXYT( X.col(index) , means[i]);
+            if( min_dist > tmp_dist )
+            {
+                min_dist = tmp_dist;
+                label = i ;
+            }
+        }
+        return label;
+    }
 };
 
 #endif //RMCL_PARTICLE_FILTER_H

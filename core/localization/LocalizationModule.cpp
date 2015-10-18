@@ -160,12 +160,12 @@ void LocalizationModule::initFromMemory() {
 void LocalizationModule::initFromWorld() {
   reInit();
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
-  //pfilter_->init(self.loc, self.orientation);
+  pfilter_->init(self.loc, self.orientation);
 }
 
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
-  //pfilter_->init(Point2D(-750,0), 0.0f);
+  pfilter_->init(Point2D(-750,0), 0.0f);
   cache_.localization_mem->state = decltype(cache_.localization_mem->state)::Zero();
   cache_.localization_mem->covariance = decltype(cache_.localization_mem->covariance)::Identity();
 }
@@ -226,22 +226,21 @@ void LocalizationModule::processFrame() {
 
   RPF::MeasurementVector pf_z;
   RPF::ControlVector pf_u;
-  self.loc.x = NAO_LOCATION(0);
-  self.loc.y = NAO_LOCATION(1);
-  self.orientation = NAO_LOCATION(2);
+  // self.loc.x = NAO_LOCATION(0);
+  // self.loc.y = NAO_LOCATION(1);
+  // self.orientation = NAO_LOCATION(2);
   for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
   {
     auto& beacon = cache_.world_object->objects_[i];
     if(beacon.seen)
     {
-      beacon.distance = beacon.loc.getDistanceTo(self.loc);
-      beacon.bearing = self.loc.getBearingTo(beacon.loc,self.orientation);
-      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.distance;
-      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.bearing;
+      //beacon.distance = beacon.loc.getDistanceTo(self.loc);
+      //beacon.bearing = self.loc.getBearingTo(beacon.loc,self.orientation);
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance ;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing ;
 
-      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", 
-            (int) i, beacon.loc.x , beacon.loc.y, beacon.distance, beacon.bearing);
-      printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  self.loc.x , self.loc.y , self.orientation );
+      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
+      printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
     }
     else
     {
@@ -254,14 +253,14 @@ void LocalizationModule::processFrame() {
   // pf_u << cache_.walk_info->robot_velocity_.translation.x, cache_.walk_info->robot_velocity_.translation.y, cache_.walk_info->robot_velocity_.rotation;
   pf_u << disp.translation.x, disp.translation.y, disp.rotation;
   std::cerr << "Control is: " << pf_u.transpose() << std::endl;
+  cout << "Measurement is " << pf_z.transpose() << std::endl;
 
-  cout << "Measurement is " << pf_z.transpose() << std::endl; ;
   pfilter_->process(pf_z, pf_u);
   NAO_LOCATION = pfilter_->getNAO_LOCATION();
 
-  //self.loc.x = NAO_LOCATION(0);
-  //self.loc.y = NAO_LOCATION(1);
-  //self.orientation = NAO_LOCATION(2);
+  self.loc.x = NAO_LOCATION(0);
+  self.loc.y = NAO_LOCATION(1);
+  self.orientation = NAO_LOCATION(2);
   // self.loc = pfilter_->pose().translation;
   // self.orientation = pfilter_->pose().rotation;
 

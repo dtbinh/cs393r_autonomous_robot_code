@@ -13,13 +13,13 @@ class Playing(StateMachine):
   class Stand(Node):
     def run(self):
       commands.stand()
-      if self.getTime() > 5.0:
+      if self.getTime() > 2.0:
         memory.speech.say("playing stand complete")
         self.finish()
 
   class Walk(Node):
     def run(self):
-      commands.setWalkVelocity(0.01,0.0,0.0)
+      commands.setWalkVelocity(0.35,0.0,0.03)
 
   class TurnInPlace(Node):
     def run(self):
@@ -57,6 +57,6 @@ class Playing(StateMachine):
     goa = self.GoAround()
     off = self.Off()
     #self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
-    #self.trans(stand, C, walk, T(5.0), tip, T(5.0), sit, C, off)
-    self.trans(stand, C, walk, T(5.0), self.Stand() , C , self.Kick(), C, self.Stand(), C , sit, C, off)
+    self.trans(stand, C, walk, T(20.0), sit, C, off)
+    #self.trans(stand, C, walk, T(15.0), self.Stand() , C , self.Kick(), C, self.Stand(), C , sit, C, off)
 

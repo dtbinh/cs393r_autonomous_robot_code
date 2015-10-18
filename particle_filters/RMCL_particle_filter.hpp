@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <iomanip>
 
 #define PI 3.14159265358979323846
 #define ThetaRatio 2500/PI
@@ -52,22 +53,28 @@ public:
         Alphaslow = 0.05;
         Alphafast = 0.5;
 
+
+
         for(int i = 0 ; i < NumParticle ; i++)
         {
             X(0,i) = random(field_length);
             X(1,i) = random(field_width);
             X(2,i) = random(2*PI)+PI;
         }
+
+        NAO_LOCATION << 0 , 0 , 0 ;
     }
 
     void init(Point2D loc, float orientation)
     {
         for(int i = 0 ; i < NumParticle ; i++)
         {
-            X(0,i) = loc.x;
-            X(1,i) = loc.y;
-            X(2,i) = orientation;
+            X(0,i) = random(field_length);
+            X(1,i) = random(field_width);
+            X(2,i) = random(2*PI)+PI;
         }
+
+        NAO_LOCATION << loc.x , loc.y , orientation;
     }
 
   //Probabilistic Robotics, pg. 200, Table 8.2
@@ -111,6 +118,7 @@ public:
 
                 x_tmp << distance   , theta  ;
                 W(j) *= gaussian2d(z_tmp,x_tmp,cov);
+                //cout << "W(" << j << ")= " << W(j) << endl;
             }
         }
 
@@ -124,16 +132,12 @@ public:
         low_variance_sampler(); //Resampler
 
         L = L.Zero();
-        NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
+        cout << "Randomratio = "<< Randomratio << endl;
+        //NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
+        NAO_LOCATION = getAverage( Randomratio );
         //ofstream fout2("nao_location.txt");
         //fout2 << NAO_LOCATION(0) << '\t' << NAO_LOCATION(1) << '\t' << NAO_LOCATION(2) << '\n' ;
     }
-
-
-Pose2D pose() 
-{
-    return Pose2D(NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
-}
 
 ParticleVector getNAO_LOCATION(){return NAO_LOCATION;}
 
@@ -198,6 +202,8 @@ private:
         ParticleWeightSet c; c(0) = W(0);
         for( i = 1 ; i < NumParticle ; i++){ c(i) = c(i-1) + W(i);}
 
+        //for( i = 0 ; i < NumParticle ; i++){cout << "c(" << i <<") = " << setprecision(15) << c(i) << endl ;}
+
         double thres =  (rand()*1.0/RAND_MAX)/num_resample;
         WhiteNoiseVector noise;
         for( i = 0 ; i < num_resample ; i++)
@@ -216,11 +222,8 @@ private:
 
         W << W.Constant(100);
 
-//        ofstream fout0("normal_dots.txt");
-//        ofstream fout1("random_dots.txt");
-//        for(int i = 0 ; i < num_resample ; i++) fout0 << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
-//        for(int i = num_resample ; i < NumParticle ; i++) fout1 << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
-//        for( i = 0 ; i < NumParticle ; i++){cout << "c(" << i <<") = " << setprecision(15) << c(i) << endl ;}
+        // for(int i = 0 ; i < num_resample ; i++) cout << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
+        // for(int i = num_resample ; i < NumParticle ; i++) cout << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
     }
 
 
@@ -290,20 +293,30 @@ private:
             for( i = 0 ; i < SizeParticle&&(j!=k-1) ; ++i) means[j+1][i] = X(i,l-1);
         }
 
+        for(j = 0 ; j < k ; ++j) printf("mean start (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
+
         //3. Kmeans **center , X and L initialized
         double oldvar = -1;
         double newvar = getVar( num_resample , k , means);
 
+
+
         while( abs(newvar - oldvar) > 100 )
         {
+            cout << "newvar - oldvar =  " << newvar - oldvar << endl;
+
             for( i = 0 ; i < k ; ++i) delete []means[i];
             delete []means;
 
             means = getMeans( num_resample , k ) ;
+            for(j = 0 ; j < k ; ++j) printf("means process (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
+
             for( i = 0 ; i < num_resample ; ++i) L(i) = judgeCluster( i , k , means);
             oldvar = newvar;
             newvar = getVar( num_resample , k , means );
         }
+
+        for(j = 0 ; j < k ; ++j) printf("means end(x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
 
         //4. Weighted average
         int *counter = new int[k];
@@ -314,12 +327,9 @@ private:
             double tmp = 0;
             for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
             nao_location(i) = tmp/num_resample;
-            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+            cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
         }
 
-//        ofstream fout2("nao_location.txt");
-//        for( i = 0 ; i < k ; ++i) fout2 << means[i][0] << '\t' << means[i][1] << '\t' << means[i][2] << endl;
-//        fout2.close();
         for( i = 0 ; i < k ; ++i) delete []means[i];
         delete []means;
         delete []counter;
@@ -381,6 +391,29 @@ private:
         }
         return label;
     }
+
+    ParticleVector getAverage( double ratio )
+    {
+        int i , j , l = 0;
+        ParticleVector nao_location;
+
+        //1. decide a proper p;
+        int num_random = NumParticle * ratio;
+        int num_resample = NumParticle - num_random;
+
+        double counter[3] = {0};
+        
+        for( i = 0 ; i < num_resample ; ++i)
+            for( j = 0 ; j < SizeParticle ; ++j)
+                counter[j] += X(j,i);
+        counter[0] /= num_resample;
+        counter[1] /= num_resample;
+        counter[2] /= num_resample;
+
+        nao_location << counter[0] , counter[1] , counter[2] ;
+        return nao_location;
+    }
+
 };
 
 #endif //RMCL_PARTICLE_FILTER_H

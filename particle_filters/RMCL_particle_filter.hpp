@@ -2,14 +2,12 @@
 #define RMCL_PARTICLE_FILTER_H
 
 
-//#include <Eigen/Dense>
-#include "eigen/Eigen/dense"
+#include <Eigen/Dense>
+#include <math/Pose2D.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-//#include <fstream>
-//#include <iomanip>
 
 #define PI 3.14159265358979323846
 #define ThetaRatio 2500/PI
@@ -62,12 +60,23 @@ public:
         }
     }
 
+    void init(Point2D loc, float orientation)
+    {
+        for(int i = 0 ; i < NumParticle ; i++)
+        {
+            X(0,i) = loc.x;
+            X(1,i) = loc.y;
+            X(2,i) = orientation;
+        }
+    }
+
   //Probabilistic Robotics, pg. 200, Table 8.2
     void process(MeasurementVector z, ControlVector u)
     {
         Eigen::Matrix< double , 2 , 2 > cov;
         Eigen::Matrix< double , 2 , 1 > beacon_location, z_tmp, x_tmp;
 
+        bool flag = false;
         //Step1 sampling and moving
         for( int i = 0 ; i < NumParticle ; i++)
         {
@@ -81,6 +90,7 @@ public:
         for( int i = 0 ; i < z.size() ; i+=2)
         {
             if(z(i) == -1) continue;
+            flag = true;
             switch(i){
                 case 0 : beacon_location << 1500.0,  1000.0;break;
                 case 2 : beacon_location << 0.0   ,  1000.0;break;
@@ -104,6 +114,8 @@ public:
             }
         }
 
+        if(!flag) return;
+        
         Waverage = W.sum()/NumParticle;
         Wslow = (1-Alphaslow)*Wslow + Alphaslow*Waverage;
         Wfast = (1-Alphafast)*Wslow + Alphafast*Waverage;
@@ -116,6 +128,14 @@ public:
         //ofstream fout2("nao_location.txt");
         //fout2 << NAO_LOCATION(0) << '\t' << NAO_LOCATION(1) << '\t' << NAO_LOCATION(2) << '\n' ;
     }
+
+
+Pose2D pose() 
+{
+    return Pose2D(NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
+}
+
+ParticleVector getNAO_LOCATION(){return NAO_LOCATION;}
 
 private:
     ParticleStateSet X;
@@ -174,8 +194,6 @@ private:
         if(Randomratio < 0) Randomratio = 0;
         int num_random = NumParticle * Randomratio;
         int num_resample = NumParticle - num_random;
-
-        cout << "Randomratio = " << Randomratio << "\tWaverage = " << Waverage <<endl;
 
         ParticleWeightSet c; c(0) = W(0);
         for( i = 1 ; i < NumParticle ; i++){ c(i) = c(i-1) + W(i);}
@@ -294,8 +312,9 @@ private:
         for( int i = 0 ; i < SizeParticle ; ++i )
         {
             double tmp = 0;
-            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[k]*means[j][i];
+            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
             nao_location(i) = tmp/num_resample;
+            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
         }
 
 //        ofstream fout2("nao_location.txt");

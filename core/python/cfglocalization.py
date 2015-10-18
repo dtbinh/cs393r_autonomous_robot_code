@@ -1,4 +1,4 @@
 import core
 
 params = core.LocalizationParams()
-params.behavior = "keeper_behavior";
+params.behavior = "walk_to_center";

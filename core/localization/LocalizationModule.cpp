@@ -1,8 +1,4 @@
 #include <localization/LocalizationModule.h>
-#include <memory/WorldObjectBlock.h>
-#include <memory/LocalizationBlock.h>
-#include <memory/GameStateBlock.h>
-#include <memory/RobotStateBlock.h>
 //#include <Eigen/Dense>
 
 KF::StateVector LocalizationModule::g(KF::StateVector x, KF::ControlVector u)
@@ -73,11 +69,55 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
   ball_filter = new KF(boost::bind(&LocalizationModule::g, this, _1, _2), boost::bind(&LocalizationModule::h, this, _1), boost::bind(&LocalizationModule::G, this, _1, _2), boost::bind(&LocalizationModule::H, this, _1), R_matrix, Q_matrix);
   first = true;
   unseen_count = 0;
+
+  createPF();
 }
 
 // Boilerplate
 LocalizationModule::~LocalizationModule() {
   delete pfilter_;
+}
+
+void LocalizationModule::createPF()
+{  
+  srand(time(NULL));
+
+  RPF::StateTransitionMatrix PF_A;
+  RPF::ControlMatrix PF_B;
+  RPF::MeasurementCovarianceMatrix PF_Q;
+  RPF::WhiteCovarianceVector PF_N;
+
+  RPF::ParticleVector PF_p;
+
+
+  PF_A << 1 , 0 , 0 ,
+       0 , 1 , 0 ,
+       0 , 0 , 1 ;
+
+  PF_B << 1 , 0 , 0 , //Should be tuned by the real speed;
+       0 , 1 , 0 ,
+       0 , 0 , 1 ;
+
+  PF_Q << 600, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 600   , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 600   , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 600   , 0     , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 600   , 0     , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 600   , 0     ,
+       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 ;
+
+  PF_N << 40  , 0   , 0 ,
+       0   , 40  , 0 ,
+       0   , 0   , 0.08 ;
+
+  NAO_LOCATION << 0,0,0;
+
+  pfilter_ = new RPF(PF_A,PF_B,PF_Q,PF_N);
 }
 
 void LocalizationModule::specifyMemoryDependency() {
@@ -120,12 +160,12 @@ void LocalizationModule::initFromMemory() {
 void LocalizationModule::initFromWorld() {
   reInit();
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
-  pfilter_->init(self.loc, self.orientation);
+  //pfilter_->init(self.loc, self.orientation);
 }
 
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
-  pfilter_->init(Point2D(-750,0), 0.0f);
+  //pfilter_->init(Point2D(-750,0), 0.0f);
   cache_.localization_mem->state = decltype(cache_.localization_mem->state)::Zero();
   cache_.localization_mem->covariance = decltype(cache_.localization_mem->covariance)::Identity();
 }
@@ -140,14 +180,39 @@ void LocalizationModule::movePlayer(const Point2D& position, float orientation) 
   // simulator window.
 }
 
+double LocalizationModule::getdistance( double x , double y , double bx , double by )
+{ 
+    return sqrt( (x - bx)*(x - bx) + (y - by)*(y - by) );
+}
+
+double LocalizationModule::gettheta( double x , double y , double ori , double bx , double by )
+{
+    double delta_x = bx - x;
+    double delta_y = by - y;
+    double beacon_theta = 0 ;
+
+    if(      delta_x > 0 && delta_y >= 0) beacon_theta = atan(delta_y/delta_x);
+    else if( delta_x < 0 && delta_y >= 0) beacon_theta = PI + atan(delta_y/delta_x);
+    else if( delta_x < 0 && delta_y <  0) beacon_theta = PI + atan(delta_y/delta_x);
+    else if( delta_x > 0 && delta_y <  0) beacon_theta = 2*PI + atan(delta_y/delta_x);
+    else if( delta_x ==0 && delta_y >  0) beacon_theta = 0.5*PI;
+    else if( delta_x ==0 && delta_y <  0) beacon_theta = 1.5*PI;
+
+    double theta = beacon_theta - ori;
+    if( delta_x > 0 && delta_y > 0 && ori > PI ) theta += 2*PI;
+    else if( delta_x > 0 && delta_y < 0 && ori < PI) theta -= 2*PI;
+
+    return theta;
+}
+
 void LocalizationModule::processFrame() {
   auto& ball = cache_.world_object->objects_[WO_BALL];
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
   // Retrieve the robot's current location from localization memory
   // and store it back into world objects
-  auto sloc = cache_.localization_mem->player;
-  self.loc = sloc;
+  // auto sloc = cache_.localization_mem->player;
+  // self.loc = sloc;
 
   KF::StateVector estimated_state;
   KF::MeasurementVector measurement;
@@ -156,12 +221,52 @@ void LocalizationModule::processFrame() {
 
   // Process the current frame and retrieve our location/orientation estimate
   // from the particle filter
-  pfilter_->processFrame();
-  self.loc = pfilter_->pose().translation;
-  self.orientation = pfilter_->pose().rotation;
-  log(40, "Localization Update: x=%2.f, y=%2.f, theta=%2.2f", self.loc.x, self.loc.y, self.orientation * RAD_T_DEG);
-    
-  //TODO: modify this block to use your Kalman filter implementation
+
+  std::cerr << "=========================================" << endl;
+
+  RPF::MeasurementVector pf_z;
+  RPF::ControlVector pf_u;
+  self.loc.x = NAO_LOCATION(0);
+  self.loc.y = NAO_LOCATION(1);
+  self.orientation = NAO_LOCATION(2);
+  for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
+  {
+    auto& beacon = cache_.world_object->objects_[i];
+    if(beacon.seen)
+    {
+      beacon.distance = beacon.loc.getDistanceTo(self.loc);
+      beacon.bearing = self.loc.getBearingTo(beacon.loc,self.orientation);
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.distance;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.bearing;
+
+      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", 
+            (int) i, beacon.loc.x , beacon.loc.y, beacon.distance, beacon.bearing);
+      printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  self.loc.x , self.loc.y , self.orientation );
+    }
+    else
+    {
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = -1;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = 0;
+    }
+  } 
+
+  const auto& disp = cache_.odometry->displacement;
+  // pf_u << cache_.walk_info->robot_velocity_.translation.x, cache_.walk_info->robot_velocity_.translation.y, cache_.walk_info->robot_velocity_.rotation;
+  pf_u << disp.translation.x, disp.translation.y, disp.rotation;
+  std::cerr << "Control is: " << pf_u.transpose() << std::endl;
+
+  cout << "Measurement is " << pf_z.transpose() << std::endl; ;
+  pfilter_->process(pf_z, pf_u);
+  NAO_LOCATION = pfilter_->getNAO_LOCATION();
+
+  //self.loc.x = NAO_LOCATION(0);
+  //self.loc.y = NAO_LOCATION(1);
+  //self.orientation = NAO_LOCATION(2);
+  // self.loc = pfilter_->pose().translation;
+  // self.orientation = pfilter_->pose().rotation;
+
+  printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
+
   if(ball.seen) {
     // Compute the relative position of the ball from vision readings
     auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
@@ -205,7 +310,7 @@ void LocalizationModule::processFrame() {
     cache_.localization_mem->state[1] = estimated_state(1);
     cache_.localization_mem->state[2] = estimated_state(2);
     cache_.localization_mem->state[3] = estimated_state(3);
-    cache_.localization_mem->covariance = cov * 10000;
+    // cache_.localization_mem->covariance = cov * 10000;
   } 
   //TODO: How do we handle not seeing the ball?
   else {
@@ -246,84 +351,7 @@ void LocalizationModule::processFrame() {
     cache_.localization_mem->state[1] = mu2(1);
     cache_.localization_mem->state[2] = mu2(2);
     cache_.localization_mem->state[3] = mu2(3);
-    cache_.localization_mem->covariance = cov * 10000;
+    // cache_.localization_mem->covariance = cov * 10000;
     
   }
 }
-
-// void LocalizationModule::processFrame() {
-//   auto& ball = cache_.world_object->objects_[WO_BALL];
-//   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
-
-//   // Retrieve the robot's current location from localization memory
-//   // and store it back into world objects
-//   auto sloc = cache_.localization_mem->player;
-//   self.loc = sloc;
-    
-//   //TODO: modify this block to use your Kalman filter implementation
-
-//   KF::StateVector estimated_state;
-//   KF::MeasurementVector measurement;
-//   KF::ControlVector control;
-//   control << 0.0;
-
-//   if(ball.seen) {
-//     auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
-//     auto globalBall = relBall.relativeToGlobal(self.loc, self.orientation);
-
-//     ball.loc = globalBall;
-//     ball.distance = ball.visionDistance;
-//     ball.bearing = ball.visionBearing;
-
-//     //printf("bearing = %f \n" , ball.bearing);
-
-//     //double relative_x = ball.distance * cos( ball.bearing );
-//     //double relative_y = ball.distance * sin( ball.bearing );
-//     KF :: StateVector mu = ball_filter->get_mu();
-//     double measured_vx = (ball.loc.x - mu(0)) * 30.0;
-//     double measured_vy = (ball.loc.y - mu(1)) * 30.0;
-
-
-//     //mu_past_1 = mu_past_0;
-//     //mu_past_0 = mu;
-
-//     measurement << ball.loc.x , ball.loc.y , measured_vx , measured_vy ;
-//     estimated_state = ball_filter -> process(measurement, control);
-
-//     printf("x = %f , xv = %f , y = %f , yv = %f  \n" , ball.loc.x , measured_vx , ball.loc.y , measured_vy);
-
-//     Eigen:: Matrix< float , 4 , 4 > cov ;
-//     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
-
-//     ball.absVel.x = abs(mu(2));
-//     ball.absVel.y = abs(mu(3));
-
-//     // Update the localization memory objects with localization calculations
-//     // so that they are drawn in the World window()
-//     cache_.localization_mem->state[0] = estimated_state(0) ;
-//     cache_.localization_mem->state[1] = estimated_state(1) ;
-//     cache_.localization_mem->state[2] = estimated_state(2) ;
-//     cache_.localization_mem->state[3] = estimated_state(3) ;
-//     cache_.localization_mem->covariance = cov * 10000;
-//   } 
-//   //TODO: How do we handle not seeing the ball?
-//   else {
-//     //ball.distance = 10000.0f;
-//     //ball.bearing = 0.0f;
-//     KF :: StateVector mu = ball_filter->get_mu();
-
-//     ball_filter->update_mu(0 , mu(0) + mu(2)/30.0 );
-//     ball_filter->update_mu(1 , mu(1) + mu(3)/30.0 );
-//     ball_filter->update_mu(2 , mu(2) * 0.98 );
-//     ball_filter->update_mu(3 , mu(3) * 0.98 );
-
-//     Eigen:: Matrix< float , 4 , 4 > cov ;
-//     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
-
-//     cache_.localization_mem->state[0] = mu(0) + mu(2)/30.0 ;
-//     cache_.localization_mem->state[1] = mu(1) + mu(3)/30.0 ;
-//     cache_.localization_mem->state[2] = mu(2) * 0.98 ;
-//     cache_.localization_mem->state[3] = mu(3) * 0.98 ;
-//     cache_.localization_mem->covariance = cov * 10000;
-//   }
-// }

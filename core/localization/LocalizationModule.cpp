@@ -98,22 +98,26 @@ void LocalizationModule::createPF()
        0 , 1 , 0 ,
        0 , 0 , 1 ;
 
-  PF_Q << 600, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 600   , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 600   , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 600   , 0     , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 600   , 0     , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 , 0     , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 600   , 0     ,
-       0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.003 ;
+  PF_Q <<   4900, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 4900   , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 4900   , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 4900   , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 4900   , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 4900   , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 ;
 
-  PF_N << 40  , 0   , 0 ,
-       0   , 40  , 0 ,
-       0   , 0   , 0.08 ;
+  PF_N << 40     , 0     ,  0    ,
+          0     , 40     ,  0    ,
+          0     , 0     , 0.08 ;
+
+  // PF_N << 7.5     , 0     ,  0    ,
+  //         0     , 7.5     ,  0    ,
+  //         0     , 0     , 0.01 ;
 
   NAO_LOCATION << 0,0,0;
 
@@ -226,6 +230,7 @@ void LocalizationModule::processFrame() {
 
   RPF::MeasurementVector pf_z;
   RPF::ControlVector pf_u;
+
   // self.loc.x = NAO_LOCATION(0);
   // self.loc.y = NAO_LOCATION(1);
   // self.orientation = NAO_LOCATION(2);
@@ -234,13 +239,11 @@ void LocalizationModule::processFrame() {
     auto& beacon = cache_.world_object->objects_[i];
     if(beacon.seen)
     {
-      //beacon.distance = beacon.loc.getDistanceTo(self.loc);
-      //beacon.bearing = self.loc.getBearingTo(beacon.loc,self.orientation);
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance ;
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing ;
 
       printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
-      printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
+      //printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
     }
     else
     {
@@ -250,8 +253,8 @@ void LocalizationModule::processFrame() {
   } 
 
   const auto& disp = cache_.odometry->displacement;
-  // pf_u << cache_.walk_info->robot_velocity_.translation.x, cache_.walk_info->robot_velocity_.translation.y, cache_.walk_info->robot_velocity_.rotation;
   pf_u << disp.translation.x, disp.translation.y, disp.rotation;
+
   std::cerr << "Control is: " << pf_u.transpose() << std::endl;
   cout << "Measurement is " << pf_z.transpose() << std::endl;
 

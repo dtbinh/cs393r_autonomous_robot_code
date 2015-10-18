@@ -15,7 +15,7 @@
 #include <../particle_filters/RMCL_particle_filter.hpp>
 
 typedef ExtendedKalmanFilter<4, 4, 1> KF;
-typedef RMCLParticleFilter<(50*25), 3, 12, 3> RPF;
+typedef RMCLParticleFilter<(25*12), 3, 12, 3> RPF;
 
 class ParticleFilter;
 class Point2D;

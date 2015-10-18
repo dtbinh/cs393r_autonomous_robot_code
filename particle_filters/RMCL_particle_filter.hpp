@@ -38,7 +38,7 @@ public:
     {
         X = ParticleStateSet :: Zero();
         L = ParticleLabelSet :: Zero();
-        W = ParticleWeightSet :: Constant(100);
+        W = ParticleWeightSet :: Constant(0);
         X_bar = ParticleStateSet :: Zero();
 
         A = A_matrix;
@@ -51,8 +51,8 @@ public:
         Wslow = 0.16;
         Wfast = 0.16;
         Waverage = 0;
-        Alphaslow = 0.05;
-        Alphafast = 0.5;
+        Alphaslow = 0.01;
+        Alphafast = 0.1;
 
 
 
@@ -85,10 +85,15 @@ public:
         Eigen::Matrix< double , 2 , 1 > beacon_location, z_tmp, x_tmp;
 
         bool flag = false;
+        ControlVector c;
         //Step1 sampling and moving
         for( int i = 0 ; i < NumParticle ; i++)
         {
-            X_bar.col(i) = A*X.col(i) + B*u;
+            double d_x = u(0)*cos(X(2,i)) - u(1)*sin(X(2,i));
+            double d_y = u(0)*sin(X(2,i)) + u(1)*cos(X(2,i));
+            double d_o = u(2);
+            c << d_x , d_y , d_o;
+            X_bar.col(i) = A*X.col(i) + B*c;
 
             if(X_bar(2,i) >= 2*PI) X_bar(2,i) -= 2*PI;
             else if(X_bar(2,i) < 0) X_bar(2,i) += 2*PI;
@@ -101,11 +106,11 @@ public:
             flag = true;
             switch(i){
                 case 0 : beacon_location << 1500.0,  1000.0;break;
-                case 2 : beacon_location << 0.0   ,  1000.0;break;
-                case 4 : beacon_location <<-1500.0,  1000.0;break;
-                case 6 : beacon_location <<-1500.0, -1000.0;break;
-                case 8 : beacon_location << 0.0   , -1000.0;break;
-                case 10: beacon_location << 1500.0, -1000.0;break;
+                case 4 : beacon_location << 0.0   ,  1000.0;break;
+                case 8 : beacon_location <<-1500.0,  1000.0;break;
+                case 10: beacon_location <<-1500.0, -1000.0;break;
+                case 6 : beacon_location << 0.0   , -1000.0;break;
+                case 2 : beacon_location << 1500.0, -1000.0;break;
             }
 
             z_tmp << z(i)       , z(i+1) ;
@@ -118,12 +123,21 @@ public:
                 double theta = gettheta(X_bar(0,j) , X_bar(1,j) , X_bar(2,j) , beacon_location(0) , beacon_location(1));
 
                 x_tmp << distance   , theta  ;
-                W(j) *= gaussian2d(z_tmp,x_tmp,cov);
+                W(j) += gaussian2d(z_tmp,x_tmp,cov);
                 //cout << "W(" << j << ")= " << W(j) << endl;
             }
         }
 
-        if(!flag) return;
+        if(!flag)
+        {
+            X = X_bar;
+            NAO_LOCATION += c;
+
+            if(NAO_LOCATION(2) >= 2*PI) NAO_LOCATION(2) -= 2*PI;
+            else if(NAO_LOCATION(2) < 0) NAO_LOCATION(2) += 2*PI;
+
+            return;
+        } 
         
         Waverage = W.sum()/NumParticle;
         Wslow = (1-Alphaslow)*Wslow + Alphaslow*Waverage;
@@ -212,6 +226,13 @@ private:
     void low_variance_sampler()
     {
         int i , j = 0;
+
+        // default_random_engine generator;
+
+        // normal_distribution<double> distributionx(0.0,N(0,0));
+        // normal_distribution<double> distributiony(0.0,N(1,1));
+        // normal_distribution<double> distributiono(0.0,N(2,2));
+
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
         int num_random = NumParticle * Randomratio;
@@ -229,6 +250,7 @@ private:
             while( thres > c(j)) ++j;
 
             noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
+            //noise << distributionx(generator),distributiony(generator),distributiono(generator);
             X.col(i) = X_bar.col(j) + noise;
             if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
             else if(X(2,i) < 0) X(2,i) += 2*PI;
@@ -238,10 +260,8 @@ private:
         for( i = num_resample ; i < NumParticle ; i++)
             { X.col(i) << random(field_length) , random(field_width) , random(2*PI)+PI ; }
 
-        W << W.Constant(100);
+        W << W.Constant(0);
 
-        // for(int i = 0 ; i < num_resample ; i++) cout << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
-        // for(int i = num_resample ; i < NumParticle ; i++) cout << X(0,i) << '\t' << X(1,i) << '\t' << X(2,i) << '\n' ;
     }
 
 
@@ -420,7 +440,7 @@ private:
         int num_resample = NumParticle - num_random;
 
         double counter[3] = {0};
-        
+
         for( i = 0 ; i < num_resample ; ++i)
             for( j = 0 ; j < SizeParticle ; ++j)
                 counter[j] += X(j,i);

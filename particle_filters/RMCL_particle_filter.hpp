@@ -9,6 +9,7 @@
 #include <time.h>
 #include <math.h>
 #include <iomanip>
+#include "../core/localization/Particle.h"
 
 #define PI 3.14159265358979323846
 #define ThetaRatio 2500/PI
@@ -137,6 +138,23 @@ public:
         NAO_LOCATION = getAverage( Randomratio );
         //ofstream fout2("nao_location.txt");
         //fout2 << NAO_LOCATION(0) << '\t' << NAO_LOCATION(1) << '\t' << NAO_LOCATION(2) << '\n' ;
+    }
+
+    std::vector<Particle> getParticles()
+    {
+        std::vector<Particle> particles;
+
+        for(int i = 0 ; i < NumParticle ; i++)
+        {
+            Particle p;
+            p.x = X(0,i);
+            p.y = X(1,i);
+            p.t = X(2,i);
+            p.w = 1;
+            particles.push_back(p);
+        }
+
+        return particles;
     }
 
 ParticleVector getNAO_LOCATION(){return NAO_LOCATION;}

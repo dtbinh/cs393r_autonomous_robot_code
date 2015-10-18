@@ -257,6 +257,7 @@ void LocalizationModule::processFrame() {
 
   pfilter_->process(pf_z, pf_u);
   NAO_LOCATION = pfilter_->getNAO_LOCATION();
+  cache_.localization_mem->particles = pfilter_->getParticles();
 
   self.loc.x = NAO_LOCATION(0);
   self.loc.y = NAO_LOCATION(1);

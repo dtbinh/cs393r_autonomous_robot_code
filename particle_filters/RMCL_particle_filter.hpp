@@ -164,6 +164,7 @@ public:
             p.t = X(2,i);
             p.w = 1;
             particles.push_back(p);
+            //printf("p(x,y,t,w) = (%f,%f,%f,%f)\t i = %d\n", p.x , p.y , p.t , p.w , i);
         }
 
         return particles;
@@ -263,9 +264,6 @@ private:
     }
 
 
-
-
-
     ParticleVector kmeans( double ratio )
     {
         int i , j , l = 0;
@@ -349,15 +347,30 @@ private:
 
         //4. Weighted average
         int *counter = new int[k];
+        int max_cluster_label = 0;
+        int max_cluster_number= counter[0];
         for( int i = 0 ; i < k ; ++i) counter[i] = 0;
         for( int i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
-        for( int i = 0 ; i < SizeParticle ; ++i )
+
+
+        for( int i = 1 ; i < k ; ++i)
         {
-            double tmp = 0;
-            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
-            nao_location(i) = tmp/num_resample;
-            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+            if( counter[i] > counter[i-1] )
+            {
+                max_cluster_label = i;
+                max_cluster_number = counter[i];
+            }
         }
+        for( int i = 0 ; i < SizeParticle ; ++i )
+            nao_location(i) = means[max_cluster_label][i];
+
+        // for( int i = 0 ; i < SizeParticle ; ++i )
+        // {
+        //     double tmp = 0;
+        //     for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
+        //     nao_location(i) = tmp/num_resample;
+        //     //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+        // }
 
         for( i = 0 ; i < k ; ++i) delete []means[i];
         delete []means;

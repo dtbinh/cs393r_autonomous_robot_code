@@ -91,29 +91,29 @@ void LocalizationModule::createPF()
 
 
   PF_A << 1 , 0 , 0 ,
-       0 , 1 , 0 ,
-       0 , 0 , 1 ;
+          0 , 1 , 0 ,
+          0 , 0 , 1 ;
 
   PF_B << 1 , 0 , 0 , //Should be tuned by the real speed;
-       0 , 1 , 0 ,
-       0 , 0 , 1 ;
+          0 , 1 , 0 ,
+          0 , 0 , 1 ;
 
-  PF_Q <<   4900, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 4900   , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 4900   , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 4900   , 0     , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 4900   , 0     , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 , 0     , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 4900   , 0     ,
-            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.007 ;
+  PF_Q <<   8100, 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0.009 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 8100   , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0.009 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 8100   , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0.009 , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 8100   , 0     , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0.009 , 0     , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 8100   , 0     , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.009 , 0     , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 8100   , 0     ,
+            0  , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.009 ;
 
   PF_N << 40     , 0     ,  0    ,
-          0     , 40     ,  0    ,
-          0     , 0     , 0.08 ;
+          0      , 40    ,  0    ,
+          0      , 0     , 0.08 ;
 
   // PF_N << 7.5     , 0     ,  0    ,
   //         0     , 7.5     ,  0    ,
@@ -226,14 +226,13 @@ void LocalizationModule::processFrame() {
   // Process the current frame and retrieve our location/orientation estimate
   // from the particle filter
 
-  std::cerr << "=========================================" << endl;
+  //std::cerr << "=========================================" << endl;
 
   RPF::MeasurementVector pf_z;
   RPF::ControlVector pf_u;
 
-  // self.loc.x = NAO_LOCATION(0);
-  // self.loc.y = NAO_LOCATION(1);
-  // self.orientation = NAO_LOCATION(2);
+  printf("1.=============================================================\n");
+
   for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
   {
     auto& beacon = cache_.world_object->objects_[i];
@@ -252,16 +251,20 @@ void LocalizationModule::processFrame() {
     }
   } 
 
+  
+
   const auto& disp = cache_.odometry->displacement;
   pf_u << disp.translation.x, disp.translation.y, disp.rotation;
 
-  std::cerr << "Control is: " << pf_u.transpose() << std::endl;
-  cout << "Measurement is " << pf_z.transpose() << std::endl;
-
+  //std::cerr << "Control is: " << pf_u.transpose() << std::endl;
+  //cout << "Measurement is " << pf_z.transpose() << std::endl;
+  //printf("2.=============================================================\n" );
   pfilter_->process(pf_z, pf_u);
+  //printf("3.=============================================================\n" );
   NAO_LOCATION = pfilter_->getNAO_LOCATION();
-  cache_.localization_mem->particles = pfilter_->getParticles();
-
+  //printf("4.=============================================================\n" );
+  //cache_.localization_mem->particles = pfilter_->getParticles();
+  //printf("5.=============================================================\n" );
   self.loc.x = NAO_LOCATION(0);
   self.loc.y = NAO_LOCATION(1);
   self.orientation = NAO_LOCATION(2);

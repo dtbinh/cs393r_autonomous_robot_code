@@ -124,14 +124,14 @@ public:
 
                 x_tmp << distance   , theta  ;
                 W(j) += gaussian2d(z_tmp,x_tmp,cov);
-                //cout << "W(" << j << ")= " << W(j) << endl;
+
             }
         }
 
         if(!flag)
         {
             X = X_bar;
-            NAO_LOCATION += c;
+            NAO_LOCATION = NAO_LOCATION + B*c;
 
             if(NAO_LOCATION(2) >= 2*PI) NAO_LOCATION(2) -= 2*PI;
             else if(NAO_LOCATION(2) < 0) NAO_LOCATION(2) += 2*PI;
@@ -148,10 +148,8 @@ public:
 
         L = L.Zero();
         cout << "Randomratio = "<< Randomratio << endl;
-        //NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
-        NAO_LOCATION = getAverage( Randomratio );
-        //ofstream fout2("nao_location.txt");
-        //fout2 << NAO_LOCATION(0) << '\t' << NAO_LOCATION(1) << '\t' << NAO_LOCATION(2) << '\n' ;
+        NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
+        //NAO_LOCATION = getAverage( Randomratio );
     }
 
     std::vector<Particle> getParticles()
@@ -276,15 +274,12 @@ private:
         //1. decide a proper p;
         int num_random = NumParticle * ratio;
         int num_resample = NumParticle - num_random;
-        int k = (int)(ratio*10);
+        int k = (int)(ratio*50);
         if( !k ) k = 1;
         if( k == 1)
         {
             double** p = getMeans(num_resample,1);
             nao_location << p[0][0] , p[0][1] , p[0][2];
-//            ofstream fout2("nao_location.txt");
-//            fout2 << nao_location(0) << '\t' << nao_location(1) << '\t' << nao_location(2) << '\n' ;
-//            fout2.close();
             delete []p[0];
             delete []p;
 
@@ -331,7 +326,6 @@ private:
             for( i = 0 ; i < SizeParticle&&(j!=k-1) ; ++i) means[j+1][i] = X(i,l-1);
         }
 
-        for(j = 0 ; j < k ; ++j) printf("mean start (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
 
         //3. Kmeans **center , X and L initialized
         double oldvar = -1;
@@ -341,20 +335,17 @@ private:
 
         while( abs(newvar - oldvar) > 100 )
         {
-            cout << "newvar - oldvar =  " << newvar - oldvar << endl;
-
+            //cout << "newvar - oldvar =  " << newvar - oldvar << endl;
             for( i = 0 ; i < k ; ++i) delete []means[i];
             delete []means;
 
             means = getMeans( num_resample , k ) ;
-            for(j = 0 ; j < k ; ++j) printf("means process (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
+            //for(j = 0 ; j < k ; ++j) printf("means process (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
 
             for( i = 0 ; i < num_resample ; ++i) L(i) = judgeCluster( i , k , means);
             oldvar = newvar;
             newvar = getVar( num_resample , k , means );
         }
-
-        for(j = 0 ; j < k ; ++j) printf("means end(x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
 
         //4. Weighted average
         int *counter = new int[k];
@@ -365,7 +356,7 @@ private:
             double tmp = 0;
             for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
             nao_location(i) = tmp/num_resample;
-            cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
         }
 
         for( i = 0 ; i < k ; ++i) delete []means[i];
@@ -397,6 +388,10 @@ private:
         double **means = new double*[k];
         for( i = 0 ; i < k ; ++i) means[i] = new double[SizeParticle];
         for( i = 0 ; i < k ; ++i) counter[i] = 0;
+
+        for( i = 0 ; i < k ; ++i )
+            for( j = 0 ; j < SizeParticle ; ++j)
+                means[i][j] = 0;
 
         for( i = 0 ; i < length ; ++i )
         {

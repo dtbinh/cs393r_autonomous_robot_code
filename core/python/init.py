@@ -43,7 +43,7 @@ def processFrame():
       memory.world_objects.init(memory.robot_state.team_)
       core.visionC.initSpecificModule()
       initNonMemory(initLoc=False)
-      memory.speech.say("Vision")
+      # memory.speech.say("Vision")
       firstFrame = False
     
     core.visionC.processFrame()
@@ -60,7 +60,7 @@ behaviorLoaded = False
 def processBehaviorFrame():
   global behaviorLoaded
   if not behaviorLoaded: 
-    runBehavior("keeper")
+    runBehavior("main")
     behaviorLoaded = True
   try:
     if memory.robot_state.WO_SELF != core.WO_TEAM_COACH:

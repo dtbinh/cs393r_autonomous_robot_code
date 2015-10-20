@@ -1,35 +1,114 @@
-# import memory, pose, commands, cfgstiff, mem_objects, core, random, numpy
-# from task import Task
-# from state_machine import *
+import memory, pose, commands, cfgstiff, mem_objects, core, random, numpy, math
+from task import Task
+from state_machine import *
+from memory import *
+from sets import Set
 
-# class Ready(Task):
-#   def run(self):
-#     print "Readying"
-#     commands.stand()
-#     if self.getTime() > 5.0:
-#       self.finish()
+direction = 1.
+last_direction_change_time = 0.
 
-# class Playing(StateMachine):
-#   class Stand(Node):
-#     def run(self):
-#       print "Standing"
-#       commands.stand()
-#       if self.getTime() > 5.0:
-#         self.finish()
+have_lock = False
+facing_center = False
+at_center = False
+num_beacons_required = 2
 
-#   class Walk(Node):
-#     def run(self):
-#       print "Spewing"
-#       sloc = mem_objects.world_objects[core.WO_SELF].loc
-#       print "I'm at: " + str(sloc)
-#       commands.setWalkVelocity(0.0,0.0,0.0)
+beacons_seen = Set()
 
-#   class Off(Node):
-#     def run(self):
-#       commands.setStiffness(cfgstiff.Zero)
-#       if self.getTime() > 2.0:
-#         self.finish()
+class Ready(Task):
+  def run(self):
+    print "Readying"
+    commands.stand()
+    if self.getTime() > 5.0:
+      self.finish()
 
-#   def setup(self):
-#     self.trans(self.Stand(), C, self.Walk(), C, self.Off())
+class Playing(StateMachine):
+  class Stand(Node):
+    def run(self):
+      print "Standing"
+      commands.stand()
+      if self.getTime() > 5.0:
+        self.finish()
+
+  class WalkToCenter(Node):
+    def search(self):
+      global direction, last_direction_change_time, have_lock, facing_center, at_center
+      # memory.speech.say("Searching!")
+
+      for i in xrange(core.WO_BEACON_BLUE_YELLOW, core.WO_BEACON_YELLOW_PINK):
+        if(mem_objects.world_objects[i].seen):
+          beacons_seen.add(i)
+          print "saw beacon " + str(i)
+      if(len(beacons_seen) >= num_beacons_required):
+        # memory.speech.say("Done")
+        have_lock = True
+        return
+
+      turn_amount = 2.0*math.pi
+      turn_vel = 0.2
+      turn_time = turn_amount / turn_vel
+      commands.setWalkVelocity(0, 0, turn_vel * direction)
+      if((self.getTime() - last_direction_change_time) > turn_time):
+        direction = direction * -1.0
+        last_direction_change_time = self.getTime()
+
+    def turn(self):
+      # memory.speech.say("Turning!")
+      global have_lock, facing_center, at_center
+      sloc = mem_objects.world_objects[robot_state.WO_SELF].loc
+      t = -mem_objects.world_objects[robot_state.WO_SELF].orientation
+      cx = (-sloc.x) * numpy.cos(t) - (-sloc.y) * numpy.sin(t)
+      cy = (-sloc.x) * numpy.sin(t) + (-sloc.y) * numpy.cos(t)
+      t_des = numpy.arctan2(-sloc.y, -sloc.x)
+      print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
+      print "local center x,y = " + str(cx) + "," + str(cy)
+      t_err = numpy.arctan2(cy, cx)
+      print "t_err = " + str(t_err)
+
+      if numpy.abs(t_err) < 0.05:
+        facing_center = True
+        return
+      else:
+        Kt = 0.25
+        vt_max = 0.15
+        t_vel = vt_max * numpy.tanh(Kt * t_err);
+        print "t_vel = " + str(t_vel)
+        commands.setWalkVelocity(0.0, 0.0, t_vel)
+
+    def walk(self):
+      global have_lock, facing_center, at_center
+      # memory.speech.say("Walking!")
+      sloc = mem_objects.world_objects[robot_state.WO_SELF].loc
+      t = -mem_objects.world_objects[robot_state.WO_SELF].orientation
+      cx = (-sloc.x) * numpy.cos(t) - (-sloc.y) * numpy.sin(t)
+      cy = (-sloc.x) * numpy.sin(t) + (-sloc.y) * numpy.cos(t)
+      print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
+      print "local center x,y = " + str(cx) + "," + str(cy)
+
+      Kx = 2.0
+      vx_max = 0.3
+      x_vel = vx_max * numpy.tanh(Kx * cx / 1000.0)
+      Ky = 1.0
+      vy_max = 0.1
+      y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
+      commands.setWalkVelocity(x_vel, y_vel, 0.0)
+
+    def run(self):
+      global have_lock, facing_center
+      commands.setHeadPan(0, 1.0)
+      commands.setHeadTilt(-10)
+      if not have_lock and not facing_center:
+        self.search()
+      elif have_lock and not facing_center:
+        self.turn()
+      elif have_lock and facing_center:
+        self.walk()
+
+  class Off(Node):
+    def run(self):
+      commands.setStiffness(cfgstiff.Zero)
+      if self.getTime() > 2.0:
+        self.finish()
+
+  def setup(self):
+    self.trans(self.Stand(), C, self.WalkToCenter(), C, self.Off())
 

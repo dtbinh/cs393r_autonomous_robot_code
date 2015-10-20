@@ -156,7 +156,7 @@ bool checkColorChain(MergeBlob::Blob* blob, Color last_color, WorldObjectType& b
 void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
 {
   std::vector<MergeBlob::Blob*> relevant_blobs;
-  unsigned int min_blob_size = 120;
+  unsigned int min_blob_size = 20;
   // unsigned int min_point_count = 16;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
@@ -168,7 +168,7 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
     {
       relevant_blobs.push_back(&mb->blob[i]);
 
-      if(ar < 0.5 || ar > 1.5 || density < 0.7)
+      if(ar < 0.3 || ar > 2.0)// || density < 0.7)
       {
         relevant_blobs[relevant_blobs.size()-1]->beacon_candidate = false;
 
@@ -262,7 +262,7 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       float avg_height = (blobs[0]->boundingbox_height+blobs[1]->boundingbox_height)/2.0;
       beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
       beacon->visionDistance = (beacon->visionDistance-500)*0.9+500;
-      printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
+      // printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;
 

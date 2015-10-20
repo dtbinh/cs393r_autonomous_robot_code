@@ -147,7 +147,7 @@ public:
         low_variance_sampler(); //Resampler
 
         L = L.Zero();
-        cout << "Randomratio = "<< Randomratio << endl;
+        // cout << "Randomratio = "<< Randomratio << endl;
         NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
         //NAO_LOCATION = getAverage( Randomratio );
     }
@@ -164,7 +164,7 @@ public:
             p.t = X(2,i);
             p.w = 1;
             particles.push_back(p);
-            //printf("p(x,y,t,w) = (%f,%f,%f,%f)\t i = %d\n", p.x , p.y , p.t , p.w , i);
+            // printf("p(x,y,t,w) = (%f,%f,%f,%f)\t i = %d\n", p.x , p.y , p.t , p.w , i);
         }
 
         return particles;
@@ -349,11 +349,11 @@ private:
         int *counter = new int[k];
         int max_cluster_label = 0;
         int max_cluster_number= counter[0];
-        for( int i = 0 ; i < k ; ++i) counter[i] = 0;
-        for( int i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
+        for( i = 0 ; i < k ; ++i) counter[i] = 0;
+        for( i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
 
 
-        for( int i = 1 ; i < k ; ++i)
+        for( i = 1 ; i < k ; ++i)
         {
             if( counter[i] > counter[i-1] )
             {
@@ -361,7 +361,7 @@ private:
                 max_cluster_number = counter[i];
             }
         }
-        for( int i = 0 ; i < SizeParticle ; ++i )
+        for( i = 0 ; i < SizeParticle ; ++i )
             nao_location(i) = means[max_cluster_label][i];
 
         // for( int i = 0 ; i < SizeParticle ; ++i )

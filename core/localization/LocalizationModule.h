@@ -42,15 +42,6 @@ class LocalizationModule : public Module {
     unsigned int unseen_count;
     KF *ball_filter;
 
-    RPF::ParticleVector NAO_LOCATION;
-    //KF :: StateVector mu_past_0;
-    //KF :: StateVector mu_past_1;
-
-    Eigen::Matrix<double, 4, 4> A;
-    Eigen::Matrix<double, 4, 1> B;
-    Eigen::Matrix<double, 4, 4> C;
-
-
     KF::StateVector g(KF::StateVector x, KF::ControlVector u);
     KF::MeasurementVector h(KF::StateVector x);
     KF::StateJacobianMatrix G(KF::StateVector x, KF::ControlVector u);
@@ -63,4 +54,12 @@ class LocalizationModule : public Module {
     TextLogger*& tlogger_;
     LocalizationParams params_;
     RPF* pfilter_;
+
+    RPF::ParticleVector NAO_LOCATION;
+    //KF :: StateVector mu_past_0;
+    //KF :: StateVector mu_past_1;
+
+    Eigen::Matrix<double, 4, 4> A;
+    Eigen::Matrix<double, 4, 1> B;
+    Eigen::Matrix<double, 4, 4> C;
 };

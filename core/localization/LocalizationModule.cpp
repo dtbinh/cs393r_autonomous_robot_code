@@ -98,18 +98,18 @@ void LocalizationModule::createPF()
           0 , 1 , 0 ,
           0 , 0 , 1 ;
 
-  PF_Q <<   10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0.010 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0.010 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0.010 , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.010 , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.010 , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.010 ;
+  PF_Q <<   25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 40000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 ;
 
   PF_N << 40     , 0     ,  0    ,
           0      , 40    ,  0    ,
@@ -131,6 +131,7 @@ void LocalizationModule::specifyMemoryDependency() {
   requiresMemoryBlock("robot_state");
   requiresMemoryBlock("game_state");
   requiresMemoryBlock("vision_odometry");
+  // std::cerr << "SMD cache address is: " << cache_.localization_mem << std::endl;
 }
 
 // Boilerplate
@@ -141,6 +142,7 @@ void LocalizationModule::specifyMemoryBlocks() {
   getOrAddMemoryBlock(cache_.robot_state,"robot_state");
   getOrAddMemoryBlock(cache_.game_state,"game_state");
   getOrAddMemoryBlock(cache_.odometry,"vision_odometry");
+  // std::cerr << "SMB cache address is: " << cache_.localization_mem << std::endl;
 }
 
 
@@ -169,9 +171,11 @@ void LocalizationModule::initFromWorld() {
 
 // Reinitialize from scratch
 void LocalizationModule::reInit() {
+  // std::cerr << "reInit cache address is: " << cache_.localization_mem << std::endl;
   pfilter_->init(Point2D(-750,0), 0.0f);
   cache_.localization_mem->state = decltype(cache_.localization_mem->state)::Zero();
   cache_.localization_mem->covariance = decltype(cache_.localization_mem->covariance)::Identity();
+  // std::cerr << "reInit end cache address is: " << cache_.localization_mem << std::endl;
 }
 
 void LocalizationModule::moveBall(const Point2D& position) {
@@ -210,6 +214,7 @@ double LocalizationModule::gettheta( double x , double y , double ori , double b
 }
 
 void LocalizationModule::processFrame() {
+  // std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
   auto& ball = cache_.world_object->objects_[WO_BALL];
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
@@ -231,17 +236,19 @@ void LocalizationModule::processFrame() {
   RPF::MeasurementVector pf_z;
   RPF::ControlVector pf_u;
 
-  printf("1.=============================================================\n");
+  // printf("1.=============================================================\n");
 
+  bool any_beacon_seen = false;
   for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
   {
     auto& beacon = cache_.world_object->objects_[i];
     if(beacon.seen)
     {
+      any_beacon_seen = true;
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance ;
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing ;
 
-      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
+      // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
       //printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
     }
     else
@@ -258,20 +265,24 @@ void LocalizationModule::processFrame() {
 
   //std::cerr << "Control is: " << pf_u.transpose() << std::endl;
   //cout << "Measurement is " << pf_z.transpose() << std::endl;
-  //printf("2.=============================================================\n" );
+  // printf("2.=============================================================\n" );
   pfilter_->process(pf_z, pf_u);
-  //printf("3.=============================================================\n" );
+  // printf("3.=============================================================\n" );
   NAO_LOCATION = pfilter_->getNAO_LOCATION();
-  //printf("4.=============================================================\n" );
-  //cache_.localization_mem->particles = pfilter_->getParticles();
-  //printf("5.=============================================================\n" );
+  // printf("4.=============================================================\n" );
+  // if(cache_.localization_mem != NULL && any_beacon_seen)
+  // {
+  //   std::cerr << "Cache address is: " << cache_.localization_mem << std::endl;
+  //   cache_.localization_mem->particles = pfilter_->getParticles();
+  // }
+  // printf("5.=============================================================\n" );
   self.loc.x = NAO_LOCATION(0);
   self.loc.y = NAO_LOCATION(1);
   self.orientation = NAO_LOCATION(2);
   // self.loc = pfilter_->pose().translation;
   // self.orientation = pfilter_->pose().rotation;
 
-  printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
+  // printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
 
   if(ball.seen) {
     // Compute the relative position of the ball from vision readings
@@ -312,10 +323,10 @@ void LocalizationModule::processFrame() {
     Eigen:: Matrix< float , 4 , 4 > cov ;
     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
 
-    cache_.localization_mem->state[0] = estimated_state(0);
-    cache_.localization_mem->state[1] = estimated_state(1);
-    cache_.localization_mem->state[2] = estimated_state(2);
-    cache_.localization_mem->state[3] = estimated_state(3);
+    // cache_.localization_mem->state[0] = estimated_state(0);
+    // cache_.localization_mem->state[1] = estimated_state(1);
+    // cache_.localization_mem->state[2] = estimated_state(2);
+    // cache_.localization_mem->state[3] = estimated_state(3);
     // cache_.localization_mem->covariance = cov * 10000;
   } 
   //TODO: How do we handle not seeing the ball?
@@ -353,10 +364,10 @@ void LocalizationModule::processFrame() {
     Eigen:: Matrix< float , 4 , 4 > cov ;
     for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
 
-    cache_.localization_mem->state[0] = mu2(0);
-    cache_.localization_mem->state[1] = mu2(1);
-    cache_.localization_mem->state[2] = mu2(2);
-    cache_.localization_mem->state[3] = mu2(3);
+    // cache_.localization_mem->state[0] = mu2(0);
+    // cache_.localization_mem->state[1] = mu2(1);
+    // cache_.localization_mem->state[2] = mu2(2);
+    // cache_.localization_mem->state[3] = mu2(3);
     // cache_.localization_mem->covariance = cov * 10000;
     
   }

@@ -92,10 +92,26 @@ class Playing(StateMachine):
       y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
       commands.setWalkVelocity(x_vel, y_vel, 0.0)
 
+    def kidnapped(self):
+      memory.speech.say("Put me down!")
+      have_lock = False
+      facing_center = False
+
     def run(self):
       global have_lock, facing_center
       commands.setHeadPan(0, 1.0)
       commands.setHeadTilt(-10)
+
+      fl = sensors.getValue(core.fsrLFL)
+      fr = sensors.getValue(core.fsrLFR)
+      rl = sensors.getValue(core.fsrLRL)
+      rr = sensors.getValue(core.fsrLRR)
+      max_foot_force = numpy.amax([fl,fr,rl,rr])
+
+      if(max_foot_force < 0.1)
+        self.kidnapped()
+        return
+
       if not have_lock and not facing_center:
         self.search()
       elif have_lock and not facing_center:

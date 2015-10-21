@@ -260,9 +260,10 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       float column_height = 99.0;
       float avg_width = (blobs[0]->boundingbox_length+blobs[1]->boundingbox_length)/2.0;
       float avg_height = (blobs[0]->boundingbox_height+blobs[1]->boundingbox_height)/2.0;
-      beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
-      beacon->visionDistance = (beacon->visionDistance-500)*0.9+500;
-      // printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
+      beacon->visionDistance = cmatrix_.getWorldDistanceByHeight(avg_height, column_height);
+      // beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
+      // beacon->visionDistance = (beacon->visionDistance-500)*0.9+500;
+      printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;
 

@@ -13,6 +13,7 @@ class Playing(StateMachine):
   class Stand(Node):
     def run(self):
       commands.stand()
+      commands.setHeadTilt(-10)
       if self.getTime() > 5.0:
         memory.speech.say("playing stand complete")
         self.finish()

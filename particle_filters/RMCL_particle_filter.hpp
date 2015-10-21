@@ -38,7 +38,7 @@ public:
     {
         X = ParticleStateSet :: Zero();
         L = ParticleLabelSet :: Zero();
-        W = ParticleWeightSet :: Constant(0);
+        W = ParticleWeightSet :: Constant(100);
         X_bar = ParticleStateSet :: Zero();
 
         A = A_matrix;
@@ -52,7 +52,7 @@ public:
         Wfast = 0.16;
         Waverage = 0;
         Alphaslow = 0.01;
-        Alphafast = 0.1;
+        Alphafast = 0.05;
 
 
 
@@ -123,7 +123,7 @@ public:
                 double theta = gettheta(X_bar(0,j) , X_bar(1,j) , X_bar(2,j) , beacon_location(0) , beacon_location(1));
 
                 x_tmp << distance   , theta  ;
-                W(j) += gaussian2d(z_tmp,x_tmp,cov);
+                W(j) *= gaussian2d(z_tmp,x_tmp,cov);
 
             }
         }
@@ -226,11 +226,11 @@ private:
     {
         int i , j = 0;
 
-        // default_random_engine generator;
+        default_random_engine generator;
 
-        // normal_distribution<double> distributionx(0.0,N(0,0));
-        // normal_distribution<double> distributiony(0.0,N(1,1));
-        // normal_distribution<double> distributiono(0.0,N(2,2));
+        normal_distribution<double> distributionx(0.0,N(0,0));
+        normal_distribution<double> distributiony(0.0,N(1,1));
+        normal_distribution<double> distributiono(0.0,N(2,2));
 
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
@@ -248,8 +248,8 @@ private:
         {
             while( thres > c(j)) ++j;
 
-            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
-            //noise << distributionx(generator),distributiony(generator),distributiono(generator);
+            //noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
+            noise << distributionx(generator),distributiony(generator),distributiono(generator);
             X.col(i) = X_bar.col(j) + noise;
             if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
             else if(X(2,i) < 0) X(2,i) += 2*PI;
@@ -259,7 +259,7 @@ private:
         for( i = num_resample ; i < NumParticle ; i++)
             { X.col(i) << random(field_length) , random(field_width) , random(2*PI)+PI ; }
 
-        W << W.Constant(0);
+        W << W.Constant(100);
 
     }
 
@@ -272,7 +272,7 @@ private:
         //1. decide a proper p;
         int num_random = NumParticle * ratio;
         int num_resample = NumParticle - num_random;
-        int k = (int)(ratio*50);
+        int k = (int)(ratio*100);
         if( !k ) k = 1;
         if( k == 1)
         {
@@ -347,12 +347,13 @@ private:
 
         //4. Weighted average
         int *counter = new int[k];
-        int max_cluster_label = 0;
-        int max_cluster_number= counter[0];
+        
         for( i = 0 ; i < k ; ++i) counter[i] = 0;
         for( i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
 
 
+        int max_cluster_label = 0;
+        int max_cluster_number= counter[0];
         for( i = 1 ; i < k ; ++i)
         {
             if( counter[i] > counter[i-1] )

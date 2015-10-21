@@ -11,6 +11,7 @@ have_lock = False
 facing_center = False
 at_center = False
 num_beacons_required = 2
+last_head_time = 0
 
 beacons_seen = Set()
 
@@ -68,8 +69,8 @@ class Playing(StateMachine):
         facing_center = True
         return
       else:
-        Kt = 0.25
-        vt_max = 0.15
+        Kt = 1.0
+        vt_max = 0.25
         t_vel = vt_max * numpy.tanh(Kt * t_err);
         print "t_vel = " + str(t_vel)
         commands.setWalkVelocity(0.0, 0.0, t_vel)
@@ -84,12 +85,13 @@ class Playing(StateMachine):
       print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
       print "local center x,y = " + str(cx) + "," + str(cy)
 
-      Kx = 2.0
-      vx_max = 0.3
+      Kx = 3.0
+      vx_max = 0.4
       x_vel = vx_max * numpy.tanh(Kx * cx / 1000.0)
-      Ky = 1.0
-      vy_max = 0.1
+      Ky = 3.0
+      vy_max = 0.4
       y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
+      print "vel x,y = " + str(x_vel) + "," + str(y_vel)
       commands.setWalkVelocity(x_vel, y_vel, 0.0)
 
     def kidnapped(self):
@@ -98,9 +100,11 @@ class Playing(StateMachine):
       facing_center = False
 
     def run(self):
-      global have_lock, facing_center
-      commands.setHeadPan(0, 1.0)
-      commands.setHeadTilt(-10)
+      global have_lock, facing_center, last_head_time
+      if ((self.getTime() - last_head_time) > 2.0):
+        commands.setHeadPan(random.uniform(-1.5, 1.5), 2.0)
+        commands.setHeadTilt(-15)
+        last_head_time = self.getTime()
 
       fl = sensors.getValue(core.fsrLFL)
       fr = sensors.getValue(core.fsrLFR)

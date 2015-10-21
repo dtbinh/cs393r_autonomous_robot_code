@@ -98,26 +98,26 @@ void LocalizationModule::createPF()
           0 , 1 , 0 ,
           0 , 0 , 1 ;
 
-  PF_Q <<   25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 40000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.015 ;
+  PF_Q <<   10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0.001 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0.001 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0.001 , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.001 , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.001 , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.001;
 
-  PF_N << 40     , 0     ,  0    ,
-          0      , 40    ,  0    ,
-          0      , 0     , 0.08 ;
+  // PF_N << 40     , 0     ,  0    ,
+  //         0      , 40    ,  0    ,
+  //         0      , 0     , 0.08 ;
 
-  // PF_N << 7.5     , 0     ,  0    ,
-  //         0     , 7.5     ,  0    ,
-  //         0     , 0     , 0.01 ;
+  PF_N << 10     , 0      ,   0    ,
+          0      , 10     ,   0    ,
+          0      , 0      ,  0.02 ;
 
   NAO_LOCATION << 0,0,0;
 
@@ -248,8 +248,8 @@ void LocalizationModule::processFrame() {
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance ;
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing ;
 
-      // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
-      //printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
+      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
+      printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
     }
     else
     {
@@ -273,7 +273,7 @@ void LocalizationModule::processFrame() {
   // if(cache_.localization_mem != NULL && any_beacon_seen)
   // {
   //   std::cerr << "Cache address is: " << cache_.localization_mem << std::endl;
-  //   cache_.localization_mem->particles = pfilter_->getParticles();
+  cache_.localization_mem->particles = pfilter_->getParticles();
   // }
   // printf("5.=============================================================\n" );
   self.loc.x = NAO_LOCATION(0);

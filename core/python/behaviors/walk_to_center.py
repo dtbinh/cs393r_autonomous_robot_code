@@ -111,8 +111,13 @@ class Playing(StateMachine):
       rl = sensors.getValue(core.fsrLRL)
       rr = sensors.getValue(core.fsrLRR)
       max_foot_force = numpy.amax([fl,fr,rl,rr])
+      print "fl is " + str(fl)
+      print "fr is " + str(fr)
+      print "rl is " + str(rl)
+      print "rr is " + str(rr)
+      print "Foot force is " + str(max_foot_force)
 
-      if(max_foot_force < 0.1)
+      if(max_foot_force < 0.005):
         self.kidnapped()
         return
 

@@ -352,26 +352,26 @@ private:
         for( i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
 
 
-        int max_cluster_label = 0;
-        int max_cluster_number= counter[0];
-        for( i = 1 ; i < k ; ++i)
-        {
-            if( counter[i] > counter[i-1] )
-            {
-                max_cluster_label = i;
-                max_cluster_number = counter[i];
-            }
-        }
-        for( i = 0 ; i < SizeParticle ; ++i )
-            nao_location(i) = means[max_cluster_label][i];
-
-        // for( int i = 0 ; i < SizeParticle ; ++i )
+        // int max_cluster_label = 0;
+        // int max_cluster_number= counter[0];
+        // for( i = 1 ; i < k ; ++i)
         // {
-        //     double tmp = 0;
-        //     for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
-        //     nao_location(i) = tmp/num_resample;
-        //     //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+        //     if( counter[i] > counter[i-1] )
+        //     {
+        //         max_cluster_label = i;
+        //         max_cluster_number = counter[i];
+        //     }
         // }
+        // for( i = 0 ; i < SizeParticle ; ++i )
+        //     nao_location(i) = means[max_cluster_label][i];
+
+        for( int i = 0 ; i < SizeParticle ; ++i )
+        {
+            double tmp = 0;
+            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
+            nao_location(i) = tmp/num_resample;
+            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+        }
 
         for( i = 0 ; i < k ; ++i) delete []means[i];
         delete []means;

@@ -214,6 +214,8 @@ double LocalizationModule::gettheta( double x , double y , double ori , double b
 }
 
 void LocalizationModule::processFrame() {
+  std::cerr << "Walk disabled is " << cache_.odometry->walkDisabled << std::endl;
+
   // std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
   auto& ball = cache_.world_object->objects_[WO_BALL];
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];

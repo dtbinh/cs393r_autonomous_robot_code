@@ -52,7 +52,7 @@ public:
         Wfast = 0.16;
         Waverage = 0;
         Alphaslow = 0.01;
-        Alphafast = 0.05;
+        Alphafast = 0.04;
 
 
 
@@ -89,8 +89,8 @@ public:
         //Step1 sampling and moving
         for( int i = 0 ; i < NumParticle ; i++)
         {
-            double d_x = u(0)*cos(X(2,i)) - u(1)*sin(X(2,i));
-            double d_y = u(0)*sin(X(2,i)) + u(1)*cos(X(2,i));
+            double d_x = u(0)*cos(X(2,i)+u(2)) - u(1)*sin(X(2,i)+u(2));
+            double d_y = u(0)*sin(X(2,i)+u(2)) + u(1)*cos(X(2,i)+u(2));
             double d_o = u(2);
             c << d_x , d_y , d_o;
             X_bar.col(i) = A*X.col(i) + B*c;
@@ -226,11 +226,11 @@ private:
     {
         int i , j = 0;
 
-        // default_random_engine generator;
+         default_random_engine generator;
 
-        // normal_distribution<double> distributionx(0.0,N(0,0));
-        // normal_distribution<double> distributiony(0.0,N(1,1));
-        // normal_distribution<double> distributiono(0.0,N(2,2));
+         normal_distribution<double> distributionx(0.0,40);
+         normal_distribution<double> distributiony(0.0,40);
+         normal_distribution<double> distributiono(0.0,0.1);
 
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
@@ -257,7 +257,14 @@ private:
             thres += 1.0/num_resample;
         }
         for( i = num_resample ; i < NumParticle ; i++)
-            { X.col(i) << random(field_length) , random(field_width) , random(2*PI)+PI ; }
+        { 
+            X.col(i) << NAO_LOCATION(0)+distributionx(generator) , 
+                        NAO_LOCATION(1)+distributiony(generator) , 
+                        NAO_LOCATION(2)+distributiono(generator) ; 
+            if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
+            else if(X(2,i) < 0) X(2,i) += 2*PI;
+            //random(field_width) , random(2*PI)+PI ; 
+        }
 
         W << W.Constant(100);
 
@@ -272,7 +279,7 @@ private:
         //1. decide a proper p;
         int num_random = NumParticle * ratio;
         int num_resample = NumParticle - num_random;
-        int k = (int)(ratio*100);
+        int k = (int)(ratio*125);
         if( !k ) k = 1;
         if( k == 1)
         {

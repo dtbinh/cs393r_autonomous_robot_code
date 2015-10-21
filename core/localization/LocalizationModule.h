@@ -5,6 +5,7 @@
 #include <memory/GameStateBlock.h>
 #include <memory/RobotStateBlock.h>
 #include <memory/WalkInfoBlock.h>
+#include <memory/BodyModelBlock.h>
 #include <memory/OdometryBlock.h>
 #include <Module.h>
 #include <memory/MemoryCache.h>

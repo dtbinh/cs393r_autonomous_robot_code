@@ -131,6 +131,7 @@ void LocalizationModule::specifyMemoryDependency() {
   requiresMemoryBlock("robot_state");
   requiresMemoryBlock("game_state");
   requiresMemoryBlock("vision_odometry");
+  // requiresMemoryBlock("body_model");
   // std::cerr << "SMD cache address is: " << cache_.localization_mem << std::endl;
 }
 
@@ -142,6 +143,7 @@ void LocalizationModule::specifyMemoryBlocks() {
   getOrAddMemoryBlock(cache_.robot_state,"robot_state");
   getOrAddMemoryBlock(cache_.game_state,"game_state");
   getOrAddMemoryBlock(cache_.odometry,"vision_odometry");
+  // getMemoryBlock(cache_.body_model,"body_model");
   // std::cerr << "SMB cache address is: " << cache_.localization_mem << std::endl;
 }
 
@@ -215,6 +217,9 @@ double LocalizationModule::gettheta( double x , double y , double ori , double b
 
 void LocalizationModule::processFrame() {
   std::cerr << "Walk disabled is " << cache_.odometry->walkDisabled << std::endl;
+  std::cerr << "Standing is " << cache_.odometry->standing << std::endl;
+  // std::cerr << "feet_on_ground is " << cache_.body_model->feet_on_ground_ << std::endl;
+
 
   // std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
   auto& ball = cache_.world_object->objects_[WO_BALL];

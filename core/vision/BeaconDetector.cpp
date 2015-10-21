@@ -246,15 +246,11 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       Position bp = cmatrix_.getWorldPosition(bx, by);
       beacon->visionBearing = cmatrix_.bearing(p);
       beacon->visionElevation = cmatrix_.elevation(p);
-      // if(beacon_type == WO_BEACON_BLUE_YELLOW || beacon_type == WO_BEACON_YELLOW_BLUE)
-      // {
-      //   float dist = cmatrix_.groundDistance(p);
-      //   beacon->visionDistance = dist; //dist*dist*0.0015+350;
-      // }
-      // else
-      // {
-      //   beacon->visionDistance = (cmatrix_.groundDistance(bp)-700)*0.75+700;
-      // }
+      if(fabs(beacon->visionBearing) > 1.57)
+      {
+        continue;
+      }
+      // printf("Found beacon %d at distance %g, bearing %g\n", beacon_type, beacon->visionDistance, beacon->visionBearing);
 
       float column_diameter = 110.0;
       float column_height = 99.0;
@@ -262,10 +258,30 @@ void BeaconDetector::findBeacons(unsigned char* img, MergeBlob* mb)
       float avg_height = (blobs[0]->boundingbox_height+blobs[1]->boundingbox_height)/2.0;
       beacon->visionDistance = cmatrix_.getWorldDistanceByHeight(avg_height, column_height);
       // beacon->visionDistance = (cmatrix_.getWorldDistanceByWidth(avg_width, column_diameter) + cmatrix_.getWorldDistanceByHeight(avg_height, column_height))/2.0;
-      // beacon->visionDistance = (beacon->visionDistance-500)*0.9+500;
-      printf("Found beacon %d at distance %g\n", beacon_type, beacon->visionDistance);///////////////////////////////
       beacon->fromTopCamera = true;
       beacon->seen = true;
+
+      //add arbitrary beacon distance offsets
+      if(beacon->visionDistance < 700)
+      {
+        beacon->visionDistance += 100; 
+      }
+      else if(beacon->visionDistance < 800)
+      {
+        beacon->visionDistance += 75; 
+      }
+      else if(beacon->visionDistance < 900)
+      {
+        beacon->visionDistance += 50; 
+      }
+
+      //add noise to beacon estimate
+      double distance_noise_magnitude = 0.1;
+      double distance_noise_factor = 1.0 + ((double) rand() * distance_noise_magnitude / (double) RAND_MAX) - distance_noise_magnitude / 2.0;
+      double bearing_noise_magnitude = 0.0;
+      double bearing_noise_factor = 1.0 + ((double) rand() * bearing_noise_magnitude / (double) RAND_MAX) - bearing_noise_magnitude / 2.0;
+      beacon->visionDistance *= distance_noise_factor;
+      beacon->visionBearing *= bearing_noise_factor;
 
       if(draw_arrows)
       {

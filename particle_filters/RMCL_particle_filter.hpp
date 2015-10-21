@@ -226,11 +226,11 @@ private:
     {
         int i , j = 0;
 
-        default_random_engine generator;
+        // default_random_engine generator;
 
-        normal_distribution<double> distributionx(0.0,N(0,0));
-        normal_distribution<double> distributiony(0.0,N(1,1));
-        normal_distribution<double> distributiono(0.0,N(2,2));
+        // normal_distribution<double> distributionx(0.0,N(0,0));
+        // normal_distribution<double> distributiony(0.0,N(1,1));
+        // normal_distribution<double> distributiono(0.0,N(2,2));
 
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
@@ -248,8 +248,8 @@ private:
         {
             while( thres > c(j)) ++j;
 
-            //noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
-            noise << distributionx(generator),distributiony(generator),distributiono(generator);
+            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
+            //noise << distributionx(generator),distributiony(generator),distributiono(generator);
             X.col(i) = X_bar.col(j) + noise;
             if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
             else if(X(2,i) < 0) X(2,i) += 2*PI;

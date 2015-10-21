@@ -18,7 +18,6 @@ beacons_seen = Set()
 
 class Ready(Task):
   def run(self):
-    print "Readying"
     commands.stand()
     if self.getTime() > 5.0:
       self.finish()
@@ -26,7 +25,6 @@ class Ready(Task):
 class Playing(StateMachine):
   class Stand(Node):
     def run(self):
-      print "Standing"
       commands.stand()
       if self.getTime() > 5.0:
         self.finish()
@@ -44,6 +42,8 @@ class Playing(StateMachine):
         # memory.speech.say("Done")
         have_lock = True
         return
+      else:
+        print "Waiting for " + str(num_beacons_required - len(beacons_seen)) + " more beacons"
 
       turn_amount = 2.0*math.pi
       turn_vel = 0.2
@@ -60,8 +60,8 @@ class Playing(StateMachine):
       t = -mem_objects.world_objects[robot_state.WO_SELF].orientation
       cx = (-sloc.x) * numpy.cos(t) - (-sloc.y) * numpy.sin(t)
       cy = (-sloc.x) * numpy.sin(t) + (-sloc.y) * numpy.cos(t)
-      print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
-      print "local center x,y = " + str(cx) + "," + str(cy)
+      # print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
+      # print "local center x,y = " + str(cx) + "," + str(cy)
       t_err = numpy.arctan2(cy, cx)
       print "t_err = " + str(t_err)
 
@@ -83,13 +83,13 @@ class Playing(StateMachine):
       cx = (-sloc.x) * numpy.cos(t) - (-sloc.y) * numpy.sin(t)
       cy = (-sloc.x) * numpy.sin(t) + (-sloc.y) * numpy.cos(t)
       t_err = numpy.arctan2(cy, cx)
-      print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
+      # print "global x,y,t = " + str(sloc.x) + "," + str(sloc.y) + "," + str(t)
       print "local center x,y = " + str(cx) + "," + str(cy)
 
-      Kx = 5.0
-      vx_max = 0.35
+      Kx = 10.0
+      vx_max = 0.4
       x_vel = vx_max * numpy.tanh(Kx * cx / 1000.0)
-      Ky = 5.0
+      Ky = 10.0
       vy_max = 0.4
       y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
       t_vel = 0.0

@@ -228,8 +228,8 @@ private:
 
          default_random_engine generator;
 
-         normal_distribution<double> distributionx(0.0,40);
-         normal_distribution<double> distributiony(0.0,40);
+         normal_distribution<double> distributionx(0.0,50);
+         normal_distribution<double> distributiony(0.0,50);
          normal_distribution<double> distributiono(0.0,0.1);
 
         Randomratio = 1.0 - (Wfast/Wslow);

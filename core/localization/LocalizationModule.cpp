@@ -98,17 +98,17 @@ void LocalizationModule::createPF()
           0 , 1 , 0 ,
           0 , 0 , 1 ;
 
-  PF_Q <<   25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+  PF_Q <<   12500 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0.01 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 25000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 12500 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0.01 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 50000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0.01 , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 50000 , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.01 , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0.005 , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.005 , 0     , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 12500 , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.01 , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 25000 , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 12500 , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.01;
 
   PF_N << 40     , 0     ,  0    ,
@@ -216,11 +216,6 @@ double LocalizationModule::gettheta( double x , double y , double ori , double b
 }
 
 void LocalizationModule::processFrame() {
-  std::cerr << "Walk disabled is " << cache_.odometry->walkDisabled << std::endl;
-  std::cerr << "Standing is " << cache_.odometry->standing << std::endl;
-  // std::cerr << "feet_on_ground is " << cache_.body_model->feet_on_ground_ << std::endl;
-
-
   // std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
   auto& ball = cache_.world_object->objects_[WO_BALL];
   auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
@@ -248,9 +243,16 @@ void LocalizationModule::processFrame() {
   bool any_beacon_seen = false;
   for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
   {
+    //extra
+    if( (i-WO_BEACON_BLUE_YELLOW) != 0 || (i-WO_BEACON_BLUE_YELLOW) != 5 ) continue;
+
     auto& beacon = cache_.world_object->objects_[i];
     if(beacon.seen)
     {
+
+      //extra
+      //if( (i-WO_BEACON_BLUE_YELLOW) != 0 || (i-WO_BEACON_BLUE_YELLOW) != 5 ) continue;
+
       if(fabs(beacon.visionBearing) > 1.57)
       {
         continue;
@@ -276,7 +278,7 @@ void LocalizationModule::processFrame() {
   
 
   const auto& disp = cache_.odometry->displacement;
-  pf_u << disp.translation.x, disp.translation.y, disp.rotation;
+  pf_u << 0.8*disp.translation.x, 0.8*disp.translation.y, 0.8*disp.rotation;
 
   //std::cerr << "Control is: " << pf_u.transpose() << std::endl;
   //cout << "Measurement is " << pf_z.transpose() << std::endl;

@@ -10,7 +10,7 @@ last_direction_change_time = 0.
 have_lock = False
 facing_center = False
 at_center = False
-num_beacons_required = 3
+num_beacons_required = 2
 last_head_time = 0
 last_frame_time = 0
 

@@ -10,10 +10,9 @@ last_direction_change_time = 0.
 have_lock = False
 facing_center = False
 at_center = False
-num_beacons_required = 2
+num_beacons_required = 3
 last_head_time = 0
 last_frame_time = 0
-last_head_pan = 1.5
 
 beacons_seen = Set()
 
@@ -91,7 +90,7 @@ class Playing(StateMachine):
       vx_max = 0.4
       x_vel = vx_max * numpy.tanh(Kx * cx / 1000.0)
       Ky = 10.0
-      vy_max = 0.4
+      vy_max = 0.35
       y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
       t_vel = 0.0
       if ((x_vel * x_vel + y_vel * y_vel) < 0.1):
@@ -107,14 +106,10 @@ class Playing(StateMachine):
       beacons_seen = Set()
 
     def run(self):
-      global have_lock, facing_center, last_head_time, last_head_pan
-      if ((self.getTime() - last_head_time) > 4.0):
-        if(last_head_pan == 1.5):
-          last_head_pan = -1.5
-        else:
-          last_head_pan = 1.5
-        commands.setHeadPan(last_head_pan, 4.0)
-        commands.setHeadTilt(-13)
+      global have_lock, facing_center, last_head_time
+      if ((self.getTime() - last_head_time) > 2.0):
+        commands.setHeadPan(random.uniform(-1.5, 1.5), 2.0)
+        commands.setHeadTilt(-14)
         last_head_time = self.getTime()
 
       lfl = sensors.getValue(core.fsrLFL)

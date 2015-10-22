@@ -10,9 +10,10 @@ last_direction_change_time = 0.
 have_lock = False
 facing_center = False
 at_center = False
-num_beacons_required = 3
+num_beacons_required = 2
 last_head_time = 0
 last_frame_time = 0
+last_head_pan = 1.5
 
 beacons_seen = Set()
 
@@ -106,10 +107,14 @@ class Playing(StateMachine):
       beacons_seen = Set()
 
     def run(self):
-      global have_lock, facing_center, last_head_time
-      if ((self.getTime() - last_head_time) > 2.0):
-        commands.setHeadPan(random.uniform(-1.5, 1.5), 2.0)
-        commands.setHeadTilt(-14)
+      global have_lock, facing_center, last_head_time, last_head_pan
+      if ((self.getTime() - last_head_time) > 4.0):
+        if(last_head_pan == 1.5):
+          last_head_pan = -1.5
+        else:
+          last_head_pan = 1.5
+        commands.setHeadPan(last_head_pan, 4.0)
+        commands.setHeadTilt(-13)
         last_head_time = self.getTime()
 
       lfl = sensors.getValue(core.fsrLFL)

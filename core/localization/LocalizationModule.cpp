@@ -98,17 +98,17 @@ void LocalizationModule::createPF()
           0 , 1 , 0 ,
           0 , 0 , 1 ;
 
-  PF_Q <<   12500 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+  PF_Q <<   15000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0.01 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
-            0     , 0     , 12500 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
+            0     , 0     , 15000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0.01 , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 0     , 0.005 , 0     , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 10000 , 0     , 0     , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.005 , 0     , 0     , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 12500 , 0     , 0     , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 15000 , 0     , 0     , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.01 , 0     , 0     ,
-            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 12500 , 0     ,
+            0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 15000 , 0     ,
             0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0     , 0.01;
 
   PF_N << 40     , 0     ,  0    ,
@@ -244,7 +244,7 @@ void LocalizationModule::processFrame() {
   for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
   {
     //extra
-    if( (i-WO_BEACON_BLUE_YELLOW) != 0 || (i-WO_BEACON_BLUE_YELLOW) != 5 ) continue;
+    //if( (int)i != 15 && (int)i != 20 ) continue;
 
     auto& beacon = cache_.world_object->objects_[i];
     if(beacon.seen)
@@ -253,7 +253,7 @@ void LocalizationModule::processFrame() {
       //extra
       //if( (i-WO_BEACON_BLUE_YELLOW) != 0 || (i-WO_BEACON_BLUE_YELLOW) != 5 ) continue;
 
-      if(fabs(beacon.visionBearing) > 1.57)
+      if(fabs(beacon.visionBearing) > 1.65)
       {
         continue;
       }
@@ -264,7 +264,7 @@ void LocalizationModule::processFrame() {
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing;
       //pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing ;
 
-      // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
+      //printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);
       //printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.bearing);
       // printf("Self(x,y,ori) = (%f,%f,%f)\n" ,  NAO_LOCATION(0) , NAO_LOCATION(1) , NAO_LOCATION(2) );
     }

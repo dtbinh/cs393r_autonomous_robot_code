@@ -132,6 +132,7 @@ void ImageProcessor::processFrame()
   if(camera_ == Camera::TOP)
   {
     beacon_detector_->findBeacons(getSegImg(), mergeblob);
+    // detectGoal(getSegImg(), mergeblob);
     detectGoal(getSegImg(), mergeblob);
   }
 
@@ -153,43 +154,146 @@ void ImageProcessor::processFrame()
   }
 
   delete mergeblob;
+
+  WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
+  if(camera_ == Camera::TOP && goal->seen)
+  {
+    //recalc blobs after we isolate the goal in the segmented image
+    mergeblob = new MergeBlob(getSegImg(), 320, 240, 4, 2, 4);
+    detectEnemy(getSegImg(), mergeblob);
+    delete mergeblob;
+  }
+}
+
+void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
+{
+  WorldObject* goalie = &vblocks_.world_object->objects_[WO_OPPONENT1];
+  
+  //pad
+  int padding = 3;
+  goal_x_min -= padding;
+  goal_x_max += padding;
+  goal_y_min -= padding;
+  goal_y_max += padding;
+
+  int min_enemy_blob_size = 500;
+  int max_enemy_blob_size = 10000;
+  for(int i = 0; i < mb->get_blob_number(); i++)
+  {
+     int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
+    if(size > min_enemy_blob_size && size < max_enemy_blob_size && mb->blob[i].color == c_WHITE && ar < 1.2)// && ar > 1.2 && ar < 4)
+    {
+       int bx_min = mb->blob[i].boundingbox_vertex_x;
+       int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+       int by_min = mb->blob[i].boundingbox_vertex_y;
+       int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+
+      bool x_min_in = goal_x_min < bx_min && bx_min < goal_x_max;
+      bool x_max_in = goal_x_min < bx_max && bx_max < goal_x_max;
+      bool y_min_in = goal_y_min < by_min && by_min < goal_y_max;
+      bool y_max_in = goal_y_min < by_max && by_max < goal_y_max;
+      int num_edges_in = (x_min_in?1:0)+(x_max_in?1:0)+(y_min_in?1:0)+(y_max_in?1:0);
+      
+      bool y_min_above = by_min < goal_y_min;
+      bool y_max_below = by_max > goal_y_max;
+
+      if(num_edges_in > 3 || ((x_max_in || x_min_in) && y_min_above && y_max_below)) //surrounded by blue goal pixels
+      {
+        int x = (bx_max + bx_min)/2.0;
+        int y = (by_max + by_min)/2.0;
+        goalie->imageCenterX = x;
+        goalie->imageCenterY = y;
+        float centroid_height = 210.0;
+        Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+        goalie->visionBearing = cmatrix_.bearing(p);
+        goalie->visionElevation = cmatrix_.elevation(p);
+        goalie->fromTopCamera = true;
+        goalie->visionDistance = cmatrix_.groundDistance(p);
+        goalie->seen = true;
+
+        drawLine(img, bx_min, by_min, bx_max, by_min, c_PINK);
+        drawLine(img, bx_min, by_max, bx_max, by_max, c_PINK);
+        drawLine(img, bx_min, by_min, bx_min, by_max, c_PINK);
+        drawLine(img, bx_max, by_min, bx_max, by_max, c_PINK);
+        drawLine(img, bx_min, by_min, bx_max, by_max, c_PINK);
+        drawLine(img, bx_min, by_max, bx_max, by_min, c_PINK);
+      }
+      // else
+      // {
+      //   drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_min, bx_max, by_max, c_UNDEFINED);
+      //   drawLine(img, bx_min, by_max, bx_max, by_min, c_UNDEFINED);
+      // }
+    }
+  }
 }
 
 void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
 {
   WorldObject* goal = &vblocks_.world_object->objects_[WO_OPP_GOAL];
-
-  unsigned int min_blob_size = 3500;
+  std::vector<MergeBlob::Blob*> blue_blobs;
+  int min_goal_blob_size = 1000;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
-    unsigned int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
-    double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    if(size > min_blob_size && mb->blob[i].color == c_BLUE && ar > 1.2 && ar < 4)
+    int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    if(size > min_goal_blob_size && mb->blob[i].color == c_BLUE)
     {
-      unsigned int bx_min = mb->blob[i].boundingbox_vertex_x;
-      unsigned int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-      unsigned int by_min = mb->blob[i].boundingbox_vertex_y;
-      unsigned int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+      blue_blobs.push_back(&mb->blob[i]);
 
-      drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
-
-      unsigned int x = mb->blob[i].centroid_x;
-      unsigned int y = mb->blob[i].centroid_y;
-      goal->imageCenterX = x;
-      goal->imageCenterY = y;
-      float centroid_height = 210.0;
-      Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
-      goal->visionBearing = cmatrix_.bearing(p);
-      goal->visionElevation = cmatrix_.elevation(p);
-      goal->fromTopCamera = true;
-      goal->visionDistance = cmatrix_.groundDistance(p);
-      goal->seen = true;
-
-      //printf("found at goal : x = %d, y = %d , size = %d , Distance = %f\n", x , y , size , goal->visionDistance);
+      int bx_min = mb->blob[i].boundingbox_vertex_x;
+      int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      int by_min = mb->blob[i].boundingbox_vertex_y;
+      int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
     }
+  }
+
+  if(blue_blobs.size() == 0)
+  {
+    std::cerr << "Nothing blue!" << std::endl;
+    return;
+  }
+
+  goal_x_min = std::numeric_limits<int>::max();
+  goal_x_max = -std::numeric_limits<int>::max();
+  goal_y_min = std::numeric_limits<int>::max();
+  goal_y_max = -std::numeric_limits<int>::max();
+  for(auto b : blue_blobs)
+  {
+    goal_x_min = std::min(goal_x_min, b->boundingbox_vertex_x);
+    goal_x_max = std::max(goal_x_max, b->boundingbox_vertex_x + b->boundingbox_length);
+    goal_y_min = std::min(goal_y_min, b->boundingbox_vertex_y);
+    goal_y_max = std::max(goal_y_max, b->boundingbox_vertex_y + b->boundingbox_height);
+  }
+
+  double goal_ar = (double) (goal_x_max - goal_x_min) / (double) (goal_y_max - goal_y_min);
+  if(goal_ar <= 1.2 || goal_ar >= 4.0) //not a valid goal
+  {
+    std::cerr << "Goal rejected!" << std::endl;
+    return;
+  }
+
+  int x = (goal_x_max + goal_x_min)/2.0;
+  int y = (goal_y_max + goal_y_min)/2.0;
+  goal->imageCenterX = x;
+  goal->imageCenterY = y;
+  float centroid_height = 210.0;
+  Position p = cmatrix_.getWorldPosition(x, y, centroid_height);
+  goal->visionBearing = cmatrix_.bearing(p);
+  goal->visionElevation = cmatrix_.elevation(p);
+  goal->fromTopCamera = true;
+  goal->visionDistance = cmatrix_.groundDistance(p);
+  goal->seen = true;
+
+  for(unsigned int i = 0; i < 5; i++) //border thickness
+  {
+    drawLine(img, goal_x_min-i, goal_y_min-i, goal_x_max+i, goal_y_min-i, c_ROBOT_WHITE);
+    drawLine(img, goal_x_min-i, goal_y_max+i, goal_x_max+i, goal_y_max+i, c_ROBOT_WHITE);
+    drawLine(img, goal_x_min-i, goal_y_min-i, goal_x_min-i, goal_y_max+i, c_ROBOT_WHITE);
+    drawLine(img, goal_x_max+i, goal_y_min-i, goal_x_max+i, goal_y_max+i, c_ROBOT_WHITE);
   }
 }
 

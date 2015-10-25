@@ -153,15 +153,20 @@ class Playing(StateMachine):
       gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
       ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
       ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
+      tx = gx
+      ty = gy
 
       center_threshold = 200.
       shift = gy - ey
       if(numpy.abs(shift) < center_threshold):
         memory.speech.say("Enemy is in the center")
+        ty += o_goal.radius / 4. if bool(random.getrandbits(1)) else -o_goal.radius / 4.
       elif(shift > 0.):
         memory.speech.say("Enemy is on the right")
+        ty += o_goal.radius / 4.
       else:
         memory.speech.say("Enemy is on the left")
+        ty -= o_goal.radius / 4.
 
       #todo: actually align
 

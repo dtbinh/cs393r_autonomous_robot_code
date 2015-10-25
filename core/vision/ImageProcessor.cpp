@@ -286,6 +286,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   goal->visionElevation = cmatrix_.elevation(p);
   goal->fromTopCamera = true;
   goal->visionDistance = cmatrix_.groundDistance(p);
+  goal->radius = (goal_x_max - goal_x_min);
   goal->seen = true;
 
   for(unsigned int i = 0; i < 5; i++) //border thickness

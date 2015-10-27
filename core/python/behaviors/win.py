@@ -3,7 +3,7 @@ from task import Task
 from state_machine import *
 from memory import *
 from sets import Set
-from enum import Enum
+#from enum import Enum
 
 class Ready(Task):
   def run(self):
@@ -11,18 +11,37 @@ class Ready(Task):
     if self.getTime() > 5.0:
       self.finish()
 
-fields = Enum('fields', 'A B')
-field = fields.A
-modes = Enum('modes', 'passive attacking defending')
-mode = modes.passive
-attacking_states = Enum('attacking_states', 'start approach rotate dribble align kick')
-defending_states = Enum('defending_states', 'start')
-current_state = attacking_states.start
+#Fields = Enum('Fields', 'A B')
+#Modes = Enum('Modes', 'passive attacking defending')
+#AttackingStates = Enum('AttackingStates', 'start approach rotate dribble align kick')
+#DefendingStates = Enum('DefendingStates', 'start')
+class Fields: 
+  A=0
+  B=1
+
+class Modes:
+  passive=0
+  attacking=1
+  defending=2
+
+class AttackingStates:
+  start=0
+  approach=1
+  rotate=2
+  dribble=3
+  align=4
+  kick=5
+
+class DefendingStates:
+  start=0
+
+field = Fields.A
+mode = Modes.passive
+current_state = AttackingStates.start
 rotation_dir = 1.
 
 def tanhController(x, xd, kx, max_cmd):
   return max_cmd * numpy.tanh(kx * (xd-x))
-
 
 class Playing(StateMachine):
   class Stand(Node):
@@ -56,47 +75,47 @@ class Playing(StateMachine):
       return False
 
     def defense_start(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_goal = mem_objects.world_objects[core.WO_GOAL]
+      o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
     def attack_start(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_beacon_lm = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK] if field is fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_BLUE]
-      o_beacon_rf = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK] if field is fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW]
-      o_beacon_rr = mem_objects.world_objects[core.WO_BEACON_YELLOW_BLUE] if field is fields.A else mem_objects.world_objects[core.WO_BEACON_BLUE_YELLOW]
+      o_beacon_lm = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_BLUE]
+      o_beacon_rf = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW]
+      o_beacon_rr = mem_objects.world_objects[core.WO_BEACON_YELLOW_BLUE] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_BLUE_YELLOW]
 
       rotation_dir = 1. if (not o_beacon_lm.seen and (o_beacon_rf.seen or o_beacon_rr.seen)) else -1.
 
       if(o_ball.seen): 
-        current_state = attacking_states.approach
+        current_state = AttackingStates.approach
       else:
         #todo: search for ball
         pass
 
     def attack_approach(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_goal = mem_objects.world_objects[core.WO_GOAL]
+      o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
       if(self.walk_to(o_ball, 100)):
-        current_state = attacking_states.rotate
+        current_state = AttackingStates.rotate
         return
 
     def attack_rotate(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_goal = mem_objects.world_objects[core.WO_GOAL]
+      o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
       if(o_ball.seen and o_goal.seen):
         commands.setWalkVelocity(0., 0., 0.)
-        current_state = attacking_states.dribble
+        current_state = AttackingStates.dribble
         return
 
       x_vel = -0.05
@@ -109,10 +128,10 @@ class Playing(StateMachine):
 
 
     def attack_dribble(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_goal = mem_objects.world_objects[core.WO_GOAL]
+      o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
       if(not o_ball.seen or not o_goal.seen):
@@ -131,7 +150,7 @@ class Playing(StateMachine):
       r_goal_threshold = 900. * numpy.sqrt(2.)
 
       if(r_goal_ball < r_goal_threshold):
-        current_state = attacking_states.align
+        current_state = AttackingStates.align
         return
 
       x_vel = 0.1
@@ -139,10 +158,10 @@ class Playing(StateMachine):
       t_vel = tanhController(dy_gb, 0., 1.0/1000.0, 0.05) 
 
     def attack_align(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_goal = mem_objects.world_objects[core.WO_GOAL]
+      o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
       if(not o_ball.seen or not o_goal.seen or not o_enemy.seen):
@@ -171,36 +190,38 @@ class Playing(StateMachine):
       #todo: actually align
 
       if(True): #todo
-        current_state = attacking_states.kick
+        current_state = AttackingStates.kick
         return
 
     def attack_kick(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
       if self.getFrames() <= 3:
         memory.walk_request.noWalk()
         memory.kick_request.setFwdKick()
       if self.getFrames() > 10 and not memory.kick_request.kick_running_:
-        current_state = attacking_states.start
+        current_state = AttackingStates.start
         return
 
     def run(self):
-      global modes, mode, states, current_state, fields, field, rotation_dir
+      global Modes, mode, states, current_state, Fields, field, rotation_dir
 
       #detect mode switches
-      hf = sensors.getValue(headFront)
-      hm = sensors.getValue(headMiddle)
-      hr = sensors.getValue(headRear)
-      if(mode is not modes.attacking and hf and hm and not hr): #need to switch to attack mode
+      hf = sensors.getValue(core.headFront)
+      hm = sensors.getValue(core.headMiddle)
+      hr = sensors.getValue(core.headRear)
+      print "Head: " + str(hf) + ", " + str(hm) + ", " + str(hr)
+      if(mode is not Modes.attacking and hf and hm and not hr): #need to switch to attack mode
         memory.speech.say("Attack Mode!")
-        mode = modes.attacking
-        current_state = attacking_states.start
-      if(mode is not modes.defending and hm and hr and not hf): #need to switch to defense mode
+        mode = Modes.attacking
+        current_state = AttackingStates.start
+      if(mode is not Modes.defending and hm and hr and not hf): #need to switch to defense mode
         memory.speech.say("Defense Mode!")
-        mode = modes.defending
-        current_state = defending_states.start
-      if(mode is not modes.passive and hf and hm and hr): #need to switch of passive mode
+        mode = Modes.defending
+        current_state = DefendingStates.start
+      if(mode is not Modes.passive and hf and hm and hr): #need to switch of passive mode
+        commands.setWalkVelocity(0., 0., 0.)
         memory.speech.say("Passive Mode!")
-        mode = modes.passive
+        mode = Modes.passive
 
       #detect kidnapping
       lfl = sensors.getValue(core.fsrLFL)
@@ -212,19 +233,19 @@ class Playing(StateMachine):
       rrl = sensors.getValue(core.fsrRRL)
       rrr = sensors.getValue(core.fsrRRR)
       max_force = numpy.amax([lfl,lfr,lrl,lrr,rfl,rfr,rrl,rrr])
-      if(numpy.abs(max_force) < 0.15 and mode is not modes.passive):
+      if(numpy.abs(max_force) < 0.15 and mode is not Modes.passive):
         memory.speech.say("Put me down!")
-        mode = modes.passive
+        mode = Modes.passive
 
       #execute the appropriate function
-      if(mode is modes.passive):
+      if(mode is Modes.passive):
         return
       else:
         function_map = {}
-        if(mode is modes.attacking):
-          function_map = {attacking_states.start:self.attack_start(), attacking_states.approach:self.attack_approach(), attacking_states.dribble:self.attack_dribble(), attacking_states.align:self.attack_align(), attacking_states.kick:self.attack_kick()}
+        if(mode is Modes.attacking):
+          function_map = {AttackingStates.start:self.attack_start(), AttackingStates.approach:self.attack_approach(), AttackingStates.dribble:self.attack_dribble(), AttackingStates.align:self.attack_align(), AttackingStates.kick:self.attack_kick()}
         else:
-          function_map = {states.start:self.defense_start()}
+          function_map = {DefendingStates.start:self.defense_start()}
         function_map.get(current_state)
 
   class Off(Node):

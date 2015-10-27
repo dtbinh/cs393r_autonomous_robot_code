@@ -253,7 +253,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
 
   if(blue_blobs.size() == 0)
   {
-    std::cerr << "Nothing blue!" << std::endl;
+    // std::cerr << "Nothing blue!" << std::endl;
     return;
   }
 
@@ -272,7 +272,7 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   double goal_ar = (double) (goal_x_max - goal_x_min) / (double) (goal_y_max - goal_y_min);
   if(goal_ar <= 1.2 || goal_ar >= 4.0) //not a valid goal
   {
-    std::cerr << "Goal rejected!" << std::endl;
+    // std::cerr << "Goal rejected!" << std::endl;
     return;
   }
 

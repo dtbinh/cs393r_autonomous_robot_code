@@ -52,6 +52,7 @@ class ImageProcessor {
 
     bool findBall(MergeBlob::Blob* blob);
 
+    void detectEnemy(unsigned char* img, MergeBlob* mb);
     void detectGoal(unsigned char* img, MergeBlob* mb);
     void detectBall(unsigned char* img, MergeBlob* mb);
 
@@ -59,6 +60,11 @@ class ImageProcessor {
   private:
     int getTeamColor();
     double getCurrentTime();
+
+    int goal_x_min;
+    int goal_x_max;
+    int goal_y_min;
+    int goal_y_max;
 
     VisionBlocks& vblocks_;
     const ImageParams& iparams_;

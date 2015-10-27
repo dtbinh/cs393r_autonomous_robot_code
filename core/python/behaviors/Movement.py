@@ -1,6 +1,12 @@
-import memory, pose, commands, cfgstiff
+import memory, pose, commands, cfgstiff, mem_objects, core, random, numpy, math
 from task import Task
 from state_machine import *
+from memory import *
+from sets import Set
+
+last_head_time = 0
+last_head_pan = 1
+last_keeper_direction = 1
 
 class Ready(Task):
   def run(self):
@@ -19,7 +25,18 @@ class Playing(StateMachine):
 
   class Walk(Node):
     def run(self):
-      commands.setWalkVelocity(0.4,0.0,0.1)
+      global last_head_time, last_head_pan , last_keeper_direction
+
+      commands.setHeadTilt(-14)
+      if ((self.getTime() - last_head_time) > 3.7):
+          if(last_head_pan == 1):
+            last_head_pan = -1
+          else:
+            last_head_pan = 1
+          commands.setHeadPan( last_head_pan, 3.5)
+          last_head_time = self.getTime()
+
+      #commands.setWalkVelocity(0.0,0.35,0.04)
 
   class TurnInPlace(Node):
     def run(self):
@@ -57,6 +74,6 @@ class Playing(StateMachine):
     goa = self.GoAround()
     off = self.Off()
     #self.trans(stand, C, walk, T(5.0), curve, T(5.0), sit, C, off)
-    self.trans(stand, C, walk, T(40.0), sit, C, off)
+    self.trans(stand, C, walk, T(100.0), sit, C, off)
     #self.trans(stand, C, walk, T(15.0), self.Stand() , C , self.Kick(), C, self.Stand(), C , sit, C, off)
 

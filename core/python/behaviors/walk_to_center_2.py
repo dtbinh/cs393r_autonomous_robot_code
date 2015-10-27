@@ -10,7 +10,7 @@ last_direction_change_time = 0.
 have_lock = False
 facing_center = False
 at_center = False
-num_beacons_required = 2
+num_beacons_required = 3
 last_head_time = 0
 last_frame_time = 0
 
@@ -90,7 +90,7 @@ class Playing(StateMachine):
       vx_max = 0.4
       x_vel = vx_max * numpy.tanh(Kx * cx / 1000.0)
       Ky = 10.0
-      vy_max = 0.4
+      vy_max = 0.35
       y_vel = vy_max * numpy.tanh(Ky * cy / 1000.0)
       t_vel = 0.0
       if ((x_vel * x_vel + y_vel * y_vel) < 0.1):

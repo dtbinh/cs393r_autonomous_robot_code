@@ -663,6 +663,7 @@ JointValues Walk2014Generator::makeJoints(ActionCommand::All* request,
    // Only activate balance control if foot is on the ground
    j.angles[RSJoints::LAnklePitch]  = -ApL;
    j.angles[RSJoints::RAnklePitch]  = -ApR;
+   balanceAdjustment += 0.01745;
    if (walk2014Option == WALK && nextFootSwitchT>0 && bodyModel.walkKickStart == false) {
       if(bodyModel.isLeftPhase) j.angles[RSJoints::RAnklePitch]  += balanceAdjustment;
       else                      j.angles[RSJoints::LAnklePitch]  += balanceAdjustment;

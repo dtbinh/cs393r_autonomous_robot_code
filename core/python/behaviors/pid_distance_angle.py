@@ -108,8 +108,8 @@ class Playing(StateMachine):
             PID_walk_velocity = 0.33*( last_PID_walk_velocity_0 + last_PID_walk_velocity_1 + last_PID_walk_velocity_2 )
             if( PID_walk_velocity > 0.50):
               PID_walk_velocity = 0.50
-            if( PID_walk_velocity < 0.28):
-              PID_walk_velocity = 0.28
+            if( PID_walk_velocity < 0.35):
+              PID_walk_velocity = 0.35
 
             if(ball_distance > 400 and Approaching_state == 0):
               e_angle_x_set = e_angle_x_set_far

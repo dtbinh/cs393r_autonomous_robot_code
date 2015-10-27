@@ -299,17 +299,19 @@ class Playing(StateMachine):
       
       global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time
       if not kick_sent:
+        print "sending kick"
         memory.speech.say("Kicking")
         memory.walk_request.noWalk()
         memory.kick_request.setFwdKick()
         kick_start_time = self.getTime()
         kick_sent = True
-      elif (self.getTime() - kick_start_time) > 3.0 and not memory.kick_request.kick_running_:
+      elif kick_sent and (self.getTime() - kick_start_time) > 0.5 and not memory.kick_request.kick_running_:
+        print "kick is done"
         mode = Modes.passive
         current_state = AttackingStates.start
 
     def run(self):
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent
 
       #detect mode switches
       hf = sensors.getValue(core.headFront)
@@ -319,7 +321,8 @@ class Playing(StateMachine):
       if(mode is not Modes.attacking and hf and hm and not hr): #need to switch to attack mode
         memory.speech.say("Attack Mode!")
         mode = Modes.attacking
-        current_state = AttackingStates.start
+        kick_sent = False
+        current_state = AttackingStates.kick
       if(mode is not Modes.defending and hm and hr and not hf): #need to switch to defense mode
         memory.speech.say("Defense Mode!")
         mode = Modes.defending

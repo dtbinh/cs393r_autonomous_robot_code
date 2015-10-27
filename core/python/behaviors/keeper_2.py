@@ -25,44 +25,82 @@ friction = 0.2
 last_head_time = 0
 last_head_pan = 1.2
 
-class BlockLeft(Node):
-  def run(self):
-    UTdebug.log(15, "Blocking left")
-    self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-                                  core.LHipPitch:-25    , core.RHipPitch:-25   ,
-                                  core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-                                  core.LShoulderRoll:80   , core.RShoulderRoll:5   , 
-                                  core.LShoulderPitch:-20 , core.RShoulderPitch:-80 }
-                                  , 0.5
-                                )
-                    )
+# class BlockLeft(Node):
+#   def run(self):
+#     UTdebug.log(15, "Blocking left")
+#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
+#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
+#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
+#                                   core.LShoulderRoll:80   , core.RShoulderRoll:5   , 
+#                                   core.LShoulderPitch:-20 , core.RShoulderPitch:-80 }
+#                                   , 0.5
+#                                 )
+#                     )
 
 
-class BlockRight(Node):
-  def run(self):
-    UTdebug.log(15, "Blocking right")
-    self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-                                  core.LHipPitch:-25    , core.RHipPitch:-25   ,
-                                  core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-                                  core.LShoulderRoll:5   , core.RShoulderRoll:80   , 
-                                  core.LShoulderPitch:-80 , core.RShoulderPitch:-20 }
-                                  , 0.5
-                                )
-                    )
+# class BlockRight(Node):
+#   def run(self):
+#     UTdebug.log(15, "Blocking right")
+#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
+#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
+#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
+#                                   core.LShoulderRoll:5   , core.RShoulderRoll:80   , 
+#                                   core.LShoulderPitch:-80 , core.RShoulderPitch:-20 }
+#                                   , 0.5
+#                                 )
+#                     )
     
 
-class BlockCenter(Node):
+# class BlockCenter(Node):
+#   def run(self):
+#     UTdebug.log(15, "Blocking center")
+#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
+#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
+#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
+#                                   core.LShoulderRoll:20   , core.RShoulderRoll:20   , 
+#                                   core.LShoulderPitch:-20 , core.RShoulderPitch:-20 }
+#                                   , 0.5
+#                                 )
+#                     )
+
+class GoalieBlock(Node):
   def run(self):
-    UTdebug.log(15, "Blocking center")
-    self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-                                  core.LHipPitch:-25    , core.RHipPitch:-25   ,
-                                  core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-                                  core.LShoulderRoll:20   , core.RShoulderRoll:20   , 
-                                  core.LShoulderPitch:-20 , core.RShoulderPitch:-20 }
-                                  , 0.5
+    #UTdebug.log(15, "Blocking center")
+    self.setSubtask(pose.ToPose({ 
+                                  core.LHipYawPitch: -66 ,
+                                  core.LHipRoll: -45 ,
+                                  #core.LHipPitch: -48.7775090897009 ,
+                                  core.LHipPitch: -40 ,
+                                  core.LKneePitch: 125 ,
+                                  core.LAnklePitch: -40 ,
+                                  core.LAnkleRoll: 9.5 ,
+                                  core.RHipYawPitch: -66 ,
+                                  core.RHipRoll: -45 ,
+                                  #core.RHipPitch: -28.1277571908664 ,
+                                  core.RHipPitch: -40 ,
+                                  core.RKneePitch: 125 ,
+                                  core.RAnklePitch: -40 ,
+                                  core.RAnkleRoll: 9.5 ,
+                                  core.LShoulderPitch: -85,
+                                  core.LShoulderRoll: 28 ,
+                                  core.RShoulderPitch: -85 ,
+                                  core.RShoulderRoll: 28
+                                  }
+                                  , 1.5
                                 )
                     )
 
+class WalkingLeft(Node):
+  def run(self):
+    commands.setWalkVelocity(0.0,0.4,-0.04)
+
+class WalkingRight(Node):
+  def run(self):
+    commands.setWalkVelocity(0.0,-0.4,0.04)
+
+class WalkingCenter(Node):
+  def run(self):
+    commands.setWalkVelocity(0.0,0.0,0.0)
 
 class Blocker(Node):
   def run(self):
@@ -133,7 +171,7 @@ class Blocker(Node):
       elif(av_bearing < -1.2):
         av_bearing = -1.2
 
-      if(abs(av_xv) > 0 or abs(av_yv) > 0 ):
+      if(abs(av_xv) > 100 or abs(av_yv) > 100 ):
         d_turning = abs(av_bearing - last_av_bearing)/3.0
         if(d_turning < 0.1):
           d_turning = 0.1
@@ -152,28 +190,27 @@ class Blocker(Node):
       #print "av_x = " + str(av_x) + "\tav_y = " + str(av_y)
       px = av_x + (av_xv*av_xv/(2*1000*friction))
 
-      # if(av_xv > -300 or av_xv == 0 or (abs(av_yv)+0.1)/(abs(av_xv)+0.1) > 0.8):
-      #   print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
-      #   return
-      # elif( px > -800 ):
-      #   print(" No!!!!: Ball too short           seen_times = ")  + str(seen_times)
-      #   return 
-      # elif( av_distance < 1100 ):
-      #   #print( "Ball is close, blocking! seen_times = " ) + str(seen_times)
+      if(av_xv > -100 or (abs(av_yv)+0.1)/(abs(av_xv)+0.1) > 1):
+        print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
+        return
+      elif( px > -500 ):
+        print(" No!!!!: Ball too short px = ") + str(px) + " seen_times = " + str(seen_times)
+        return 
+      elif( av_distance < 800 ):
+        lamda = av_yv / av_xv
+        intercept = av_y - lamda*av_x
+        hit_goal_line = lamda*(-1200) + intercept
 
-      #   lamda = av_yv / av_xv
-      #   intercept = av_y - lamda*av_x
-      #   hit_goal_line = lamda*(-700) + intercept
-      #   print " Yes!!!: av_yv = " + str(av_yv) + " av_xv = " + str(av_xv) + " hit_goal_line = " + str(hit_goal_line)
-      #   if( hit_goal_line < -125 and hit_goal_line > -500 ):
-      #      choice = "right"
-      #      self.postSignal(choice)
-      #   elif( hit_goal_line >  125 and hit_goal_line < 500):
-      #      choice = "left"
-      #      self.postSignal(choice)
-      #   elif( hit_goal_line > -125 and hit_goal_line < 125):
-      #      choice = "center"
-      #      self.postSignal(choice)
+        print " Yes!!!: av_yv = " + str(av_yv) + " av_xv = " + str(av_xv) + " hit_goal_line = " + str(hit_goal_line)
+        if( hit_goal_line < -250 ):
+           choice = "right"
+           self.postSignal(choice)
+        elif( hit_goal_line >  250 ):
+           choice = "left"
+           self.postSignal(choice)
+        elif( hit_goal_line > -250 and hit_goal_line < 250):
+           choice = "center"
+           self.postSignal(choice)
 
     else: # Think ball is still not seen
       #print( "No Ball\n" )
@@ -182,8 +219,6 @@ class Blocker(Node):
       last_y = [0]*last_inf_constant
       last_xv = [0]*last_inf_constant
       last_yv = [0]*last_inf_constant
-      last_xa = [0]*last_inf_constant
-      last_ya = [0]*last_inf_constant
       last_distance =[0]*last_inf_constant
       last_bearing = [0]*last_inf_constant
       #memory.speech.say("oh on")
@@ -195,16 +230,17 @@ class Playing(LoopingStateMachine):
     def run(self):
       commands.stand()
       if self.getTime() > 2.0:
-        memory.speech.say("playing stand complete")
+        memory.speech.say("Be a man")
         self.finish()
 
   def setup(self):
     blocker = Blocker()
+    goalieblock = GoalieBlock()
     blocks = {
-      "left": BlockLeft(),
-      "right": BlockRight(),
-      "center": BlockCenter(),
+      "left": WalkingLeft(),
+      "right": WalkingRight(),
+      "center": WalkingCenter(),
     }
     for name in blocks:
-      b = blocks[name]
-      self.trans(self.Stand() , C , blocker, S(name), b, T(5), blocker)
+      #b = blocks[name]
+      self.trans(self.Stand() , C , blocker, S(name), blocks[name] , T(1), goalieblock , T(2) , blocker)

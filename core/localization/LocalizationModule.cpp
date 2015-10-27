@@ -287,7 +287,13 @@ void LocalizationModule::processFrame() {
     auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
 
     // Compute the global position of the ball based on our assumed position and orientation
-    auto globalBall = relBall.relativeToGlobal(self.loc, self.orientation);
+    auto goalieloc = self.loc ;
+    auto goalieori = self.orientation;
+    goalieloc.x = -1200.0 ;
+    goalieloc.y = 0.0 ;
+    goalieori = 0.0 ;
+
+    auto globalBall = relBall.relativeToGlobal(goalieloc, goalieori);
 
     // Update the ball in the WorldObject block so that it can be accessed in python
     if(first || unseen_count > 30)
@@ -313,8 +319,8 @@ void LocalizationModule::processFrame() {
 
     ball.loc.x = estimated_state(0);
     ball.loc.y = estimated_state(1);
-    ball.distance = ball.loc.getDistanceTo(self.loc);
-    ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
+    ball.distance = ball.loc.getDistanceTo(goalieloc);
+    ball.bearing = self.loc.getBearingTo(ball.loc,goalieori);
     ball.absVel.x = estimated_state(2);
     ball.absVel.y = estimated_state(3);
 

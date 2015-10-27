@@ -24,6 +24,12 @@ class Modes:
   attacking=1
   defending=2
 
+class EnemyGoalStates:
+  unknown=0
+  center=1
+  left=2
+  right=3
+
 class AttackingStates:
   start=0
   approach=1
@@ -37,6 +43,7 @@ class DefendingStates:
 
 field = Fields.A
 mode = Modes.passive
+enemy_state = EnemyGoalStates.unknown
 current_state = AttackingStates.start
 rotation_dir = 1.
 last_ball_seen_time = 0
@@ -44,8 +51,8 @@ next_head_time = 0
 kick_start_time = 0
 kick_sent = False
 
-def tanhController(x, xd, kx, max_cmd):
-  return max_cmd * numpy.tanh(kx * (xd-x))
+def tanhController(err, kx, max_cmd):
+  return max_cmd * numpy.tanh(kx * err)
 
 class Playing(StateMachine):
   class Stand(Node):
@@ -56,8 +63,7 @@ class Playing(StateMachine):
 
   class Win(Node):
     def walk(self, vx, vy, vt):
-      #commands.setWalkVelocity(vx+0.2, vy+0.05, vt+0.05)
-      commands.setWalkVelocity(vx, vy, vt)
+      commands.setWalkVelocity(vx+0.1, vy+0.0, vt+0.0)
 
     def stop(self):
       commands.setWalkVelocity(0.,0.,0.)
@@ -94,15 +100,15 @@ class Playing(StateMachine):
         self.stop()
         return True
 
-      x_vel = tanhController(0., cx, 10.0 / 1000.0, 0.4)
-      y_vel = tanhController(0., cy, 10.0 / 1000.0, 0.4)
+      x_vel = tanhController(cx, 10.0 / 1000.0, 0.4)
+      y_vel = tanhController(cy, 10.0 / 1000.0, 0.4)
       t_vel = 0.0
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel,y_vel,t_vel)
       return False
 
     def defense_start(self):
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
@@ -111,7 +117,7 @@ class Playing(StateMachine):
     def attack_start(self):
       commands.setHeadTilt(-14)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_beacon_lm = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_BLUE]
       o_beacon_rf = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW]
@@ -133,14 +139,13 @@ class Playing(StateMachine):
     def attack_approach(self):
       commands.setHeadTilt(-14)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
       if(o_ball.seen): 
-        memory.speech.say("Approaching the ball")
         if(self.walk_to(o_ball, 250)):
           current_state = AttackingStates.rotate
           return
@@ -150,12 +155,11 @@ class Playing(StateMachine):
     def attack_rotate(self):
       commands.setHeadTilt(-18)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
-      memory.speech.say("Rotating to the goal")
 
       if(o_ball.seen and o_goal.seen):
         gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
@@ -164,9 +168,10 @@ class Playing(StateMachine):
           current_state = AttackingStates.dribble
           return
 
-      x_vel = 0.1 #-0.05
+      bx = o_ball.visionDistance * numpy.cos(o_ball.visionBearing)
+      x_vel = tanhController(bx - 250, 10.0, 0.3) # 0.1 #-0.05
       y_vel = 0.4
-      t_vel = tanhController(0., o_ball.visionBearing, 10.0, 0.3) 
+      t_vel = tanhController(o_ball.visionBearing, 10.0, 0.3) 
       if(rotation_dir > 0):
         y_vel = y_vel * -1.
 
@@ -176,12 +181,11 @@ class Playing(StateMachine):
     def attack_dribble(self):
       commands.setHeadTilt(-20)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
-      memory.speech.say("Getting closer")
 
       if(not o_ball.seen or not o_goal.seen):
         print "Lost the goal or ball!"
@@ -197,7 +201,7 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
-      r_goal_threshold = 900. * numpy.sqrt(2.)
+      r_goal_threshold = 750. * numpy.sqrt(2.)
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -212,63 +216,88 @@ class Playing(StateMachine):
         current_state = AttackingStates.align
         return
 
-      x_vel = 0.4
-      y_vel = tanhController(0., (gy + by)/2.0, 10.0/1000.0, 0.4) 
-      t_vel = tanhController(0., dy_gb, 10.0/1000.0, 0.2) 
+      x_vel = 0.3
+      y_vel = tanhController((gy + by)/2.0, 10.0/1000.0, 0.3) 
+      t_vel = tanhController(dy_gb, 10.0/1000.0, 0.2) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
     def attack_align(self):
       commands.setHeadTilt(-20)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
+      
+      if(enemy_state is EnemyGoalStates.unknown):
+        if(not o_goal.seen or not o_enemy.seen):
+          print "Can't find the enemy / goal!"
+          self.stop()
+          return
+        else:
+          gx = o_goal.visionDistance * numpy.cos(o_goal.visionBearing)
+          gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
+          ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
+          ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
+          center_threshold = 200.
+          shift = gy - ey
+          if(numpy.abs(shift) < center_threshold):
+            memory.speech.say("Enemy is in the center")
+            enemy_state = EnemyGoalStates.center
+          elif(shift > 0.):
+            memory.speech.say("Enemy is on the right")
+            enemy_state = EnemyGoalStates.right
+          else:
+            memory.speech.say("Enemy is on the left")
+            enemy_state = EnemyGoalStates.left
 
-      if(True): #todo
-        current_state = AttackingStates.kick
+      if(not o_goal.seen or not o_ball.seen):
+        print "Can't find the goal / ball"
         return
-
-      if(not o_ball.seen or not o_goal.seen or not o_enemy.seen):
-        print "Lost the goal, enemy, or ball!"
-        self.stop()
-        return
-
-      memory.speech.say("Aligning")
 
 
       gx = o_goal.visionDistance * numpy.cos(o_goal.visionBearing)
       gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
-      ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
-      ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
+      bx = o_ball.visionDistance * numpy.cos(o_ball.visionBearing)
+      by = o_ball.visionDistance * numpy.sin(o_ball.visionBearing)
       tx = gx
       ty = gy
 
-      center_threshold = 200.
-      shift = gy - ey
-      if(numpy.abs(shift) < center_threshold):
-        memory.speech.say("Enemy is in the center")
+      if(enemy_state is EnemyGoalStates.center):
         ty += o_goal.radius / 4. if bool(random.getrandbits(1)) else -o_goal.radius / 4.
-      elif(shift > 0.):
-        memory.speech.say("Enemy is on the right")
+      elif(enemy_state is EnemyGoalStates.right):
         ty += o_goal.radius / 4.
-      else:
-        memory.speech.say("Enemy is on the left")
+      elif(enemy_state is EnemyGoalStates.left):
         ty -= o_goal.radius / 4.
 
-      #todo: actually align
+      print "gx: " + str(gx)
+      print "gy: " + str(gy)
+      print "tx: " + str(tx)
+      print "ty: " + str(ty)
+      print "bx: " + str(bx)
+      print "by: " + str(by)
 
-      if(True): #todo
+      threshold = 50
+      ball_x_target = 100
+      ball_y_target = -100
+      goal_y_target = -100
+      if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold): #todo
         kick_sent = False
         current_state = AttackingStates.kick
         return
 
+      x_vel = tanhController(-(ball_x_target - bx), 20.0/1000.0, 0.4) 
+      y_vel = tanhController(-(ball_y_target - by), 20.0/1000.0, 0.4) 
+      t_vel = tanhController((ty - by), 10.0/1000.0, 0.2) 
+      print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
+      self.walk(x_vel, y_vel, t_vel)
+
     def attack_kick(self):
       commands.setHeadTilt(-20)
       
-      global Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time
       if not kick_sent:
         memory.speech.say("Kicking")
         memory.walk_request.noWalk()
@@ -280,7 +309,7 @@ class Playing(StateMachine):
         current_state = AttackingStates.start
 
     def run(self):
-      global Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
 
       #detect mode switches
       hf = sensors.getValue(core.headFront)

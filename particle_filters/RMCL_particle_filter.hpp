@@ -54,8 +54,6 @@ public:
         Alphaslow = 0.01;
         Alphafast = 0.05;
 
-
-
         for(int i = 0 ; i < NumParticle ; i++)
         {
             X(0,i) = random(field_length);
@@ -153,7 +151,6 @@ public:
         low_variance_sampler(); //Resampler
 
         L = L.Zero();
-        // cout << "Randomratio = "<< Randomratio << endl;
         NAO_LOCATION = kmeans( Randomratio ); // Get the best location of NAO
         //NAO_LOCATION = getAverage( Randomratio );
     }
@@ -170,7 +167,6 @@ public:
             p.t = X(2,i);
             p.w = 1;
             particles.push_back(p);
-            // printf("p(x,y,t,w) = (%f,%f,%f,%f)\t i = %d\n", p.x , p.y , p.t , p.w , i);
         }
 
         return particles;
@@ -232,11 +228,16 @@ private:
     {
         int i , j = 0;
 
-         default_random_engine generator;
+        default_random_engine generator;
+
 
          normal_distribution<double> distributionx(0.0,75);
          normal_distribution<double> distributiony(0.0,75);
          normal_distribution<double> distributiono(0.0,0.05);
+        // normal_distribution<double> distributionx(0.0,50);
+        // normal_distribution<double> distributiony(0.0,50);
+        // normal_distribution<double> distributiono(0.0,0.1);
+
 
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
@@ -246,16 +247,13 @@ private:
         ParticleWeightSet c; c(0) = W(0);
         for( i = 1 ; i < NumParticle ; i++){ c(i) = c(i-1) + W(i);}
 
-        //for( i = 0 ; i < NumParticle ; i++){cout << "c(" << i <<") = " << setprecision(15) << c(i) << endl ;}
-
         double thres =  (rand()*1.0/RAND_MAX)/num_resample;
         WhiteNoiseVector noise;
         for( i = 0 ; i < num_resample ; i++)
         {
             while( thres > c(j)) ++j;
 
-            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));
-            //noise << distributionx(generator),distributiony(generator),distributiono(generator);
+            noise << random(N(0,0)) , random(N(1,1)) , random(N(2,2));;
             X.col(i) = X_bar.col(j) + noise;
             if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
             else if(X(2,i) < 0) X(2,i) += 2*PI;
@@ -269,7 +267,6 @@ private:
                         NAO_LOCATION(2)+distributiono(generator) ; 
             if(X(2,i) >= 2*PI) X(2,i) -= 2*PI;
             else if(X(2,i) < 0) X(2,i) += 2*PI;
-            //random(field_width) , random(2*PI)+PI ; 
         }
 
         W << W.Constant(100);
@@ -324,7 +321,6 @@ private:
             for( i = 0 ; i < num_resample ; ++i)
             {
                 double tmp_dist = getDistXYT( X.col(i) , means[j] );
-                //cout << "tmp_dist = " << tmp_dist << endl;
                 if(DistXYT[i] > tmp_dist)
                 {
                     DistXYT[i] = tmp_dist;
@@ -342,17 +338,12 @@ private:
         double oldvar = -1;
         double newvar = getVar( num_resample , k , means);
 
-
-
         while( abs(newvar - oldvar) > 100 )
         {
-            //cout << "newvar - oldvar =  " << newvar - oldvar << endl;
+            
             for( i = 0 ; i < k ; ++i) delete []means[i];
             delete []means;
-
             means = getMeans( num_resample , k ) ;
-            //for(j = 0 ; j < k ; ++j) printf("means process (x,y,z) = (%f,%f,%f) \n",means[j][0],means[j][1],means[j][2]);
-
             for( i = 0 ; i < num_resample ; ++i) L(i) = judgeCluster( i , k , means);
             oldvar = newvar;
             newvar = getVar( num_resample , k , means );
@@ -365,26 +356,25 @@ private:
         for( i = 0 ; i < num_resample ; ++i ) ++counter[L(i)];
 
 
-        // int max_cluster_label = 0;
-        // int max_cluster_number= counter[0];
-        // for( i = 1 ; i < k ; ++i)
-        // {
-        //     if( counter[i] > counter[i-1] )
-        //     {
-        //         max_cluster_label = i;
-        //         max_cluster_number = counter[i];
-        //     }
-        // }
-        // for( i = 0 ; i < SizeParticle ; ++i )
-        //     nao_location(i) = means[max_cluster_label][i];
-
-        for( int i = 0 ; i < SizeParticle ; ++i )
+        int max_cluster_label = 0;
+        int max_cluster_number= counter[0];
+        for( i = 1 ; i < k ; ++i)
         {
-            double tmp = 0;
-            for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
-            nao_location(i) = tmp/num_resample;
-            //cout << "!!!!!!!!!!!!!!  nao_location(" << i << ") = " << tmp/num_resample << endl;
+            if( counter[i] > counter[i-1] )
+            {
+                max_cluster_label = i;
+                max_cluster_number = counter[i];
+            }
         }
+        for( i = 0 ; i < SizeParticle ; ++i )
+            nao_location(i) = means[max_cluster_label][i];
+
+        // for( int i = 0 ; i < SizeParticle ; ++i )
+        // {
+        //     double tmp = 0;
+        //     for( int j = 0 ; j < k ; ++j) tmp = tmp + counter[j]*means[j][i];
+        //     nao_location(i) = tmp/num_resample;
+        // }
 
         for( i = 0 ; i < k ; ++i) delete []means[i];
         delete []means;
@@ -401,7 +391,6 @@ private:
         double var = 0;
         for(int i = 0 ; i < length ; ++i)
         {
-           //cout << "Get Var  == >   L(" << i << ") = " << L(i) << endl;
            double tmp = getDistXYT( X.col(i) , means[L(i)]) ;
            var +=  tmp*tmp;
         }
@@ -422,7 +411,6 @@ private:
 
         for( i = 0 ; i < length ; ++i )
         {
-            //cout << "Get Means  == >   L(" << i << ") = " << L(i) << endl;
             for( j = 0 ; j < SizeParticle ; ++j) means[L(i)][j] += X(j,i);
             ++counter[L(i)];
         }
@@ -457,7 +445,6 @@ private:
         int i , j , l = 0;
         ParticleVector nao_location;
 
-        //1. decide a proper p;
         int num_random = NumParticle * ratio;
         int num_resample = NumParticle - num_random;
 

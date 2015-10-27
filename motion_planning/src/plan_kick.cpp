@@ -55,21 +55,17 @@ namespace motion_planning
     m_sparse_joint_plan.push_back(std::pair<unsigned int, std::vector<double> >(100, m_joint_plan.at(m_joint_plan.size() - 1)));
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.0, 3.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.005, 3.0);
     std::cerr << "Planning lift" << std::endl;
-    planMove(-0.03, -foot_separation, 0.03, 0.0, 0.01, 0.0, 3.0);
-    // std::cerr << "Planning retract" << std::endl;
-    // planMove(-0.03, -foot_separation, m_lift_height, -0, 0.02, 0.0, 0.333);
+    planMove(-0.03, -foot_separation, m_lift_height, 0.0, 0.01, 0.005, 3.0);
     std::cerr << "Planning kick" << std::endl;
-    planMove(0.08, -foot_separation, m_lift_height, -0, 0.01, 0.0, 0.6);
-    std::cerr << "Planning stay" << std::endl;
-    planMove(0.08, -foot_separation, m_lift_height, -0, 0.01, 0.0, 1.0);
+    planMove(0.08, -foot_separation, m_lift_height, -0, 0.03, 0.005, 0.5);
     std::cerr << "Planning drop" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.0, 3.0);
+    planMove(0.08, -foot_separation, 0.02, 0.35, 0.03, -0.0, 0.5);
+    std::cerr << "Planning retract" << std::endl;
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, -0.0, 3.0);
     std::cerr << "Planning reshift" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, -foot_separation/2.0, 3.0);
-    std::cerr << "Planning delay" << std::endl;
-    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -foot_separation/2.0, 5.0);
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, -foot_separation / 2.0, 3.0);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);

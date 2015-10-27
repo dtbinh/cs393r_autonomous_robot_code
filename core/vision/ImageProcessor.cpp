@@ -269,8 +269,10 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
     goal_y_max = std::max(goal_y_max, b->boundingbox_vertex_y + b->boundingbox_height);
   }
 
+  double min_goal_size = 4500;
+  double goal_size = (goal_y_max-goal_y_min)*(goal_x_max-goal_x_min);
   double goal_ar = (double) (goal_x_max - goal_x_min) / (double) (goal_y_max - goal_y_min);
-  if(goal_ar <= 1.2 || goal_ar >= 4.0) //not a valid goal
+  if(goal_size <= min_goal_size || goal_ar <= 1.2 || goal_ar >= 4.0) //not a valid goal
   {
     // std::cerr << "Goal rejected!" << std::endl;
     return;

@@ -253,7 +253,7 @@ void LocalizationModule::processFrame() {
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance;
       pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing;
 
-      printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);;
+      // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);;
     }
     else
     {
@@ -265,7 +265,7 @@ void LocalizationModule::processFrame() {
   const auto& disp = cache_.odometry->displacement;
   pf_u << 0.8*disp.translation.x, 0.8*disp.translation.y, 0.8*disp.rotation;
 
-  std::cerr << "Control is: " << pf_u.transpose() << std::endl;
+  // std::cerr << "Control is: " << pf_u.transpose() << std::endl;
   //cout << "Measurement is " << pf_z.transpose() << std::endl;
   pfilter_->process(pf_z, pf_u);
   NAO_LOCATION = pfilter_->getNAO_LOCATION();
@@ -280,7 +280,7 @@ void LocalizationModule::processFrame() {
   // self.loc.y = 0;
    //self.orientation = 0.001;
 
-  printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
+  // printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
 
   if(ball.seen) {
     // Compute the relative position of the ball from vision readings

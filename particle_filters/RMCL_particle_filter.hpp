@@ -52,7 +52,7 @@ public:
         Wfast = 0.16;
         Waverage = 0;
         Alphaslow = 0.01;
-        Alphafast = 0.04;
+        Alphafast = 0.05;
 
 
 
@@ -105,12 +105,18 @@ public:
             if(z(i) == -1) continue;
             flag = true;
             switch(i){
-                case 0 : beacon_location << 1500.0,  1000.0;break;
-                case 4 : beacon_location << 0.0   ,  1000.0;break;
-                case 8 : beacon_location <<-1500.0,  1000.0;break;
-                case 10: beacon_location <<-1500.0, -1000.0;break;
-                case 6 : beacon_location << 0.0   , -1000.0;break;
-                case 2 : beacon_location << 1500.0, -1000.0;break;
+                // case 0 : beacon_location << 1500.0,  1000.0;break;
+                // case 4 : beacon_location << 0.0   ,  1000.0;break;
+                // case 8 : beacon_location <<-1500.0,  1000.0;break;
+                // case 10: beacon_location <<-1500.0, -1000.0;break;
+                // case 6 : beacon_location << 0.0   , -1000.0;break;
+                // case 2 : beacon_location << 1500.0, -1000.0;break;
+                case 0 : beacon_location << 500.0 ,  1200.0;break;
+                case 2 : beacon_location << 500.0 ,  1200.0;break;
+                case 4 : beacon_location << 0.0   , -1200.0;break;
+                case 6 : beacon_location << 0.0   , -1200.0;break;
+                case 8 : beacon_location <<-500.0 ,  1200.0;break;
+                case 10: beacon_location <<-500.0 ,  1200.0;break;
             }
 
             z_tmp << z(i)       , z(i+1) ;
@@ -228,9 +234,9 @@ private:
 
          default_random_engine generator;
 
-         normal_distribution<double> distributionx(0.0,50);
-         normal_distribution<double> distributiony(0.0,50);
-         normal_distribution<double> distributiono(0.0,0.1);
+         normal_distribution<double> distributionx(0.0,75);
+         normal_distribution<double> distributiony(0.0,75);
+         normal_distribution<double> distributiono(0.0,0.05);
 
         Randomratio = 1.0 - (Wfast/Wslow);
         if(Randomratio < 0) Randomratio = 0;
@@ -279,7 +285,7 @@ private:
         //1. decide a proper p;
         int num_random = NumParticle * ratio;
         int num_resample = NumParticle - num_random;
-        int k = (int)(ratio*125);
+        int k = (int)(ratio*105);
         if( !k ) k = 1;
         if( k == 1)
         {

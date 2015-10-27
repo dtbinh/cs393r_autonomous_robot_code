@@ -2313,3 +2313,27 @@ goalieFallSplit[core.RShoulderRoll] =  -10#-30#16.057673120688
 goalieFallSplit[core.RElbowYaw] =  -0.43705014461078
 goalieFallSplit[core.RElbowRoll] =  -2.8149395230157
 
+goelieBlocking = dict()
+goelieBlocking[core.HeadYaw] = -0.353967723546741
+goelieBlocking[core.HeadPitch] = 29.704998134384
+goelieBlocking[core.LHipYawPitch] = -66.4437387364255
+goelieBlocking[core.LHipRoll] = -45.7060959633512
+goelieBlocking[core.LHipPitch] = -48.7775090897009
+goelieBlocking[core.LKneePitch] = 123.485476193518
+goelieBlocking[core.LAnklePitch] = -35.6864406773743
+goelieBlocking[core.LAnkleRoll] = 9.57779668819046
+goelieBlocking[core.RHipYawPitch] = -66.4437387364255
+goelieBlocking[core.RHipRoll] = -46.7559916614306
+goelieBlocking[core.RHipPitch] = -28.1277571908664
+goelieBlocking[core.RKneePitch] = 124.89653863453
+goelieBlocking[core.RAnklePitch] = -47.4591323157267
+goelieBlocking[core.RAnkleRoll] = 9.14313710978919
+goelieBlocking[core.LShoulderPitch] = -86.2193835158494
+goelieBlocking[core.LShoulderRoll] = 29.6171072601443
+goelieBlocking[core.LElbowYaw] = -1.1449992520826
+goelieBlocking[core.LElbowRoll] = -1.31597254738636
+goelieBlocking[core.RShoulderPitch] = -89.8277519637996
+goelieBlocking[core.RShoulderRoll] = 27.160943913851
+goelieBlocking[core.RElbowYaw] = -0.96440905042746
+goelieBlocking[core.RElbowRoll] = -2.55126690029652
+

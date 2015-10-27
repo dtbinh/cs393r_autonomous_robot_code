@@ -56,15 +56,20 @@ namespace motion_planning
     double foot_separation = 0.1;
     std::cerr << "Planning shift" << std::endl;
     planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.0, 3.0);
+    std::cerr << "Planning lift" << std::endl;
+    planMove(-0.03, -foot_separation, 0.03, 0.0, 0.01, 0.0, 3.0);
     // std::cerr << "Planning retract" << std::endl;
     // planMove(-0.03, -foot_separation, m_lift_height, -0, 0.02, 0.0, 0.333);
     std::cerr << "Planning kick" << std::endl;
-    planMove(0.08, -foot_separation, m_lift_height, -0, 0.01, -0.02, 0.6);
-
-    std::cerr << "Planning lunge" << std::endl;
-    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -0.03, 0.4);
+    planMove(0.08, -foot_separation, m_lift_height, -0, 0.01, 0.0, 0.6);
+    std::cerr << "Planning stay" << std::endl;
+    planMove(0.08, -foot_separation, m_lift_height, -0, 0.01, 0.0, 1.0);
+    std::cerr << "Planning drop" << std::endl;
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.0, 3.0);
+    std::cerr << "Planning reshift" << std::endl;
+    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, -foot_separation/2.0, 3.0);
     std::cerr << "Planning delay" << std::endl;
-    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -0.04, 5.0);
+    planMove(0.0, -foot_separation, -0.0, 0.0, 0.01, -foot_separation/2.0, 5.0);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);

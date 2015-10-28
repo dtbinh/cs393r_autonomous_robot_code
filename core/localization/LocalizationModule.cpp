@@ -272,13 +272,13 @@ void LocalizationModule::processFrame() {
   // if(cache_.localization_mem != NULL && any_beacon_seen)
      //cache_.localization_mem->particles = pfilter_->getParticles();
 
-  self.loc.x = NAO_LOCATION(0);
-  self.loc.y = NAO_LOCATION(1);
-  self.orientation = NAO_LOCATION(2);
+  // self.loc.x = NAO_LOCATION(0);
+  // self.loc.y = NAO_LOCATION(1);
+  // self.orientation = NAO_LOCATION(2);
 
-  // self.loc.x = -1500;
-  // self.loc.y = 0;
-   //self.orientation = 0.001;
+   self.loc.x = -1300;
+   self.loc.y = 0;
+   self.orientation = 0.000;
 
   // printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
 
@@ -289,7 +289,7 @@ void LocalizationModule::processFrame() {
     // Compute the global position of the ball based on our assumed position and orientation
     auto goalieloc = self.loc ;
     auto goalieori = self.orientation;
-    goalieloc.x = -1200.0 ;
+    goalieloc.x = -1300.0 ;
     goalieloc.y = 0.0 ;
     goalieori = 0.0 ;
 

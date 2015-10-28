@@ -1,12 +1,12 @@
 import core, memory
-import pose, commands, cfgstiff
+import pose, commands, cfgstiff, cfgpose
 import mem_objects
 from task import Task
 from state_machine import *
 import random
 
 
-if_seen_history_constant = 5
+if_seen_history_constant =9
 if_seen_history = [0]*if_seen_history_constant
 if_seen_history_counter = 0
 
@@ -20,7 +20,7 @@ last_distance = [0]*last_inf_constant
 last_state_counter = 0
 
 dt = 1.0/30.0
-friction = 0.2
+friction = 0.25
 
 last_head_time = 0
 last_head_pan = 1.2
@@ -67,36 +67,48 @@ class GoalieBlock(Node):
   def run(self):
     #UTdebug.log(15, "Blocking center")
     self.setSubtask(pose.ToPose({ 
-                                  core.LHipYawPitch: -66 ,
-                                  core.LHipRoll: -45 ,
-                                  #core.LHipPitch: -48.7775090897009 ,
-                                  core.LHipPitch: -40 ,
-                                  core.LKneePitch: 125 ,
-                                  core.LAnklePitch: -40 ,
-                                  core.LAnkleRoll: 9.5 ,
-                                  core.RHipYawPitch: -66 ,
-                                  core.RHipRoll: -45 ,
-                                  #core.RHipPitch: -28.1277571908664 ,
-                                  core.RHipPitch: -40 ,
-                                  core.RKneePitch: 125 ,
-                                  core.RAnklePitch: -40 ,
-                                  core.RAnkleRoll: 9.5 ,
-                                  core.LShoulderPitch: -85,
-                                  core.LShoulderRoll: 28 ,
-                                  core.RShoulderPitch: -85 ,
-                                  core.RShoulderRoll: 28
+                                  core.LHipYawPitch: -50.7990128575929,
+                                  core.LHipRoll: -29.7098065875597,
+                                  core.LHipPitch: -36.1211002557756,
+                                  core.LKneePitch: 123.397585319279,
+                                  core.LAnklePitch: -48.8526839844773,
+                                  core.LAnkleRoll: 12.8,
+                                  core.RHipYawPitch: -50,
+                                  core.RHipRoll: -30.6718114113993,
+                                  core.RHipPitch: -37.3563946086858,
+                                  core.RKneePitch: 125.072320383009,
+                                  core.RAnklePitch: -48.5,
+                                  core.RAnkleRoll: 11.4,
+                                  core.LShoulderPitch: -79,
+                                  core.LShoulderRoll: 25,
+                                  core.RShoulderPitch: -79,
+                                  core.RShoulderRoll: 26
                                   }
-                                  , 1.5
+                                  , 1.0
                                 )
                     )
 
+# class GoalieBlock(Node):
+#   def run(self):
+#     self.setSubtask(pose.PoseSequence(
+#       cfgpose.blockright, 1.0,
+#       cfgpose.blockright, self.time, 
+#       cfgpose.sittingPoseNoArms, 2.0,
+#       cfgpose.standingPose, 2.0
+#     ))
+
+class Walking(Node):
+  def run(self):
+    commands.setHeadTilt(-13)
+    commands.setWalkVelocity(0.20,0.1,0.04)
+
 class WalkingLeft(Node):
   def run(self):
-    commands.setWalkVelocity(0.0,0.4,-0.04)
+    commands.setWalkVelocity(0.0,0.0,0.0)
 
 class WalkingRight(Node):
   def run(self):
-    commands.setWalkVelocity(0.0,-0.4,0.04)
+    commands.setWalkVelocity(0.0,0.0,0.0)
 
 class WalkingCenter(Node):
   def run(self):
@@ -110,9 +122,10 @@ class Blocker(Node):
     global last_head_time, last_head_pan
 
     commands.stand()
-    commands.setHeadTilt(-15)
+    commands.setHeadTilt(-13)
     ball = mem_objects.world_objects[core.WO_BALL]
     if_seen_history[if_seen_history_counter] = ball.seen;
+    if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant;
     seen_times = sum(if_seen_history)
 
     x = 0.
@@ -137,7 +150,7 @@ class Blocker(Node):
       if( abs(xv) > 2500 or abs(yv) > 2500) :
         return
 
-      print "========================================================================="
+      
       #print "x = " + str(x) + " y = " + str(y) + " xv = " + str(xv) +" yv = " + str(yv)
       
       last_av_bearing = sum(last_bearing)/last_inf_constant
@@ -164,48 +177,41 @@ class Blocker(Node):
       av_distance = sum(last_distance)/last_inf_constant
       av_bearing = sum(last_bearing)/last_inf_constant
 
-      print "Avg : av_x = " + str(av_x) + " av_y = " + str(av_y) + " av_xv = " + str(av_xv) +" av_yv = " + str(av_yv)
+      #print "Avg : av_x = " + str(av_x) + " av_y = " + str(av_y) + " av_xv = " + str(av_xv) +" av_yv = " + str(av_yv)
 
-      if(av_bearing > 1.2):
-        av_bearing = 1.2
-      elif(av_bearing < -1.2):
-        av_bearing = -1.2
+      if(av_bearing > 1.5):
+        av_bearing = 1.5
+      elif(av_bearing < -1.5):
+        av_bearing = -1.5
 
-      if(abs(av_xv) > 100 or abs(av_yv) > 100 ):
-        d_turning = abs(av_bearing - last_av_bearing)/3.0
-        if(d_turning < 0.1):
-          d_turning = 0.1
-        elif(d_turning > 2):
-          d_turning = 2
-        commands.setHeadPan(av_bearing, d_turning)
-      # else:
-      #   if ((self.getTime() - last_head_time) > 2.0):
-      #     if(last_head_pan == 1.2):
-      #       last_head_pan = -1.2
-      #     else:
-      #       last_head_pan = 1.2
-      #     commands.setHeadPan( last_head_pan, 2.0 )
-      #     last_head_time = self.getTime()
+      d_turning = abs(av_bearing - last_av_bearing)/2.5
+      if(d_turning < 0.1):
+        d_turning = 0.1
+      elif(d_turning > 2):
+        d_turning = 2
+      commands.setHeadPan(av_bearing, d_turning)
 
       #print "av_x = " + str(av_x) + "\tav_y = " + str(av_y)
-      px = av_x + (av_xv*av_xv/(2*1000*friction))
+      px = av_x + (av_xv*abs(av_xv)/(2*1000*friction))
 
       if(av_xv > -100 or (abs(av_yv)+0.1)/(abs(av_xv)+0.1) > 1):
         print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
         return
-      elif( px > -500 ):
+      elif( px > -900 ):
         print(" No!!!!: Ball too short px = ") + str(px) + " seen_times = " + str(seen_times)
         return 
-      elif( av_distance < 800 ):
+      elif( av_distance < 1500 and av_xv < -100):
         lamda = av_yv / av_xv
         intercept = av_y - lamda*av_x
-        hit_goal_line = lamda*(-1200) + intercept
+        hit_goal_line = lamda*(-1300) + intercept
 
+
+        print "========================================================================="
         print " Yes!!!: av_yv = " + str(av_yv) + " av_xv = " + str(av_xv) + " hit_goal_line = " + str(hit_goal_line)
-        if( hit_goal_line < -250 ):
+        if( hit_goal_line < -250 and hit_goal_line > -700):
            choice = "right"
            self.postSignal(choice)
-        elif( hit_goal_line >  250 ):
+        elif( hit_goal_line >  250 and hit_goal_line < 700):
            choice = "left"
            self.postSignal(choice)
         elif( hit_goal_line > -250 and hit_goal_line < 250):
@@ -213,22 +219,28 @@ class Blocker(Node):
            self.postSignal(choice)
 
     else: # Think ball is still not seen
-      #print( "No Ball\n" )
-      commands.setHeadPan( 0 , 0.2 )
+      #memory.speech.say("No ball")
+      if ((self.getTime() - last_head_time) > 3):
+        if(last_head_pan > 0 ):
+          last_head_pan = -1.2
+        elif(last_head_pan <= 0):
+          last_head_pan = 1.2
+        commands.setHeadPan( last_head_pan , 2.5 )
+        last_head_time = self.getTime()
       last_x = [0]*last_inf_constant
       last_y = [0]*last_inf_constant
       last_xv = [0]*last_inf_constant
       last_yv = [0]*last_inf_constant
       last_distance =[0]*last_inf_constant
       last_bearing = [0]*last_inf_constant
-      #memory.speech.say("oh on")
 
-    if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant;
 
 class Playing(LoopingStateMachine):
   class Stand(Node):
     def run(self):
       commands.stand()
+      global last_head_time
+      last_head_time = 0
       if self.getTime() > 2.0:
         memory.speech.say("Be a man")
         self.finish()
@@ -236,6 +248,7 @@ class Playing(LoopingStateMachine):
   def setup(self):
     blocker = Blocker()
     goalieblock = GoalieBlock()
+    walk = Walking()
     blocks = {
       "left": WalkingLeft(),
       "right": WalkingRight(),
@@ -243,4 +256,4 @@ class Playing(LoopingStateMachine):
     }
     for name in blocks:
       #b = blocks[name]
-      self.trans(self.Stand() , C , blocker, S(name), blocks[name] , T(1), goalieblock , T(2) , blocker)
+      self.trans(self.Stand() , C , blocker, S(name), blocks[name] , T(0), goalieblock , T(6), walk, T(5) , blocker)

@@ -225,15 +225,15 @@ void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
         drawLine(img, bx_min, by_min, bx_max, by_max, c_PINK);
         drawLine(img, bx_min, by_max, bx_max, by_min, c_PINK);
       }
-      else
-      {
-        drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-        drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-        drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-        drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
-        drawLine(img, bx_min, by_min, bx_max, by_max, c_UNDEFINED);
-        drawLine(img, bx_min, by_max, bx_max, by_min, c_UNDEFINED);
-      }
+      // else
+      // {
+        // drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+        // drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+        // drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+        // drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+        // drawLine(img, bx_min, by_min, bx_max, by_max, c_UNDEFINED);
+        // drawLine(img, bx_min, by_max, bx_max, by_min, c_UNDEFINED);
+      // }
     }
   }
 

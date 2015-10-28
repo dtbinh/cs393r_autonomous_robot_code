@@ -50,6 +50,7 @@ last_ball_seen_time = 0
 next_head_time = 0
 kick_start_time = 0
 kick_sent = False
+recovering_from_kick = False
 
 def tanhController(err, kx, max_cmd):
   return max_cmd * numpy.tanh(kx * err)
@@ -189,7 +190,7 @@ class Playing(StateMachine):
 
       if(not o_ball.seen or not o_goal.seen):
         print "Lost the goal or ball!"
-        self.walk(-0.1, 0.0, 0.0)
+        self.walk(-0.2, 0.0, 0.0)
         return
 
       gx = o_goal.visionDistance * numpy.cos(o_goal.visionBearing)
@@ -255,6 +256,7 @@ class Playing(StateMachine):
 
       if(not o_goal.seen or not o_ball.seen):
         print "Can't find the goal / ball"
+        #self.walk(-0.2, 0.0, 0.0)
         return
 
 
@@ -297,16 +299,24 @@ class Playing(StateMachine):
     def attack_kick(self):
       commands.setHeadTilt(-20)
       
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time, recovering_from_kick
       if not kick_sent:
         print "sending kick"
-        memory.speech.say("Kicking")
+        # memory.speech.say("Kicking")
         memory.walk_request.noWalk()
         memory.kick_request.setFwdKick()
         kick_start_time = self.getTime()
         kick_sent = True
-      elif kick_sent and (self.getTime() - kick_start_time) > 0.5 and not memory.kick_request.kick_running_:
-        print "kick is done"
+        recovering_from_kick = False
+      elif not recovering_from_kick and kick_sent and (self.getTime() - kick_start_time) > 0.5 and not memory.kick_request.kick_running_:
+        print "kick is done, recovering"
+        self.walk(-0.2, -0.1, 0.0)
+        recovering_from_kick = True
+      elif recovering_from_kick and (self.getTime() - kick_start_time) > 7.0:
+        print "hopefully done recovering"
+        kick_sent = False
+        recovering_from_kick = False
+        self.stop()
         mode = Modes.passive
         current_state = AttackingStates.start
 
@@ -342,6 +352,16 @@ class Playing(StateMachine):
       rrl = sensors.getValue(core.fsrRRL)
       rrr = sensors.getValue(core.fsrRRR)
       max_force = numpy.amax([lfl,lfr,lrl,lrr,rfl,rfr,rrl,rrr])
+      # print "lfl is " + str(lfl)
+      # print "lfr is " + str(lfr)
+      # print "lrl is " + str(lrl)
+      # print "lrr is " + str(lrr)
+      # print "rfl is " + str(rfl)
+      # print "rfr is " + str(rfr)
+      # print "rrl is " + str(rrl)
+      # print "rrr is " + str(rrr)
+      # print "max is " + str(max_force)
+      # print "tilt " + str((lfl+lrl)/2.-(lfr+lrr)/2.)
       if(numpy.abs(max_force) < 0.15 and mode is not Modes.passive):
         memory.speech.say("Put me down!")
         self.stop()

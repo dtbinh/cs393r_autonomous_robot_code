@@ -137,7 +137,13 @@ void KickModule::moveBetweenKeyframes(const Keyframe& start, const Keyframe& fin
     for(int i = 0; i < finish.joints.size(); i++)
       if(DEBUG) printf("j[%i]:%2.2f,", i, finish.joints[i] * RAD_T_DEG);
     if(DEBUG) printf("\n");
+    printf("Left foot has side %g front %g\n", cache_.sensor->fsr_left_side_, cache_.sensor->fsr_left_front_);
+    double kp = 0.0 / 360.0 * M_PI;
+
+    std::array<float, NUM_JOINTS> joints = finish.joints;
+    joints[15] -= kp * cache_.sensor->fsr_left_side_;
+    printf("Adding offset of %g => %g\n", kp * cache_.sensor->fsr_left_side_, joints[15]);
     cache_.joint_command->setSendAllAngles(true, finish.frames * 10);
-    cache_.joint_command->setPoseRad(finish.joints.data());
+    cache_.joint_command->setPoseRad(joints.data());
   }
 }

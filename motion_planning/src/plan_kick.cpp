@@ -61,9 +61,9 @@ namespace motion_planning
     std::cerr << "Planning kick" << std::endl;
     planMove(kick_dist, -foot_separation, 0.03, 0.0, 0.03, -0.01, 0.6);
     std::cerr << "Planning drop" << std::endl;
-    planMove(kick_dist, -foot_separation-landing_splay, 0.0, 0.0, 0.05, -0.05, 0.6);
+    planMove(kick_dist, -foot_separation-landing_splay, 0.0, 0.0, 0.045, -0.055, 0.6);
     std::cerr << "Planning stay" << std::endl;
-    planMove(kick_dist, -foot_separation-landing_splay, 0.0, 0.0, 0.05, -0.05, 10.0);
+    planMove(kick_dist, -foot_separation-landing_splay, 0.0, 0.0, 0.045, -0.055, 10.0);
     std::cerr << "Planning return shift" << std::endl;
     planMove(kick_dist, -foot_separation-landing_splay, 0.0, 0.0, 0.04, -0.01, 5.0);
     std::cerr << "Planning return lift" << std::endl;

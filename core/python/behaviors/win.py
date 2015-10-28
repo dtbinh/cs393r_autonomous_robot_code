@@ -51,6 +51,7 @@ next_head_time = 0
 kick_start_time = 0
 kick_sent = False
 recovering_from_kick = False
+attack_left = False
 
 def tanhController(err, kx, max_cmd):
   return max_cmd * numpy.tanh(kx * err)
@@ -154,7 +155,7 @@ class Playing(StateMachine):
         memory.speech.say("Lost the ball")
 
     def attack_rotate(self):
-      commands.setHeadTilt(-18)
+      commands.setHeadTilt(-16)
       
       global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
@@ -180,7 +181,7 @@ class Playing(StateMachine):
 
 
     def attack_dribble(self):
-      commands.setHeadTilt(-20)
+      commands.setHeadTilt(-16)
       
       global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
@@ -202,7 +203,7 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
-      r_goal_threshold = 800. * numpy.sqrt(2.)
+      r_goal_threshold = 700. * numpy.sqrt(2.)
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -224,9 +225,9 @@ class Playing(StateMachine):
       self.walk(x_vel, y_vel, t_vel)
 
     def attack_align(self):
-      commands.setHeadTilt(-20)
+      commands.setHeadTilt(-18)
       
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, attack_left
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
@@ -246,13 +247,17 @@ class Playing(StateMachine):
           print "Threshold: " + str(center_threshold)
           shift = gy - ey
           if(numpy.abs(shift) < center_threshold):
-            memory.speech.say("Enemy is in the center")
+            attack_left = bool(random.getrandbits(1))
+            side_string = str("left" if attack_left else "right")
+            memory.speech.say("Enemy is in the center, shooting to the " + side_string)
             enemy_state = EnemyGoalStates.center
           elif(shift > 0.):
-            memory.speech.say("Enemy is on the right")
+            memory.speech.say("Enemy is on the right, shooting to the left")
+            attack_left = True
             enemy_state = EnemyGoalStates.right
           else:
-            memory.speech.say("Enemy is on the left")
+            memory.speech.say("Enemy is on the left, shooting to the right")
+            attack_left = False
             enemy_state = EnemyGoalStates.left
 
       if(not o_goal.seen or not o_ball.seen):
@@ -268,12 +273,10 @@ class Playing(StateMachine):
       tx = gx
       ty = gy
 
-      if(enemy_state is EnemyGoalStates.center):
-        ty += o_goal.radius / 4. if bool(random.getrandbits(1)) else -o_goal.radius / 4.
-      elif(enemy_state is EnemyGoalStates.right):
-        ty += o_goal.radius / 4.
-      elif(enemy_state is EnemyGoalStates.left):
-        ty -= o_goal.radius / 4.
+      if(attack_left):
+        ty += 3.0 * o_goal.radius / 8.
+      else:
+        ty -= 3.0 * o_goal.radius / 8.
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -286,7 +289,7 @@ class Playing(StateMachine):
       ball_x_target = 100
       ball_y_target = -100
       goal_y_target = -100
-      if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold): #todo
+      if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold):
         kick_sent = False
         current_state = AttackingStates.kick
         return

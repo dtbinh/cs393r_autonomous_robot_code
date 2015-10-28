@@ -202,7 +202,7 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
-      r_goal_threshold = 750. * numpy.sqrt(2.)
+      r_goal_threshold = 800. * numpy.sqrt(2.)
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -242,7 +242,8 @@ class Playing(StateMachine):
           gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
           ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
           ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
-          center_threshold = 200.
+          center_threshold = o_goal.radius*0.1
+          print "Threshold: " + str(center_threshold)
           shift = gy - ey
           if(numpy.abs(shift) < center_threshold):
             memory.speech.say("Enemy is in the center")
@@ -290,9 +291,9 @@ class Playing(StateMachine):
         current_state = AttackingStates.kick
         return
 
-      x_vel = tanhController(-(ball_x_target - bx), 20.0/1000.0, 0.4) 
-      y_vel = tanhController(-(ball_y_target - by), 20.0/1000.0, 0.4) 
-      t_vel = tanhController((ty - by), 10.0/1000.0, 0.2) 
+      x_vel = tanhController(-(ball_x_target - bx), 10.0/1000.0, 0.3) 
+      y_vel = tanhController(-(ball_y_target - by), 10.0/1000.0, 0.3) 
+      t_vel = tanhController((ty - by), 5.0/1000.0, 0.2) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
@@ -309,11 +310,11 @@ class Playing(StateMachine):
         kick_sent = True
         recovering_from_kick = False
       elif not recovering_from_kick and kick_sent and (self.getTime() - kick_start_time) > 0.5 and not memory.kick_request.kick_running_:
-        print "kick is done, recovering"
-        self.walk(-0.2, -0.1, 0.0)
-        recovering_from_kick = True
-      elif recovering_from_kick and (self.getTime() - kick_start_time) > 7.0:
-        print "hopefully done recovering"
+      #   print "kick is done, recovering"
+      #   self.walk(-0.2, -0.1, 0.0)
+      #   recovering_from_kick = True
+      # elif recovering_from_kick and (self.getTime() - kick_start_time) > 7.0:
+      #   print "hopefully done recovering"
         kick_sent = False
         recovering_from_kick = False
         self.stop()
@@ -331,8 +332,9 @@ class Playing(StateMachine):
       if(mode is not Modes.attacking and hf and hm and not hr): #need to switch to attack mode
         memory.speech.say("Attack Mode!")
         mode = Modes.attacking
+        enemy_state = EnemyGoalStates.unknown
         kick_sent = False
-        current_state = AttackingStates.kick
+        current_state = AttackingStates.start
       if(mode is not Modes.defending and hm and hr and not hf): #need to switch to defense mode
         memory.speech.say("Defense Mode!")
         mode = Modes.defending

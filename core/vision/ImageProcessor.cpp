@@ -176,18 +176,17 @@ void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
   goal_y_min -= padding;
   goal_y_max += padding;
 
-  int min_enemy_blob_size = 500;
-  int max_enemy_blob_size = 10000;
+  int min_enemy_blob_size = 1500;
   for(int i = 0; i < mb->get_blob_number(); i++)
   {
-     int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
+    int size = mb->blob[i].boundingbox_length * mb->blob[i].boundingbox_height;
     double ar = (double) mb->blob[i].boundingbox_length / (double) mb->blob[i].boundingbox_height;
-    if(size > min_enemy_blob_size && size < max_enemy_blob_size && mb->blob[i].color == c_WHITE && ar < 1.2)// && ar > 1.2 && ar < 4)
+    if(size > min_enemy_blob_size && mb->blob[i].color == c_WHITE)// && ar < 1.2)// && ar > 1.2 && ar < 4)
     {
-       int bx_min = mb->blob[i].boundingbox_vertex_x;
-       int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
-       int by_min = mb->blob[i].boundingbox_vertex_y;
-       int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
+      int bx_min = mb->blob[i].boundingbox_vertex_x;
+      int bx_max = mb->blob[i].boundingbox_vertex_x + mb->blob[i].boundingbox_length;
+      int by_min = mb->blob[i].boundingbox_vertex_y;
+      int by_max = mb->blob[i].boundingbox_vertex_y + mb->blob[i].boundingbox_height;
 
       bool x_min_in = goal_x_min < bx_min && bx_min < goal_x_max;
       bool x_max_in = goal_x_min < bx_max && bx_max < goal_x_max;
@@ -200,8 +199,14 @@ void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
 
       if(num_edges_in > 3 || ((x_max_in || x_min_in) && y_min_above && y_max_below)) //surrounded by blue goal pixels
       {
-        int x = (bx_max + bx_min)/2.0;
-        int y = (by_max + by_min)/2.0;
+        int area = (bx_max - bx_min)*(by_max - by_min);
+        if(goalie->seen && goalie->radius > area)
+        {
+          continue;
+        }
+
+        int x = (bx_max + bx_min) / 2.0;
+        int y = (by_max + by_min) / 2.0;
         goalie->imageCenterX = x;
         goalie->imageCenterY = y;
         float centroid_height = 210.0;
@@ -210,6 +215,7 @@ void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
         goalie->visionElevation = cmatrix_.elevation(p);
         goalie->fromTopCamera = true;
         goalie->visionDistance = cmatrix_.groundDistance(p);
+        goalie->radius = area; //actually area
         goalie->seen = true;
 
         drawLine(img, bx_min, by_min, bx_max, by_min, c_PINK);
@@ -219,17 +225,19 @@ void ImageProcessor::detectEnemy(unsigned char* img, MergeBlob* mb)
         drawLine(img, bx_min, by_min, bx_max, by_max, c_PINK);
         drawLine(img, bx_min, by_max, bx_max, by_min, c_PINK);
       }
-      // else
-      // {
-      //   drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
-      //   drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
-      //   drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
-      //   drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
-      //   drawLine(img, bx_min, by_min, bx_max, by_max, c_UNDEFINED);
-      //   drawLine(img, bx_min, by_max, bx_max, by_min, c_UNDEFINED);
-      // }
+      else
+      {
+        drawLine(img, bx_min, by_min, bx_max, by_min, c_UNDEFINED);
+        drawLine(img, bx_min, by_max, bx_max, by_max, c_UNDEFINED);
+        drawLine(img, bx_min, by_min, bx_min, by_max, c_UNDEFINED);
+        drawLine(img, bx_max, by_min, bx_max, by_max, c_UNDEFINED);
+        drawLine(img, bx_min, by_min, bx_max, by_max, c_UNDEFINED);
+        drawLine(img, bx_min, by_max, bx_max, by_min, c_UNDEFINED);
+      }
     }
   }
+
+
 }
 
 void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)

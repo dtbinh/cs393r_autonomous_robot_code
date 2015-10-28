@@ -61,13 +61,13 @@ namespace motion_planning
     std::cerr << "Planning drop" << std::endl;
     planMove(0.1, -foot_separation-0.01, 0.0, 0.0, 0.05, -foot_separation/2.0, 0.5);
     std::cerr << "Planning stay" << std::endl;
-    planMove(0.1, -foot_separation-0.01, 0.0, 0.0, 0.05, -foot_separation/2.0, 5.0);
+    planMove(0.1, -foot_separation-0.01, 0.0, 0.0, 0.05, -foot_separation/2.0, 10.0);
     std::cerr << "Planning return shift" << std::endl;
-    planMove(0.1, -foot_separation, 0.0, 0.0, 0.02, -0.02, 5.0);
+    planMove(0.1, -foot_separation, 0.0, 0.0, 0.03, 0.0, 5.0);
     std::cerr << "Planning return lift" << std::endl;
-    planMove(0.05, -foot_separation, 0.03, 0.0, 0.01, 0.0, 0.5);
+    planMove(0.025, -foot_separation, 0.02, 0.0, 0.01, 0.0, 2.0);
     std::cerr << "Planning return drop" << std::endl;
-    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.0, 0.5);
+    planMove(0.025, -foot_separation, 0.0, 0.0, 0.01, 0.0, 2.0);
 
     // std::cerr << "Planning return" << std::endl;
     // planMove(0.0, -foot_separation, m_lift_height, 0.025, 0.0, 0.5);

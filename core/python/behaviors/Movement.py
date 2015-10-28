@@ -28,12 +28,13 @@ class Playing(StateMachine):
       global last_head_time, last_head_pan , last_keeper_direction
 
       commands.setHeadTilt(-14)
-      if ((self.getTime() - last_head_time) > 3.7):
-          if(last_head_pan == 1):
+      if ((self.getTime() - last_head_time) > 4):
+          if(last_head_pan >= 0):
             last_head_pan = -1
           else:
             last_head_pan = 1
           commands.setHeadPan( last_head_pan, 3.5)
+          commands.setWalkVelocity(0.2,0.0*last_head_pan,0.05*last_head_pan)
           last_head_time = self.getTime()
 
       #commands.setWalkVelocity(0.0,0.35,0.04)
@@ -66,6 +67,8 @@ class Playing(StateMachine):
         self.finish()
 
   def setup(self):
+    global last_head_time
+    last_head_time = 0
     stand = self.Stand()
     walk = self.Walk()
     tip = self.TurnInPlace()

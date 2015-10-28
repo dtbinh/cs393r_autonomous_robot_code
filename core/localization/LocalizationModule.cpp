@@ -35,7 +35,7 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
   double dt = 1.0/30.0;
   double xvf = 0.99;
   double yvf = 0.99;
-  A << 1.0 , dt  , 0   , 0   ,
+  A <<        1.0 , 0   , dt   , 0  ,
               0   , 1.0 , 0  ,  dt  ,
               0   , 0   , xvf , 0   ,
               0   , 0   , 0   , yvf ;
@@ -46,20 +46,20 @@ LocalizationModule::LocalizationModule() : tlogger_(textlogger) {
        0 , 0 , 1 , 0 ,
        0 , 0 , 0 , 1 ;
 
-  double x_var =  1 ;
-  double xv_var = 5 ;
-  double yv_var = 5 ;
-  double y_var =  1 ;
+  double x_var =  100 ;
+  double xv_var = 1000 ;
+  double yv_var = 1000 ;
+  double y_var =  100 ;
 
   R_matrix <<   x_var ,   0    ,   0    ,   0    ,
                   0   ,  y_var ,   0    ,   0    ,
                   0   ,   0    , xv_var ,   0    ,
                   0   ,   0    ,   0    , yv_var ;
 
-  double zx_var = 0.5;
-  double zy_var = 0.5;
-  double zxv_var = 1000;
-  double zyv_var = 1000;
+  double zx_var = 100;
+  double zy_var = 100;
+  double zxv_var = 500;
+  double zyv_var = 500;
   Q_matrix <<   zx_var  ,   0     ,   0    ,   0     ,
                   0     , zy_var  ,   0    ,   0     ,
                   0     ,   0     , zxv_var,   0     ,

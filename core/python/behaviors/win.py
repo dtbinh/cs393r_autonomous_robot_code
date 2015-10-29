@@ -54,6 +54,7 @@ mode = Modes.passive
 enemy_state = EnemyGoalStates.unknown
 current_state = AttackingStates.start
 last_mode_change_time = 0
+r_goal_dist_filtered = 0.
 
 #attacking globals
 rotation_dir = 1.
@@ -261,10 +262,10 @@ class Playing(StateMachine):
         print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
         if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
           head_pan = core.joint_values[core.HeadYaw]
-          if(head_pan > 0.23):
+          if(head_pan > 0.2):
             body_turning_flag = 1
             commands.setWalkVelocity(0.1, 0.4, 0.13)
-          elif(head_pan < -0.23):
+          elif(head_pan < -0.2):
             body_turning_flag = 1
             commands.setWalkVelocity(0.15,-0.3,-0.05)
           else:
@@ -359,7 +360,7 @@ class Playing(StateMachine):
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 5:
+        if (self.getTime() - pose_start_time) > 4:
           pose_sent = False
           num_times_sent = 0
           pose_start_time = 0
@@ -391,7 +392,7 @@ class Playing(StateMachine):
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 4.5:
+        if (self.getTime() - pose_start_time) > 4:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
@@ -423,7 +424,7 @@ class Playing(StateMachine):
           )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 4.5:
+        if (self.getTime() - pose_start_time) > 4:
           pose_start_time = 0 
           pose_sent = False
           num_times_sent = 0
@@ -456,13 +457,13 @@ class Playing(StateMachine):
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 7:
+        if (self.getTime() - pose_start_time) > 6.5:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
           print "CHANGING TO START"
           current_state = DefendingStates.start
-        elif (self.getTime() - pose_start_time) > 4:
+        elif (self.getTime() - pose_start_time) > 3.5:
           commands.stand()
 
     def defense_walk(self):
@@ -471,7 +472,7 @@ class Playing(StateMachine):
       commands.setWalkVelocity(0.3,0.0,0.05)
       print "walk time: " + str(walk_start_time)
       print "current time: " + str(self.getTime())
-      if (self.getTime() - walk_start_time) > 7.0:
+      if (self.getTime() - walk_start_time) > 9.0:
         current_state = DefendingStates.start
         # commands.setWalkVelocity(0.0,0.0,0.0)
         commands.stand()
@@ -490,15 +491,15 @@ class Playing(StateMachine):
 
 #ATTACKING=================================================================================
     def attack_start(self):
-      commands.setHeadTilt(-14)
+      commands.setHeadTilt(-10)
       
       global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       o_ball = mem_objects.world_objects[core.WO_BALL]
-      o_beacon_lm = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_BLUE]
-      o_beacon_rf = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW]
-      o_beacon_rr = mem_objects.world_objects[core.WO_BEACON_YELLOW_BLUE] if field is Fields.A else mem_objects.world_objects[core.WO_BEACON_BLUE_YELLOW]
+      o_beacon_lm_seen = mem_objects.world_objects[core.WO_BEACON_BLUE_PINK].seen or mem_objects.world_objects[core.WO_BEACON_PINK_BLUE].seen
+      o_beacon_rf_seen = mem_objects.world_objects[core.WO_BEACON_YELLOW_PINK].seen or mem_objects.world_objects[core.WO_BEACON_PINK_YELLOW].seen
+      o_beacon_rr_seen = mem_objects.world_objects[core.WO_BEACON_YELLOW_BLUE].seen or mem_objects.world_objects[core.WO_BEACON_BLUE_YELLOW].seen
 
-      rotation_dir = 1. if (not o_beacon_lm.seen and (o_beacon_rf.seen or o_beacon_rr.seen)) else -1.
+      rotation_dir = 1. if (not o_beacon_lm_seen and (o_beacon_rf_seen or o_beacon_rr_seen)) else -1.
 
       if rotation_dir > 0:
         memory.speech.say("Started on the left")
@@ -556,7 +557,7 @@ class Playing(StateMachine):
     def attack_dribble(self):
       commands.setHeadTilt(-16)
       
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, r_goal_dist_filtered
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
@@ -582,7 +583,10 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
-      r_goal_threshold = 725. * numpy.sqrt(2.)
+      alpha = 0.3
+      r_goal_dist_filtered = alpha*r_goal_ball + (1.0-alpha)*r_goal_dist_filtered
+      r_goal_threshold = 800. * numpy.sqrt(2.)
+      # r_goal_threshold = 725 * numpy.sqrt(2.)
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -592,8 +596,9 @@ class Playing(StateMachine):
       print "dy_gb: " + str(dy_gb)
       print "dt_gb: " + str(dt_gb)
 
-      if(r_goal_ball < r_goal_threshold):
-        print "Stopping with threshold " + str(r_goal_ball)
+      if(r_goal_dist_filtered < r_goal_threshold):
+        print "Stopping with threshold " + str(r_goal_dist_filtered)
+        # memory.speech.say("Distance " + str(int(r_goal_dist_filtered)) + ", aligning")
         current_state = AttackingStates.align
         return
 
@@ -606,7 +611,7 @@ class Playing(StateMachine):
     def attack_align(self):
       commands.setHeadTilt(-18)
       
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, attack_left
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, attack_left, r_goal_dist_filtered
       o_self = mem_objects.world_objects[robot_state.WO_SELF]
       o_ball = mem_objects.world_objects[core.WO_BALL]
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
@@ -616,11 +621,11 @@ class Playing(StateMachine):
         if(not o_enemy.seen):
           print "Can't find the enemy!"
           enemy_state = EnemyGoalStates.center
-          self.stop()
+          self.walk(-0.3, 0.0, 0.0)
           return
         if(not o_goal.seen):
           print "Can't find the goal!"
-          self.stop()
+          self.walk(-0.3, 0.0, 0.0)
           return
         else:
           gx = o_goal.visionDistance * numpy.cos(o_goal.visionBearing)
@@ -631,22 +636,24 @@ class Playing(StateMachine):
           print "Threshold: " + str(center_threshold)
           shift = gy - ey
           if(numpy.abs(shift) < center_threshold):
-            attack_left = bool(random.getrandbits(1))
+            # attack_left = bool(random.getrandbits(1))
+            attack_left = False
             side_string = str("left" if attack_left else "right")
             memory.speech.say("Enemy is in the center, shooting to the " + side_string)
             enemy_state = EnemyGoalStates.center
           elif(shift > 0.):
             memory.speech.say("Enemy is on the right, shooting to the left")
-            attack_left = True
-            enemy_state = EnemyGoalStates.right
+            # attack_left = True
+            attack_left = False
+            enemy_state = EnemyGoalStates.left
           else:
             memory.speech.say("Enemy is on the left, shooting to the right")
             attack_left = False
-            enemy_state = EnemyGoalStates.left
+            enemy_state = EnemyGoalStates.right
 
       if(not o_goal.seen or not o_ball.seen):
         print "Can't find the goal / ball"
-        #self.walk(-0.2, 0.0, 0.0)
+        self.walk(-0.3, 0.0, 0.0)
         return
 
 
@@ -662,9 +669,12 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
+      alpha = 0.3
+      r_goal_dist_filtered = alpha*r_goal_ball + (1.0-alpha)*r_goal_dist_filtered
 
-      if(r_goal_ball > 1500):
+      if(r_goal_dist_filtered > 2000):
         current_state = AttackingStates.dribble
+        # memory.speech.say("Distance " + str(int(r_goal_dist_filtered)) + ", going back")
         return
 
       if(o_enemy.seen):
@@ -691,17 +701,19 @@ class Playing(StateMachine):
 
 
       threshold = 50
-      ball_x_target = 100
+      ball_x_target = 95
       ball_y_target = -100
       goal_y_target = -100
 
       #override?
-      # tx = gx
-      # ty = gy
-      # if(attack_left):
-      #   ball_y_target += 50
-      # else:
-      #   ball_y_target -= 50
+      tx = gx
+      ty = gy
+      if(attack_left):
+        ball_y_target += 0
+        ty += 300
+      else:
+        ball_y_target -= 0
+        ty -= 300
 
       if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold):
         kick_sent = False
@@ -710,7 +722,7 @@ class Playing(StateMachine):
 
       x_vel = tanhController(-(ball_x_target - bx), 10.0/1000.0, 0.3) 
       y_vel = tanhController(-(ball_y_target - by), 10.0/1000.0, 0.3) 
-      t_vel = tanhController((ty - by), 5.0/1000.0, 0.3) 
+      t_vel = tanhController((ty - by), 12.0/1000.0, 0.3) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
@@ -756,6 +768,7 @@ class Playing(StateMachine):
         mode = Modes.attacking
         enemy_state = EnemyGoalStates.unknown
         kick_sent = False
+        r_goal_dist_filtered = 0. 
         current_state = AttackingStates.start
         last_mode_change_time = self.getTime()
       if(mode is not Modes.defending and hm and hr and not hf and (self.getTime() - last_mode_change_time) > 1.0): #need to switch to defense mode

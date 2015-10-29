@@ -221,7 +221,6 @@ class Playing(StateMachine):
         last_yv[last_state_counter] = yv
         last_distance[last_state_counter] = distance
         last_bearing[last_state_counter] = bearing
-        
 
         # av_x = x
         # av_y = y
@@ -262,23 +261,23 @@ class Playing(StateMachine):
         print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
         if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
           head_pan = core.joint_values[core.HeadYaw]
-          if(head_pan > 0.25):
+          if(head_pan > 0.23):
             body_turning_flag = 1
-            commands.setWalkVelocity(0.1, 0.4, 0.15)
-          elif(head_pan < -0.25):
+            commands.setWalkVelocity(0.1, 0.4, 0.13)
+          elif(head_pan < -0.23):
             body_turning_flag = 1
-            commands.setWalkVelocity(0.15,-0.3,-0.04)
+            commands.setWalkVelocity(0.15,-0.3,-0.05)
           else:
             commands.stand()
             body_turning_flag = 0
           return
 
         if(av_xv > -200 or (abs(av_yv)+0.01)/(abs(av_xv)+0.01) > 1):
-          print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
+          #print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
           block_trigger_flag = 0
           return
         elif( av_px > -1100 ):
-          print(" No!!!!: Ball too short px = ") + str(av_px) + " seen_times = " + str(seen_times)
+          #print(" No!!!!: Ball too short px = ") + str(av_px) + " seen_times = " + str(seen_times)
           block_trigger_flag = 0
           return 
         elif( av_distance < 1200 and av_xv < -100):
@@ -287,31 +286,40 @@ class Playing(StateMachine):
           intercept = av_y - lamda*av_x
           hit_goal_line = lamda*(-1300) + intercept
 
-          if(block_trigger_flag == 2):
+          if(block_trigger_flag > 2):
             print "========================================================================="
-            print " Yes: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
+            print "========================================================================="
+            print "========================================================================="
+            print "========================================================================="
+            print "========================================================================="
+            print "========================================================================="
+            
             block_trigger_flag = 0
-            if( hit_goal_line < -250 and hit_goal_line > -550):
+            if( hit_goal_line < -200 and hit_goal_line > -550):
+              print " Left : Yes: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
               current_state = DefendingStates.block_right
               #choice = "right"
               #self.postSignal(choice)
-            elif( hit_goal_line >  250 and hit_goal_line < 550):
+            elif( hit_goal_line >  200 and hit_goal_line < 550):
+              print " Right : av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
-              current_state = DefendingStates.block_right
+              current_state = DefendingStates.block_left
               # choice = "left"
               # self.postSignal(choice)
-            elif( hit_goal_line > -250 and hit_goal_line < 250):
+            elif( hit_goal_line > -200 and hit_goal_line < 200):
+              print " Center: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
-              current_state = DefendingStates.block_right
+              current_state = DefendingStates.block
               # choice = "center"
               # self.postSignal(choice)
 
       else: # Think ball is still not seen
         #memory.speech.say("No ball")
+        commands.stand()
         if ((self.getTime() - last_head_time) > 3):
           if(last_head_pan > 0 ):
             last_head_pan = -1.2
@@ -328,6 +336,7 @@ class Playing(StateMachine):
 
     def defense_block(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      print "center : ========================================================================="
       if(self.toPose({
               core.LHipYawPitch: -50.7990128575929,
               core.LHipRoll: -29.7098065875597,
@@ -350,7 +359,7 @@ class Playing(StateMachine):
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 5.5:
+        if (self.getTime() - pose_start_time) > 5:
           pose_sent = False
           num_times_sent = 0
           pose_start_time = 0
@@ -359,29 +368,30 @@ class Playing(StateMachine):
 
     def defense_block_left(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      print "left : ========================================================================="
       if(self.toPose({ 
-              core.LHipYawPitch: -50.7990128575929,
-              core.LHipRoll: -29.7098065875597,
-              core.LHipPitch: -36.1211002557756,
-              core.LKneePitch: 123.397585319279,
-              core.LAnklePitch: -48.8526839844773,
-              core.LAnkleRoll: 12.8,
-              core.RHipYawPitch: -50,
-              core.RHipRoll: -30.6718114113993,
-              core.RHipPitch: -37.3563946086858,
-              core.RKneePitch: 125.072320383009,
-              core.RAnklePitch: -48.5,
-              core.RAnkleRoll: 11.4,
-              core.LShoulderPitch: -79,
-              core.LShoulderRoll: 25,
-              core.RShoulderPitch: -79,
-              core.RShoulderRoll: 26
+              core.RHipYawPitch : 0,
+              core.RHipRoll : 20,
+              core.RHipPitch : -32,
+              core.RKneePitch : 76,
+              core.RAnklePitch : -40,
+              core.RAnkleRoll : 17,
+              core.LHipYawPitch : 0,
+              core.LHipRoll : -34,
+              core.LHipPitch : -49,
+              core.LKneePitch : 125,
+              core.LAnklePitch : -70,
+              core.LAnkleRoll : -5,
+              core.RShoulderPitch : -97,
+              core.RShoulderRoll : 7,
+              core.LShoulderPitch : -91,
+              core.LShoulderRoll : 45
               }
-              , 1.0
+              , 0.5
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 5.5:
+        if (self.getTime() - pose_start_time) > 4.5:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
@@ -390,29 +400,30 @@ class Playing(StateMachine):
 
     def defense_block_right(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      print "right : ========================================================================="
       if(self.toPose({ 
-            core.LHipYawPitch: -50.7990128575929,
-            core.LHipRoll: -29.7098065875597,
-            core.LHipPitch: -36.1211002557756,
-            core.LKneePitch: 123.397585319279,
-            core.LAnklePitch: -48.8526839844773,
-            core.LAnkleRoll: 12.8,
-            core.RHipYawPitch: -50,
-            core.RHipRoll: -30.6718114113993,
-            core.RHipPitch: -37.3563946086858,
-            core.RKneePitch: 125.072320383009,
-            core.RAnklePitch: -48.5,
-            core.RAnkleRoll: 11.4,
-            core.LShoulderPitch: -79,
-            core.LShoulderRoll: 25,
-            core.RShoulderPitch: -79,
-            core.RShoulderRoll: 26
+            core.LHipYawPitch : 0 ,
+            core.LHipRoll : 20 ,
+            core.LHipPitch : -32 ,
+            core.LKneePitch : 76 ,
+            core.LAnklePitch : -40 ,
+            core.LAnkleRoll : 17 ,
+            core.RHipYawPitch : 0 ,
+            core.RHipRoll : -34 ,
+            core.RHipPitch : -49 ,
+            core.RKneePitch : 125 ,
+            core.RAnklePitch : -70 ,
+            core.RAnkleRoll : -5 ,
+            core.LShoulderPitch : -97 ,
+            core.LShoulderRoll : 7 ,
+            core.RShoulderPitch : -91 ,
+            core.RShoulderRoll : 45 
             }
-            , 1.0
+            , 0.5
           )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 5.5:
+        if (self.getTime() - pose_start_time) > 4.5:
           pose_start_time = 0 
           pose_sent = False
           num_times_sent = 0
@@ -445,13 +456,13 @@ class Playing(StateMachine):
             )):
         print "pose time: " + str(pose_start_time)
         print "current time: " + str(self.getTime())
-        if (self.getTime() - pose_start_time) > 7.5:
+        if (self.getTime() - pose_start_time) > 7:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
           print "CHANGING TO START"
           current_state = DefendingStates.start
-        elif (self.getTime() - pose_start_time) > 4.5:
+        elif (self.getTime() - pose_start_time) > 4:
           commands.stand()
 
     def defense_walk(self):
@@ -460,7 +471,7 @@ class Playing(StateMachine):
       commands.setWalkVelocity(0.3,0.0,0.05)
       print "walk time: " + str(walk_start_time)
       print "current time: " + str(self.getTime())
-      if (self.getTime() - walk_start_time) > 6.0:
+      if (self.getTime() - walk_start_time) > 7.0:
         current_state = DefendingStates.start
         # commands.setWalkVelocity(0.0,0.0,0.0)
         commands.stand()

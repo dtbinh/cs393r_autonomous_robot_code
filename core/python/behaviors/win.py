@@ -627,6 +627,7 @@ class Playing(StateMachine):
 
       #execute the appropriate function
       if(mode is Modes.passive):
+        print "passive"
         self.track_ball()
         self.stop()
         return

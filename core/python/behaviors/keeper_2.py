@@ -28,43 +28,6 @@ last_head_pan = 1.2
 body_turning_flag = 0
 block_trigger_flag = 0
 
-# class BlockLeft(Node):
-#   def run(self):
-#     UTdebug.log(15, "Blocking left")
-#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
-#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-#                                   core.LShoulderRoll:80   , core.RShoulderRoll:5   , 
-#                                   core.LShoulderPitch:-20 , core.RShoulderPitch:-80 }
-#                                   , 0.5
-#                                 )
-#                     )
-
-
-# class BlockRight(Node):
-#   def run(self):
-#     UTdebug.log(15, "Blocking right")
-#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
-#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-#                                   core.LShoulderRoll:5   , core.RShoulderRoll:80   , 
-#                                   core.LShoulderPitch:-80 , core.RShoulderPitch:-20 }
-#                                   , 0.5
-#                                 )
-#                     )
-    
-
-# class BlockCenter(Node):
-#   def run(self):
-#     UTdebug.log(15, "Blocking center")
-#     self.setSubtask(pose.ToPose({ core.LKneePitch:50    , core.RKneePitch:50   ,
-#                                   core.LHipPitch:-25    , core.RHipPitch:-25   ,
-#                                   core.LAnklePitch:-25  , core.RAnklePitch:-25 ,
-#                                   core.LShoulderRoll:20   , core.RShoulderRoll:20   , 
-#                                   core.LShoulderPitch:-20 , core.RShoulderPitch:-20 }
-#                                   , 0.5
-#                                 )
-#                     )
 
 class GoalieBlock(Node):
   def run(self):
@@ -229,17 +192,17 @@ class Blocker(Node):
         d_turning = 2
       commands.setHeadPan(av_bearing, d_turning)
 
-      # print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
-      # if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
-      #   head_pan = core.joint_values[core.HeadYaw]
-      #   if(head_pan > 0.2):
-      #     body_turning_flag = 1
-      #     commands.setWalkVelocity(0.0, 0.3, 0.05)
-      #   elif(head_pan < -0.2):
-      #     body_turning_flag = 1
-      #     commands.setWalkVelocity(0.0,-0.3,-0.05)
-      #   else:
-      #     body_turning_flag = 0
+      print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
+      if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
+        head_pan = core.joint_values[core.HeadYaw]
+        if(head_pan > 0.2):
+          body_turning_flag = 1
+          commands.setWalkVelocity(0.0, 0.3, 0.05)
+        elif(head_pan < -0.2):
+          body_turning_flag = 1
+          commands.setWalkVelocity(0.0,-0.3,-0.05)
+        else:
+          body_turning_flag = 0
 
       if(av_xv > -200 or (abs(av_yv)+0.01)/(abs(av_xv)+0.01) > 1):
         print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)

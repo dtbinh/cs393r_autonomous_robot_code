@@ -259,17 +259,19 @@ class Playing(StateMachine):
           d_turning = 2
         commands.setHeadPan(av_bearing, d_turning)
 
-        # print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
-        # if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
-        #   head_pan = core.joint_values[core.HeadYaw]
-        #   if(head_pan > 0.2):
-        #     body_turning_flag = 1
-        #     commands.setWalkVelocity(0.0, 0.3, 0.05)
-        #   elif(head_pan < -0.2):
-        #     body_turning_flag = 1
-        #     commands.setWalkVelocity(0.0,-0.3,-0.05)
-        #   else:
-        #     body_turning_flag = 0
+        print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
+        if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
+          head_pan = core.joint_values[core.HeadYaw]
+          if(head_pan > 0.25):
+            body_turning_flag = 1
+            commands.setWalkVelocity(0.1, 0.4, 0.15)
+          elif(head_pan < -0.25):
+            body_turning_flag = 1
+            commands.setWalkVelocity(0.15,-0.3,-0.04)
+          else:
+            commands.stand()
+            body_turning_flag = 0
+          return
 
         if(av_xv > -200 or (abs(av_yv)+0.01)/(abs(av_xv)+0.01) > 1):
           print(" No!!!!: Vx > 0 or Vx / Vy large , Vx = ") + str(av_xv) + " Vy = " + str(av_yv) + " seen_times = " + str(seen_times)
@@ -458,7 +460,7 @@ class Playing(StateMachine):
       commands.setWalkVelocity(0.3,0.0,0.05)
       print "walk time: " + str(walk_start_time)
       print "current time: " + str(self.getTime())
-      if (self.getTime() - walk_start_time) > 5.0:
+      if (self.getTime() - walk_start_time) > 6.0:
         current_state = DefendingStates.start
         # commands.setWalkVelocity(0.0,0.0,0.0)
         commands.stand()
@@ -676,10 +678,20 @@ class Playing(StateMachine):
       print "bx: " + str(bx)
       print "by: " + str(by)
 
+
       threshold = 50
       ball_x_target = 100
       ball_y_target = -100
       goal_y_target = -100
+
+      #override?
+      # tx = gx
+      # ty = gy
+      # if(attack_left):
+      #   ball_y_target += 50
+      # else:
+      #   ball_y_target -= 50
+
       if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold):
         kick_sent = False
         current_state = AttackingStates.kick
@@ -687,7 +699,7 @@ class Playing(StateMachine):
 
       x_vel = tanhController(-(ball_x_target - bx), 10.0/1000.0, 0.3) 
       y_vel = tanhController(-(ball_y_target - by), 10.0/1000.0, 0.3) 
-      t_vel = tanhController((ty - by), 10.0/1000.0, 0.35) 
+      t_vel = tanhController((ty - by), 5.0/1000.0, 0.3) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
@@ -766,7 +778,11 @@ class Playing(StateMachine):
       # print "rrr is " + str(rrr)
       # print "max is " + str(max_force)
       # print "tilt " + str((lfl+lrl)/2.-(lfr+lrr)/2.)
-      if(numpy.abs(max_force) < 0.15 and mode is not Modes.passive):
+      if(numpy.abs(max_force) < 0.10 and mode is not Modes.passive):
+        print("***************************************************")
+        print("***************************************************")
+        print("***************************************************")
+        print("numpy.abs(max_force) = ") + str(numpy.abs(max_force))
         memory.speech.say("Put me down!")
         self.stop()
         mode = Modes.passive

@@ -51,6 +51,7 @@ field = Fields.A
 mode = Modes.passive
 enemy_state = EnemyGoalStates.unknown
 current_state = AttackingStates.start
+last_mode_change_time = 0
 
 #attacking globals
 rotation_dir = 1.
@@ -574,27 +575,30 @@ class Playing(StateMachine):
         current_state = AttackingStates.start
 
     def run(self):
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, last_mode_change_time
 
       #detect mode switches
       hf = sensors.getValue(core.headFront)
       hm = sensors.getValue(core.headMiddle)
       hr = sensors.getValue(core.headRear)
       # print "Head: " + str(hf) + ", " + str(hm) + ", " + str(hr)
-      if(mode is not Modes.attacking and hf and hm and not hr): #need to switch to attack mode
+      if(mode is not Modes.passive and hf and hm and hr): #need to switch of passive mode
+        self.stop()
+        memory.speech.say("Passive Mode!")
+        mode = Modes.passive
+        last_mode_change_time = self.getTime()
+      if(mode is not Modes.attacking and hf and hm and not hr and (self.getTime() - last_mode_change_time) > 1.0): #need to switch to attack mode
         memory.speech.say("Attack Mode!")
         mode = Modes.attacking
         enemy_state = EnemyGoalStates.unknown
         kick_sent = False
         current_state = AttackingStates.start
-      if(mode is not Modes.defending and hm and hr and not hf): #need to switch to defense mode
+        last_mode_change_time = self.getTime()
+      if(mode is not Modes.defending and hm and hr and not hf and (self.getTime() - last_mode_change_time) > 1.0): #need to switch to defense mode
         memory.speech.say("Defense Mode!")
         mode = Modes.defending
         current_state = DefendingStates.start
-      if(mode is not Modes.passive and hf and hm and hr): #need to switch of passive mode
-        self.stop()
-        memory.speech.say("Passive Mode!")
-        mode = Modes.passive
+        last_mode_change_time = self.getTime()
 
       #detect kidnapping
       lfl = sensors.getValue(core.fsrLFL)

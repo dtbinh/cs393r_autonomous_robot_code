@@ -121,10 +121,10 @@ class Playing(StateMachine):
         kick_request.setNoKick()
         num_times_sent = num_times_sent+1
         pose_start_time = self.getTime()
-        print "Sending pose at time " + str(pose_start_time) + "! #" + str(num_times_sent)
+        #print "Sending pose at time " + str(pose_start_time) + "! #" + str(num_times_sent)
 
       if num_times_sent >= times_to_send and ((self.getTime() - pose_start_time) > time):
-        print "DONE!"
+        #print "DONE!"
         return True
       else:
         return False
@@ -160,17 +160,17 @@ class Playing(StateMachine):
       cy = obj.visionDistance * numpy.sin(obj.visionBearing)
       r = numpy.sqrt(cx*cx+cy*cy)
       t_err = numpy.arctan2(cy, cx)
-      print "local target x,y = " + str(cx) + "," + str(cy)
+      #print "local target x,y = " + str(cx) + "," + str(cy)
 
       if(r < r_threshold):
-        print "Stopping"
+        #print "Stopping"
         self.stop()
         return True
 
       x_vel = tanhController(cx, 10.0 / 1000.0, 0.4)
       y_vel = tanhController(cy, 10.0 / 1000.0, 0.4)
       t_vel = 0.0
-      print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
+      #print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel,y_vel,t_vel)
       return False
 
@@ -243,7 +243,7 @@ class Playing(StateMachine):
         last_state_counter = (last_state_counter + 1)%last_inf_constant
 
         #print "av_vx = " + str(av_xv) + "\tav_vy = " + str(av_yv)
-        print("av_px = ") + str(av_px) + " \tseen_times = " + str(seen_times)
+        #print("av_px = ") + str(av_px) + " \tseen_times = " + str(seen_times)
 
         #print "Avg : av_x = " + str(av_x) + " av_y = " + str(av_y) + " av_xv = " + str(av_xv) +" av_yv = " + str(av_yv)
 
@@ -259,7 +259,7 @@ class Playing(StateMachine):
           d_turning = 2
         commands.setHeadPan(av_bearing, d_turning)
 
-        print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
+        #print "av_xy = " + str(av_xv) + "\tav_y = " + str(av_yv) + "\tflag = " + str(body_turning_flag) + "\tPAN: " + str(core.joint_values[core.HeadYaw])
         if( (abs(av_xv) < 300 and abs(av_yv) < 300 ) or body_turning_flag == 1):
           head_pan = core.joint_values[core.HeadYaw]
           if(head_pan > 0.2):
@@ -288,30 +288,30 @@ class Playing(StateMachine):
           hit_goal_line = lamda*(-1300) + intercept
 
           if(block_trigger_flag > 2):
-            print "========================================================================="
-            print "========================================================================="
-            print "========================================================================="
-            print "========================================================================="
-            print "========================================================================="
-            print "========================================================================="
+            #print "========================================================================="
+            #print "========================================================================="
+            #print "========================================================================="
+            #print "========================================================================="
+            #print "========================================================================="
+            #print "========================================================================="
             
             block_trigger_flag = 0
             if( hit_goal_line < -200 and hit_goal_line > -550):
-              print " Left : Yes: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
+              #print " Left : Yes: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
               current_state = DefendingStates.block_right
               #choice = "right"
               #self.postSignal(choice)
             elif( hit_goal_line >  200 and hit_goal_line < 550):
-              print " Right : av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
+              #print " Right : av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
               current_state = DefendingStates.block_left
               # choice = "left"
               # self.postSignal(choice)
             elif( hit_goal_line > -200 and hit_goal_line < 200):
-              print " Center: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
+              #print " Center: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
               pose_sent = False
               num_times_sent = 0
               current_state = DefendingStates.block
@@ -337,7 +337,7 @@ class Playing(StateMachine):
 
     def defense_block(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
-      print "center : ========================================================================="
+      #print "center : ========================================================================="
       if(self.toPose({
               core.LHipYawPitch: -50.7990128575929,
               core.LHipRoll: -29.7098065875597,
@@ -358,18 +358,18 @@ class Playing(StateMachine):
               }
               , 1.0
             )):
-        print "pose time: " + str(pose_start_time)
-        print "current time: " + str(self.getTime())
+        #print "pose time: " + str(pose_start_time)
+        #print "current time: " + str(self.getTime())
         if (self.getTime() - pose_start_time) > 4:
           pose_sent = False
           num_times_sent = 0
           pose_start_time = 0
-          print "CHANGING TO SIT"
+          #print "CHANGING TO SIT"
           current_state = DefendingStates.sit
 
     def defense_block_left(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
-      print "left : ========================================================================="
+      #print "left : ========================================================================="
       if(self.toPose({ 
               core.RHipYawPitch : 0,
               core.RHipRoll : 20,
@@ -390,18 +390,18 @@ class Playing(StateMachine):
               }
               , 0.5
             )):
-        print "pose time: " + str(pose_start_time)
-        print "current time: " + str(self.getTime())
+        #print "pose time: " + str(pose_start_time)
+        #print "current time: " + str(self.getTime())
         if (self.getTime() - pose_start_time) > 4:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
-          print "CHANGING TO SIT"
+          #print "CHANGING TO SIT"
           current_state = DefendingStates.sit
 
     def defense_block_right(self):
       global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
-      print "right : ========================================================================="
+      #print "right : ========================================================================="
       if(self.toPose({ 
             core.LHipYawPitch : 0 ,
             core.LHipRoll : 20 ,
@@ -422,13 +422,13 @@ class Playing(StateMachine):
             }
             , 0.5
           )):
-        print "pose time: " + str(pose_start_time)
-        print "current time: " + str(self.getTime())
+        #print "pose time: " + str(pose_start_time)
+        #print "current time: " + str(self.getTime())
         if (self.getTime() - pose_start_time) > 4:
           pose_start_time = 0 
           pose_sent = False
           num_times_sent = 0
-          print "CHANGING TO SIT"
+          #print "CHANGING TO SIT"
           current_state = DefendingStates.sit
 
     def defense_sit(self):
@@ -455,13 +455,13 @@ class Playing(StateMachine):
               }
               , 1.5
             )):
-        print "pose time: " + str(pose_start_time)
-        print "current time: " + str(self.getTime())
+        #print "pose time: " + str(pose_start_time)
+        #print "current time: " + str(self.getTime())
         if (self.getTime() - pose_start_time) > 6.5:
           pose_start_time = 0
           pose_sent = False
           num_times_sent = 0
-          print "CHANGING TO START"
+          #print "CHANGING TO START"
           current_state = DefendingStates.start
         elif (self.getTime() - pose_start_time) > 3.5:
           commands.stand()
@@ -470,8 +470,8 @@ class Playing(StateMachine):
       global walk_start_time, current_state, DefendingStates
       commands.setHeadTilt(-13)
       commands.setWalkVelocity(0.3,0.0,0.05)
-      print "walk time: " + str(walk_start_time)
-      print "current time: " + str(self.getTime())
+      #print "walk time: " + str(walk_start_time)
+      #print "current time: " + str(self.getTime())
       if (self.getTime() - walk_start_time) > 9.0:
         current_state = DefendingStates.start
         # commands.setWalkVelocity(0.0,0.0,0.0)
@@ -509,8 +509,7 @@ class Playing(StateMachine):
       if(o_ball.seen): 
         current_state = AttackingStates.approach
       else:
-        #todo: search for ball
-        pass
+        self.walk(0.0, 0.0, rotation_dir*0.2)
 
     def attack_approach(self):
       commands.setHeadTilt(-14)
@@ -564,13 +563,13 @@ class Playing(StateMachine):
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
       if(not o_goal.seen):
-        print "Lost the goal!"
+        #print "Lost the goal!"
         self.stop()
         current_state = AttackingStates.rotate
         return
 
       if(not o_ball.seen):
-        print "Lost the ball!"
+        #print "Lost the ball!"
         self.walk(-0.3, 0.0, 0.0)
         return
 
@@ -585,19 +584,19 @@ class Playing(StateMachine):
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
       alpha = 0.3
       r_goal_dist_filtered = alpha*r_goal_ball + (1.0-alpha)*r_goal_dist_filtered
-      r_goal_threshold = 800. * numpy.sqrt(2.)
+      r_goal_threshold = 750. * numpy.sqrt(2.)
       # r_goal_threshold = 725 * numpy.sqrt(2.)
 
-      print "gx: " + str(gx)
-      print "gy: " + str(gy)
-      print "bx: " + str(bx)
-      print "by: " + str(by)
-      print "dx_gb: " + str(dx_gb)
-      print "dy_gb: " + str(dy_gb)
-      print "dt_gb: " + str(dt_gb)
+      #print "gx: " + str(gx)
+      #print "gy: " + str(gy)
+      #print "bx: " + str(bx)
+      #print "by: " + str(by)
+      #print "dx_gb: " + str(dx_gb)
+      #print "dy_gb: " + str(dy_gb)
+      #print "dt_gb: " + str(dt_gb)
 
       if(r_goal_dist_filtered < r_goal_threshold):
-        print "Stopping with threshold " + str(r_goal_dist_filtered)
+        #print "Stopping with threshold " + str(r_goal_dist_filtered)
         # memory.speech.say("Distance " + str(int(r_goal_dist_filtered)) + ", aligning")
         current_state = AttackingStates.align
         return
@@ -605,7 +604,7 @@ class Playing(StateMachine):
       x_vel = 0.3 if numpy.abs(by) < 200 else 0.
       y_vel = tanhController((gy + by)/2.0, 20.0/1000.0, 0.35) 
       t_vel = tanhController(dy_gb, 10.0/1000.0, 0.2) 
-      print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
+      #print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
     def attack_align(self):
@@ -619,12 +618,12 @@ class Playing(StateMachine):
       
       if(enemy_state is EnemyGoalStates.unknown):
         if(not o_enemy.seen):
-          print "Can't find the enemy!"
+          #print "Can't find the enemy!"
           enemy_state = EnemyGoalStates.center
           self.walk(-0.3, 0.0, 0.0)
           return
         if(not o_goal.seen):
-          print "Can't find the goal!"
+          #print "Can't find the goal!"
           self.walk(-0.3, 0.0, 0.0)
           return
         else:
@@ -633,7 +632,7 @@ class Playing(StateMachine):
           ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
           ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
           center_threshold = o_goal.radius*0.1
-          print "Threshold: " + str(center_threshold)
+          #print "Threshold: " + str(center_threshold)
           shift = gy - ey
           if(numpy.abs(shift) < center_threshold):
             # attack_left = bool(random.getrandbits(1))
@@ -652,8 +651,8 @@ class Playing(StateMachine):
             enemy_state = EnemyGoalStates.right
 
       if(not o_goal.seen or not o_ball.seen):
-        print "Can't find the goal / ball"
-        self.walk(-0.3, 0.0, 0.0)
+        #print "Can't find the goal / ball"
+        self.walk(-0.3, 0.0, 0.05)
         return
 
 
@@ -692,15 +691,15 @@ class Playing(StateMachine):
         else:
           ty -= 3.0 * o_goal.radius / 8.
 
-      print "gx: " + str(gx)
-      print "gy: " + str(gy)
-      print "tx: " + str(tx)
-      print "ty: " + str(ty)
-      print "bx: " + str(bx)
-      print "by: " + str(by)
+      #print "gx: " + str(gx)
+      #print "gy: " + str(gy)
+      #print "tx: " + str(tx)
+      #print "ty: " + str(ty)
+      #print "bx: " + str(bx)
+      #print "by: " + str(by)
 
 
-      threshold = 50
+      threshold = 65
       ball_x_target = 95
       ball_y_target = -100
       goal_y_target = -100
@@ -710,10 +709,10 @@ class Playing(StateMachine):
       ty = gy
       if(attack_left):
         ball_y_target += 0
-        ty += 300
+        ty += 250
       else:
         ball_y_target -= 0
-        ty -= 300
+        ty -= 250
 
       if (numpy.abs(bx - ball_x_target) <= threshold) and (numpy.abs(by - ball_y_target) <= threshold) and (numpy.abs(ty - goal_y_target) <= threshold) and (numpy.abs(ty - by) <= threshold):
         kick_sent = False
@@ -723,7 +722,7 @@ class Playing(StateMachine):
       x_vel = tanhController(-(ball_x_target - bx), 10.0/1000.0, 0.3) 
       y_vel = tanhController(-(ball_y_target - by), 10.0/1000.0, 0.3) 
       t_vel = tanhController((ty - by), 12.0/1000.0, 0.3) 
-      print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
+      #print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 
     def attack_kick(self):
@@ -731,7 +730,7 @@ class Playing(StateMachine):
       
       global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, kick_start_time, recovering_from_kick
       if not kick_sent:
-        print "sending kick"
+        #print "sending kick"
         # memory.speech.say("Kicking")
         memory.walk_request.noWalk()
         memory.kick_request.setFwdKick()
@@ -748,7 +747,7 @@ class Playing(StateMachine):
         recovering_from_kick = False
         self.stop()
         mode = Modes.passive
-        current_state = AttackingStates.start
+        current_state = AttackingStates.dribble
 
     def run(self):
       global walk_start_time, EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, last_mode_change_time
@@ -803,17 +802,17 @@ class Playing(StateMachine):
       # print "max is " + str(max_force)
       # print "tilt " + str((lfl+lrl)/2.-(lfr+lrr)/2.)
       if(numpy.abs(max_force) < 0.10 and mode is not Modes.passive):
-        print("***************************************************")
-        print("***************************************************")
-        print("***************************************************")
-        print("numpy.abs(max_force) = ") + str(numpy.abs(max_force))
+        #print("***************************************************")
+        #print("***************************************************")
+        #print("***************************************************")
+        #print("numpy.abs(max_force) = ") + str(numpy.abs(max_force))
         memory.speech.say("Put me down!")
         self.stop()
         mode = Modes.passive
 
       #execute the appropriate function
       if(mode is Modes.passive):
-        print "passive"
+        #print "passive"
         self.track_ball()
         self.stop()
         return
@@ -821,7 +820,7 @@ class Playing(StateMachine):
 
         function_map = {}
         if(mode is Modes.attacking):
-          print "Attack mode"
+          #print "Attack mode"
           function_map = {AttackingStates.start:self.attack_start, 
                           AttackingStates.approach:self.attack_approach, 
                           AttackingStates.rotate:self.attack_rotate, 
@@ -829,7 +828,7 @@ class Playing(StateMachine):
                           AttackingStates.align:self.attack_align, 
                           AttackingStates.kick:self.attack_kick}
         else:
-          print "Defense mode"
+          #print "Defense mode"
           function_map = {DefendingStates.start:self.defense_start, 
                           DefendingStates.walk_center:self.defense_walk_center, 
                           DefendingStates.walk_left:self.defense_walk_left, 
@@ -840,7 +839,7 @@ class Playing(StateMachine):
                           DefendingStates.block_right:self.defense_block_right, 
                           DefendingStates.sit:self.defense_sit
                           }
-        print "Current state: " + str(current_state)
+        #print "Current state: " + str(current_state)
         function_map[current_state]()
 
   class Off(Node):

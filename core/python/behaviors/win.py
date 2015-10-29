@@ -8,7 +8,7 @@ from sets import Set
 class Ready(Task):
   def run(self):
     commands.stand()
-    if self.getTime() > 5.0:
+    if self.getTime() > 3.0:
       self.finish()
 
 #Fields = Enum('Fields', 'A B')
@@ -46,6 +46,8 @@ class DefendingStates:
   walk=4
   block=5
   sit=6
+  block_left=7
+  block_right=8
 
 field = Fields.A
 mode = Modes.passive
@@ -84,7 +86,12 @@ last_head_time = 0
 last_head_pan = 1.2
 body_turning_flag = 0
 block_trigger_flag = 0
-first = False
+pose_sent = False
+num_times_sent = 0
+pose_start_time = 0
+defense_time = 0
+defense_delay_time = 0
+walk_start_time = 0
 
 def tanhController(err, kx, max_cmd):
   return max_cmd * numpy.tanh(kx * err)
@@ -98,8 +105,10 @@ class Playing(StateMachine):
 
   class Win(Node):
     def toPose(self, pose, time):
-      global first
-      if first:
+      global pose_sent, pose_start_time, num_times_sent
+      commands.setStiffness()
+      times_to_send = 1
+      if num_times_sent < times_to_send:
         for i in range(2, core.NUM_JOINTS):
           val = util.getPoseJoint(i, pose, False)
           if val != None:
@@ -109,8 +118,15 @@ class Playing(StateMachine):
         joint_commands.body_angle_time_ = time * 1000.0
         walk_request.noWalk()
         kick_request.setNoKick()
-        first = False
-      return (self.getTime() > time)
+        num_times_sent = num_times_sent+1
+        pose_start_time = self.getTime()
+        print "Sending pose at time " + str(pose_start_time) + "! #" + str(num_times_sent)
+
+      if num_times_sent >= times_to_send and ((self.getTime() - pose_start_time) > time):
+        print "DONE!"
+        return True
+      else:
+        return False
 
     def walk(self, vx, vy, vt):
       commands.setWalkVelocity(vx+0.1, vy+0.0, vt+0.0)
@@ -159,12 +175,13 @@ class Playing(StateMachine):
 
 #DEFENSE============================================================================================
     def defense_start(self):
+      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir
       global if_seen_history_constant , last_inf_constant
       global if_seen_history , if_seen_history_counter , last_x , last_y , last_xv , last_yv , last_bearing , last_distance , last_state_counter,last_av_px
       global friction, dt
-      global last_head_time, last_head_pan, body_turning_flag, block_trigger_flag
+      global last_head_time, last_head_pan, body_turning_flag, block_trigger_flag, pose_sent, num_times_sent
 
-      #commands.stand()
+      # commands.stand()
       commands.setHeadTilt(-13)
       ball = mem_objects.world_objects[core.WO_BALL]
       if_seen_history[if_seen_history_counter] = ball.seen;
@@ -273,15 +290,21 @@ class Playing(StateMachine):
             print " Yes: av_px = " + str(av_px) + " hit_goal_line = " + str(hit_goal_line)
             block_trigger_flag = 0
             if( hit_goal_line < -250 and hit_goal_line > -550):
-              current_state = DefendingStates.walk_right
+              pose_sent = False
+              num_times_sent = 0
+              current_state = DefendingStates.block_right
               #choice = "right"
               #self.postSignal(choice)
             elif( hit_goal_line >  250 and hit_goal_line < 550):
-              current_state = DefendingStates.walk_left
+              pose_sent = False
+              num_times_sent = 0
+              current_state = DefendingStates.block_right
               # choice = "left"
               # self.postSignal(choice)
             elif( hit_goal_line > -250 and hit_goal_line < 250):
-              current_state = DefendingStates.walk_center
+              pose_sent = False
+              num_times_sent = 0
+              current_state = DefendingStates.block_right
               # choice = "center"
               # self.postSignal(choice)
 
@@ -302,7 +325,8 @@ class Playing(StateMachine):
         last_bearing = [0]*last_inf_constant
 
     def defense_block(self):
-      if(toPose({ 
+      global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      if(self.toPose({
               core.LHipYawPitch: -50.7990128575929,
               core.LHipRoll: -29.7098065875597,
               core.LHipPitch: -36.1211002557756,
@@ -322,10 +346,80 @@ class Playing(StateMachine):
               }
               , 1.0
             )):
-        current_state = DefendingStates.start
+        print "pose time: " + str(pose_start_time)
+        print "current time: " + str(self.getTime())
+        if (self.getTime() - pose_start_time) > 5.5:
+          pose_sent = False
+          num_times_sent = 0
+          pose_start_time = 0
+          print "CHANGING TO SIT"
+          current_state = DefendingStates.sit
+
+    def defense_block_left(self):
+      global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      if(self.toPose({ 
+              core.LHipYawPitch: -50.7990128575929,
+              core.LHipRoll: -29.7098065875597,
+              core.LHipPitch: -36.1211002557756,
+              core.LKneePitch: 123.397585319279,
+              core.LAnklePitch: -48.8526839844773,
+              core.LAnkleRoll: 12.8,
+              core.RHipYawPitch: -50,
+              core.RHipRoll: -30.6718114113993,
+              core.RHipPitch: -37.3563946086858,
+              core.RKneePitch: 125.072320383009,
+              core.RAnklePitch: -48.5,
+              core.RAnkleRoll: 11.4,
+              core.LShoulderPitch: -79,
+              core.LShoulderRoll: 25,
+              core.RShoulderPitch: -79,
+              core.RShoulderRoll: 26
+              }
+              , 1.0
+            )):
+        print "pose time: " + str(pose_start_time)
+        print "current time: " + str(self.getTime())
+        if (self.getTime() - pose_start_time) > 5.5:
+          pose_start_time = 0
+          pose_sent = False
+          num_times_sent = 0
+          print "CHANGING TO SIT"
+          current_state = DefendingStates.sit
+
+    def defense_block_right(self):
+      global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      if(self.toPose({ 
+            core.LHipYawPitch: -50.7990128575929,
+            core.LHipRoll: -29.7098065875597,
+            core.LHipPitch: -36.1211002557756,
+            core.LKneePitch: 123.397585319279,
+            core.LAnklePitch: -48.8526839844773,
+            core.LAnkleRoll: 12.8,
+            core.RHipYawPitch: -50,
+            core.RHipRoll: -30.6718114113993,
+            core.RHipPitch: -37.3563946086858,
+            core.RKneePitch: 125.072320383009,
+            core.RAnklePitch: -48.5,
+            core.RAnkleRoll: 11.4,
+            core.LShoulderPitch: -79,
+            core.LShoulderRoll: 25,
+            core.RShoulderPitch: -79,
+            core.RShoulderRoll: 26
+            }
+            , 1.0
+          )):
+        print "pose time: " + str(pose_start_time)
+        print "current time: " + str(self.getTime())
+        if (self.getTime() - pose_start_time) > 5.5:
+          pose_start_time = 0 
+          pose_sent = False
+          num_times_sent = 0
+          print "CHANGING TO SIT"
+          current_state = DefendingStates.sit
 
     def defense_sit(self):
-      if(toPose({ 
+      global current_state, DefendingStates, pose_sent, pose_start_time, num_times_sent
+      if(self.toPose({ 
               core.HeadYaw: 1.8433177928247,
               core.HeadPitch: -22.497878144835,
               core.LHipYawPitch: -4.18321199506924,
@@ -347,11 +441,27 @@ class Playing(StateMachine):
               }
               , 1.5
             )):
-        current_state = DefendingStates.start
+        print "pose time: " + str(pose_start_time)
+        print "current time: " + str(self.getTime())
+        if (self.getTime() - pose_start_time) > 7.5:
+          pose_start_time = 0
+          pose_sent = False
+          num_times_sent = 0
+          print "CHANGING TO START"
+          current_state = DefendingStates.start
+        elif (self.getTime() - pose_start_time) > 4.5:
+          commands.stand()
 
     def defense_walk(self):
+      global walk_start_time, current_state, DefendingStates
       commands.setHeadTilt(-13)
-      commands.setWalkVelocity(0.20,0.1,0.04)
+      commands.setWalkVelocity(0.3,0.0,0.05)
+      print "walk time: " + str(walk_start_time)
+      print "current time: " + str(self.getTime())
+      if (self.getTime() - walk_start_time) > 5.0:
+        current_state = DefendingStates.start
+        # commands.setWalkVelocity(0.0,0.0,0.0)
+        commands.stand()
 
     def defense_walk_left(self):
       commands.setHeadTilt(-13)
@@ -401,8 +511,8 @@ class Playing(StateMachine):
         if(self.walk_to(o_ball, 250)):
           current_state = AttackingStates.rotate
           return
-      else:
-        memory.speech.say("Lost the ball")
+      # else:
+      #   memory.speech.say("Lost the ball")
 
     def attack_rotate(self):
       commands.setHeadTilt(-16)
@@ -439,9 +549,15 @@ class Playing(StateMachine):
       o_goal = mem_objects.world_objects[core.WO_OPP_GOAL]
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
 
-      if(not o_ball.seen or not o_goal.seen):
-        print "Lost the goal or ball!"
-        self.walk(-0.2, 0.0, 0.0)
+      if(not o_goal.seen):
+        print "Lost the goal!"
+        self.stop()
+        current_state = AttackingStates.rotate
+        return
+
+      if(not o_ball.seen):
+        print "Lost the ball!"
+        self.walk(-0.3, 0.0, 0.0)
         return
 
       gx = o_goal.visionDistance * numpy.cos(o_goal.visionBearing)
@@ -468,8 +584,8 @@ class Playing(StateMachine):
         current_state = AttackingStates.align
         return
 
-      x_vel = 0.3
-      y_vel = tanhController((gy + by)/2.0, 10.0/1000.0, 0.3) 
+      x_vel = 0.3 if numpy.abs(by) < 200 else 0.
+      y_vel = tanhController((gy + by)/2.0, 20.0/1000.0, 0.35) 
       t_vel = tanhController(dy_gb, 10.0/1000.0, 0.2) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
@@ -484,8 +600,13 @@ class Playing(StateMachine):
       o_enemy = mem_objects.world_objects[core.WO_OPPONENT1]
       
       if(enemy_state is EnemyGoalStates.unknown):
-        if(not o_goal.seen or not o_enemy.seen):
-          print "Can't find the enemy / goal!"
+        if(not o_enemy.seen):
+          print "Can't find the enemy!"
+          enemy_state = EnemyGoalStates.center
+          self.stop()
+          return
+        if(not o_goal.seen):
+          print "Can't find the goal!"
           self.stop()
           return
         else:
@@ -575,7 +696,7 @@ class Playing(StateMachine):
         current_state = AttackingStates.start
 
     def run(self):
-      global EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, last_mode_change_time
+      global walk_start_time, EnemyGoalStates, enemy_state, Modes, mode, states, current_state, Fields, field, rotation_dir, kick_sent, last_mode_change_time
 
       #detect mode switches
       hf = sensors.getValue(core.headFront)
@@ -596,8 +717,13 @@ class Playing(StateMachine):
         last_mode_change_time = self.getTime()
       if(mode is not Modes.defending and hm and hr and not hf and (self.getTime() - last_mode_change_time) > 1.0): #need to switch to defense mode
         memory.speech.say("Defense Mode!")
+        commands.stand()
+        pose_sent = False
+        num_times_sent = 0
+        pose_start_time = 0
         mode = Modes.defending
-        current_state = DefendingStates.start
+        current_state = DefendingStates.walk
+        walk_start_time = self.getTime()
         last_mode_change_time = self.getTime()
 
       #detect kidnapping
@@ -650,7 +776,10 @@ class Playing(StateMachine):
                           DefendingStates.walk_right:self.defense_walk_right, 
                           DefendingStates.walk:self.defense_walk, 
                           DefendingStates.block:self.defense_block, 
-                          DefendingStates.sit:self.defense_sit}
+                          DefendingStates.block_left:self.defense_block_left, 
+                          DefendingStates.block_right:self.defense_block_right, 
+                          DefendingStates.sit:self.defense_sit
+                          }
         print "Current state: " + str(current_state)
         function_map[current_state]()
 

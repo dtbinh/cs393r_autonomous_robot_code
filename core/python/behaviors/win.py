@@ -569,7 +569,7 @@ class Playing(StateMachine):
       dy_gb = gy - by
       dt_gb = numpy.arctan2(dy_gb, dx_gb)
       r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
-      r_goal_threshold = 700. * numpy.sqrt(2.)
+      r_goal_threshold = 725. * numpy.sqrt(2.)
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -641,13 +641,33 @@ class Playing(StateMachine):
       gy = o_goal.visionDistance * numpy.sin(o_goal.visionBearing)
       bx = o_ball.visionDistance * numpy.cos(o_ball.visionBearing)
       by = o_ball.visionDistance * numpy.sin(o_ball.visionBearing)
+      ex = o_enemy.visionDistance * numpy.cos(o_enemy.visionBearing)
+      ey = o_enemy.visionDistance * numpy.sin(o_enemy.visionBearing)
       tx = gx
       ty = gy
+      dx_gb = gx - bx
+      dy_gb = gy - by
+      dt_gb = numpy.arctan2(dy_gb, dx_gb)
+      r_goal_ball = numpy.sqrt(dx_gb * dx_gb + dy_gb * dy_gb)
 
-      if(attack_left):
-        ty += 3.0 * o_goal.radius / 8.
+      if(r_goal_ball > 1500):
+        current_state = AttackingStates.dribble
+        return
+
+      if(o_enemy.seen):
+        if(attack_left):
+          enemy_edge = ey + numpy.sqrt(o_enemy.radius)
+          goal_edge = gy + o_goal.radius #yes it's supposed to be different
+          ty = (enemy_edge+goal_edge)/2.0
+        else:
+          enemy_edge = ey - numpy.sqrt(o_enemy.radius)
+          goal_edge = gy - o_goal.radius #yes it's supposed to be different
+          ty = (enemy_edge+goal_edge)/2.0
       else:
-        ty -= 3.0 * o_goal.radius / 8.
+        if(attack_left):
+          ty += 3.0 * o_goal.radius / 8.
+        else:
+          ty -= 3.0 * o_goal.radius / 8.
 
       print "gx: " + str(gx)
       print "gy: " + str(gy)
@@ -667,7 +687,7 @@ class Playing(StateMachine):
 
       x_vel = tanhController(-(ball_x_target - bx), 10.0/1000.0, 0.3) 
       y_vel = tanhController(-(ball_y_target - by), 10.0/1000.0, 0.3) 
-      t_vel = tanhController((ty - by), 5.0/1000.0, 0.2) 
+      t_vel = tanhController((ty - by), 10.0/1000.0, 0.35) 
       print "vel x,y,t = " + str(x_vel) + "," + str(y_vel) + "," + str(t_vel)
       self.walk(x_vel, y_vel, t_vel)
 

@@ -45,7 +45,8 @@ public:
 
   }
 
-  void execute(double time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command)
+  //current_time in seconds, command is output joint positions
+  void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command)
   {
 
   }

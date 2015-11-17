@@ -178,8 +178,8 @@ LowArms[core.RElbowRoll] = 0.1
 
 
 Stand = [0] * core.NUM_JOINTS
-Stand[core.HeadYaw] = 1
-Stand[core.HeadPitch] = 1
+Stand[core.HeadYaw] = 0.6
+Stand[core.HeadPitch] = 0.6
 Stand[core.LShoulderPitch] = 0.6
 Stand[core.LShoulderRoll] = 0.6
 Stand[core.LElbowYaw] = 0.6
@@ -200,6 +200,32 @@ Stand[core.RShoulderPitch] = 0.6
 Stand[core.RShoulderRoll] = 0.6
 Stand[core.RElbowYaw] = 0.6
 Stand[core.RElbowRoll] = 0.6
+
+kickStand = [0] * core.NUM_JOINTS
+kickStand[core.HeadYaw] = 0.0
+kickStand[core.HeadPitch] = 0.0
+kickStand[core.LShoulderPitch] = 0.6
+kickStand[core.LShoulderRoll] = 0.6
+kickStand[core.LElbowYaw] = 0.6
+kickStand[core.LElbowRoll] = 0.6
+kickStand[core.LHipYawPitch] = 0.6
+kickStand[core.LHipPitch] = 0.6
+kickStand[core.LHipRoll] = 0.6
+kickStand[core.LKneePitch] = 0.6
+kickStand[core.LAnklePitch] = 0.6
+kickStand[core.LAnkleRoll] = 0.6
+kickStand[core.RHipYawPitch] = 0.6
+kickStand[core.RHipPitch] = 0.6
+kickStand[core.RHipRoll] = 0.6
+kickStand[core.RKneePitch] = 0.6
+kickStand[core.RAnklePitch] = 0.6
+kickStand[core.RAnkleRoll] = 0.6
+kickStand[core.RShoulderPitch] = 0.6
+kickStand[core.RShoulderRoll] = 0.6
+kickStand[core.RElbowYaw] = 0.6
+kickStand[core.RElbowRoll] = 0.6
+
+
 
 tmpStand = [0] * core.NUM_JOINTS
 tmpStand[core.HeadYaw] = 1

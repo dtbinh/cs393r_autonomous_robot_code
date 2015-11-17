@@ -21,12 +21,16 @@ class Playing(StateMachine):
     def run(self):
       commands.setWalkVelocity(0.5,0,0)
 
+  class Stiff(Node):
+    def run(self):
+      commands.setStiffness(cfgstiff.kickStand)
+
   class Off(Node):
     def run(self):
-      commands.setStiffness(cfgstiff.Zero)
+      #commands.setStiffness(cfgstiff.kickStand)
       if self.getTime() > 2.0:
         memory.speech.say("turned off stiffness")
         self.finish()
 
   def setup(self):
-    self.trans(self.Stand(), C, self.Kick(), C, self.Stand(), C, pose.Sit(), C, self.Off())
+    self.trans(self.Stand(), C, self.Kick(), C , self.Stiff() , T(500) , pose.Sit(), C, self.Off())

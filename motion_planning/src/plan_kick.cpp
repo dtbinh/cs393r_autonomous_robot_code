@@ -14,9 +14,10 @@ namespace motion_planning
                                       
     std::string joint_string =       "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
     std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.3,         0,          -0.05,            1.4,          -0.3,         0,          0.05,         0,     0,         0,     0";
-    m_joint_names = matec_utils::parameterStringToStringVector(joint_string);
+    m_joint_names = rpp::parameterStringToStringVector(joint_string);
     std::string urdf_path = ros::package::getPath("motion_planning") + "/nao.urdf";
-    m_urdf_model.initFile(urdf_path);
+//    m_urdf_model.initFile(urdf_path);
+    m_model.fromFile(urdf_path);
 
     for(unsigned int i = 0; i < (m_joint_names.size()-4); i++)
     {
@@ -28,25 +29,23 @@ namespace motion_planning
       std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
       m_joint_ids.push_back(i);
 
-      if(m_urdf_model.getJoint(m_joint_names.at(i))->limits)
-      {
-        m_joint_mins.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->lower);
-        m_joint_maxes.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->upper);
-        m_joint_vels.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->velocity);
-      }
-    }
+//      if(m_urdf_model.getJoint(m_joint_names.at(i))->limits)
+//      {
+//        m_joint_mins.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->lower);
+//        m_joint_maxes.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->upper);
+//        m_joint_vels.push_back(m_urdf_model.getJoint(m_joint_names.at(i))->limits->velocity);
+//      }
+//    }
 
-    m_graph.loadFromURDF(m_joint_names, m_urdf_model);
+    m_graph.loadFromURDF(m_joint_names, m_model);
     m_graph.print("l_ankle");
     m_graph.spawnDynamicsTree("l_ankle", false, m_tree);
 
     m_js.name = m_joint_names;
-    m_js.position = matec_utils::parameterStringToFPVector(initial_pos_string);
+    m_js.position = rpp::parameterStringToFPVector(initial_pos_string);
     m_js.velocity = std::vector<double>(m_joint_names.size(), 0.0);
     m_js.effort = std::vector<double>(m_joint_names.size(), 0.0);
-    m_rootTworld = matec_utils::Matrix4::Identity();
-
-    m_odom.pose.orientation.w = 1.0;
+    m_rootTworld = dynamics_tree::Matrix4::Identity();
 
     m_com_pub = m_nh.advertise<geometry_msgs::PointStamped>("/com", 1, true);
     m_js_pub = m_nh.advertise<sensor_msgs::JointState>("/joint_states", 1, true);
@@ -86,7 +85,7 @@ namespace motion_planning
   {
   }
 
-  inline void matrixToRPY(matec_utils::Matrix3 rot, double&roll, double&pitch, double&yaw)
+  inline void matrixToRPY(dynamics_tree::Matrix3 rot, double&roll, double&pitch, double&yaw)
   {
     double epsilon = 1E-12;
     pitch = atan2((double) -rot(2, 0), sqrt((double) (rot(0, 0) * rot(0, 0) + rot(1, 0) * rot(1, 0))));
@@ -104,14 +103,14 @@ namespace motion_planning
 
   //assumes that f1 and f2 are expressed w.r.t. the same frame (common)
   //returns a twist in the common frame that takes you from f1 to f2 in dt seconds
-  inline matec_utils::Vector6 frameTwist(matec_utils::Matrix4 commonTf1, matec_utils::Matrix4 commonTf2, double dt, double& dx, double& dy, double& dz, double& dR, double& dP, double& dY)
+  inline dynamics_tree::Vector6 frameTwist(dynamics_tree::Matrix4 commonTf1, dynamics_tree::Matrix4 commonTf2, double dt, double& dx, double& dy, double& dz, double& dR, double& dP, double& dY)
   {
-    matec_utils::Matrix4 delta = commonTf1.inverse() * commonTf2;
-    Eigen::AngleAxis<double> angle_axis((matec_utils::Matrix3) delta.topLeftCorner(3, 3));
+    dynamics_tree::Matrix4 delta = commonTf1.inverse() * commonTf2;
+    Eigen::AngleAxis<double> angle_axis((dynamics_tree::Matrix3) delta.topLeftCorner(3, 3));
 
-    matec_utils::Vector6 twist; //expressed here in f1 coordinates
+    dynamics_tree::Vector6 twist; //expressed here in f1 coordinates
 
-    matrixToRPY((matec_utils::Matrix3) delta.topLeftCorner(3, 3), dR, dP, dY);
+    matrixToRPY((dynamics_tree::Matrix3) delta.topLeftCorner(3, 3), dR, dP, dY);
     dx = delta(0, 3);
     dy = delta(1, 3);
     dz = delta(2, 3);
@@ -133,7 +132,7 @@ namespace motion_planning
   {
     //forward pass
     node->supported_mass = 0.0;
-    node->supported_com = matec_utils::Vector4::Zero();
+    node->supported_com = dynamics_tree::Vector4::Zero();
 
     //recursion
     for(auto c : node->children)
@@ -152,7 +151,7 @@ namespace motion_planning
     node->supported_com /= node->supported_mass;
   }
 
-  void PlanKick::comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, matec_utils::Matrix& jacobian)
+  void PlanKick::comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, dynamics_tree::Matrix& jacobian)
   {
     if(m_tree.getNodes().find(goal_frame) == m_tree.getNodes().end())
     {
@@ -172,13 +171,13 @@ namespace motion_planning
         return;
       }
 
-      matec_utils::Matrix4 goalTpartial_com = matec_utils::Matrix4::Identity();
+      dynamics_tree::Matrix4 goalTpartial_com = dynamics_tree::Matrix4::Identity();
       goalTpartial_com.topRightCorner(3, 1) = joint_node->supported_com;
       goalTpartial_com = goal_node->iTO * goalTpartial_com.inverse();
 
-      matec_utils::Matrix4 goalTjoint = goal_node->iTO * joint_node->iTO.inverse();
+      dynamics_tree::Matrix4 goalTjoint = goal_node->iTO * joint_node->iTO.inverse();
       goalTjoint.topRightCorner(3, 1) -= goalTpartial_com.topRightCorner(3, 1); //translate goal to tool frame
-      matec_utils::Matrix6 goalXjoint = matec_utils::motionTransformFromAffine(goalTjoint);
+      dynamics_tree::Matrix6 goalXjoint = dynamics_tree::motionTransformFromAffine(goalTjoint);
       jacobian.block<6, 1>(0, i) = goalXjoint * joint_node->axis * joint_node->supported_mass;
     }
 
@@ -189,62 +188,65 @@ namespace motion_planning
   {
     next_positions = last_positions;
 
-    matec_utils::Matrix4 leftTtarget = matec_utils::pureRotation(0.0, foot_pitch, 0.0);
+    dynamics_tree::Matrix4 leftTtarget = dynamics_tree::pureRotation(0.0, foot_pitch, 0.0);
     leftTtarget.topRightCorner(3, 1) << foot_x, foot_y, foot_z;
 
     for(int i = 0; i < maxiter; i++)
     {
-      m_tree.kinematics(next_positions, m_odom);
+      m_tree.kinematics(next_positions, m_rootTworld);
 
-      matec_utils::Matrix4 leftTright;
+      dynamics_tree::Matrix4 leftTright;
       m_tree.lookupTransform("l_ankle", "r_ankle", leftTright);
 
-      matec_utils::Matrix J, JT, JJT;
+      dynamics_tree::Matrix J, JT, JJT;
       m_tree.jacobian(m_joint_ids, "l_ankle", "r_ankle", J);
       JT = J.transpose();
       JJT = J * JT;
 
       double twist_scale = 0.1;
       double dx, dy, dz, dR, dP, dY;
-      matec_utils::Vector6 foot_twist = frameTwist(leftTright, leftTtarget, dt, dx, dy, dz, dR, dP, dY);
+      dynamics_tree::Vector6 foot_twist = frameTwist(leftTright, leftTtarget, dt, dx, dy, dz, dR, dP, dY);
       foot_twist *= twist_scale;
 
       //transpose
       //dQ = J^T * e * (<e, J*J^T*e> / <J*J^T*e, J*J^T*e>)
-//      matec_utils::Vector JJTe = JJT * foot_twist;
+//      dynamics_tree::Vector JJTe = JJT * foot_twist;
 //      boost::this_thread::interruption_point();
-//      matec_utils::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
+//      dynamics_tree::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
 //      boost::this_thread::interruption_point();
 
       //pinv
-      matec_utils::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
+      dynamics_tree::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
 
       //===========COM==================
       geometry_msgs::PointStamped com;
-      m_tree.centerOfMass("l_ankle", com);
+      dynamics_tree::Vector4 com_vector;
+      m_tree.centerOfMass("l_ankle", com_vector);
+      com.point.x = com_vector(0);
+      com.point.y = com_vector(1);
       double com_dx = com_x - com.point.x;
       double com_dy = com_y - com.point.y;
 
-      matec_utils::Matrix Jcom, JcomT, JcomJcomT;
+      dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
       comRecursive(m_tree.getRootNode());
       comJacobian(m_joint_ids, "l_ankle", Jcom);
       JcomT = Jcom.transpose();
       JcomJcomT = Jcom * JcomT;
 
-      matec_utils::Vector6 com_twist = matec_utils::Vector6::Zero();
+      dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
       com_twist(3) = com_dx / dt;
       com_twist(4) = com_dy / dt;
       com_twist(5) = 0.0;
       com_twist *= twist_scale;
 
       //transpose
-//      matec_utils::Vector JJTe_com = JcomJcomT * com_twist;
+//      dynamics_tree::Vector JJTe_com = JcomJcomT * com_twist;
 //      boost::this_thread::interruption_point();
-//      matec_utils::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
+//      dynamics_tree::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
 //      boost::this_thread::interruption_point();
 
       //pinv
-      matec_utils::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
+      dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
 
       //check if done
       double eps = 1.0e-3;
@@ -294,7 +296,7 @@ namespace motion_planning
         double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));
 
         next_positions.at(joint_id) += dt * combined_joint_velocity / (double) num_velocities;
-        next_positions.at(joint_id) = matec_utils::clamp(next_positions.at(joint_id), local_min, local_max);
+        next_positions.at(joint_id) = dynamics_tree::clamp(next_positions.at(joint_id), local_min, local_max);
       }
     }
 
@@ -303,16 +305,19 @@ namespace motion_planning
 
   void PlanKick::planMove(double xf, double yf, double zf, double pf, double cxf, double cyf, double dt)
   {
-    m_tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_odom);
+    m_tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_rootTworld);
 
-    matec_utils::Matrix4 leftTright;
+    dynamics_tree::Matrix4 leftTright;
     m_tree.lookupTransform("l_ankle", "r_ankle", leftTright);
 
     double R, P, Y;
-    matrixToRPY((matec_utils::Matrix3) leftTright.topLeftCorner(3, 3), R, P, Y);
+    matrixToRPY((dynamics_tree::Matrix3) leftTright.topLeftCorner(3, 3), R, P, Y);
 
     geometry_msgs::PointStamped com;
-    m_tree.centerOfMass("l_ankle", com);
+    dynamics_tree::Vector4 com_vector;
+    m_tree.centerOfMass("l_ankle", com_vector);
+    com.point.x = com_vector(0);
+    com.point.y = com_vector(1);
 
     unsigned int num_frames = std::ceil(dt * m_frame_rate);
     for(unsigned int i = 1; i <= num_frames; i++)
@@ -417,14 +422,19 @@ namespace motion_planning
       plan_idx++;
 
       geometry_msgs::PointStamped com;
-      m_tree.kinematics(m_js.position, m_odom);
-      m_tree.centerOfMass("l_ankle", com);
+      m_tree.kinematics(m_js.position, m_rootTworld);
+      dynamics_tree::Vector4 com_vector;
+      m_tree.centerOfMass("l_ankle", com_vector);
+      com.point.x = com_vector(0);
+      com.point.y = com_vector(1);
       m_com_pub.publish(com);
 
       m_js.header.stamp = ros::Time::now();
       m_js_pub.publish(m_js);
 
-      tf::StampedTransform trans = matec_utils::matrixToStampedTransform(m_rootTworld, "world", m_urdf_model.getRoot()->name);
+      tf::StampedTransform trans;
+      trans.frame_id_= "world";
+      trans.child_frame_id_ = m_urdf_model.getRoot()->name;
       trans.stamp_ = m_js.header.stamp;
       m_odom_broadcaster.sendTransform(trans);
 

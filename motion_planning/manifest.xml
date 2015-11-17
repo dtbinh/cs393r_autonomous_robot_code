@@ -9,7 +9,8 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/motion_planning</url>
   <depend package="roscpp"/>
-  <depend package="matec_dynamics_tree"/>
+  <depend package="roslib"/>
+  <depend package="tf"/>
 </package>
 
 

@@ -1,5 +1,5 @@
-#ifndef component_tree_HPP
-#define component_tree_HPP
+#ifndef COMPONENT_TREE_HPP
+#define COMPONENT_TREE_HPP
 
 #define PUGIXML_HEADER_ONLY
 #include "component_tree/pugixml.hpp"
@@ -43,14 +43,19 @@ namespace rpp
     bool fromString(std::string xml);
     bool fromFile(std::string filename);
 
-    boost::shared_ptr<Component> getRootNode();
-    std::vector<boost::shared_ptr<Component> > getRootNodes();
+    boost::shared_ptr<Component> rootNode();
+    std::vector<boost::shared_ptr<Component> > rootNodes();
+    std::set<std::string> componentTypeList();
+    std::map<std::string, boost::shared_ptr<Component> > components(std::string type);
+    boost::shared_ptr<Component> component(std::string type, std::string name);
 
     friend std::ostream& operator<<(std::ostream& os, ComponentTree& dt);
 
   private:
     pugi::xml_document m_doc;
     std::map<std::string, boost::shared_ptr<Component> > m_component_tree;
+    std::set<std::string> m_valid_component_types;
+    std::map<std::string, std::map<std::string, boost::shared_ptr<Component> > > m_type_map;
     std::vector<boost::shared_ptr<Component> > m_roots;
   };
 }
@@ -58,4 +63,4 @@ namespace rpp
 #include <component_tree/component_impl.hpp>
 #include <component_tree/component_tree_impl.hpp>
 
-#endif
+#endif //COMPONENT_TREE_HPP

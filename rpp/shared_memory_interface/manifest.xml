@@ -1,0 +1,20 @@
+<package>
+  <description brief="shared_memory_interface">
+
+     shared_memory_interface
+
+  </description>
+  <author>Joshua James</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/shared_memory_interface</url>
+  <depend package="roscpp"/>
+  <depend package="roslib"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-lrt"/>
+  </export>
+
+</package>
+
+

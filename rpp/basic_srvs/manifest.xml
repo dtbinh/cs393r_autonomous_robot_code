@@ -1,0 +1,15 @@
+<package>
+  <description brief="basic_msgs">
+
+     basic_msgs
+
+  </description>
+  <author>jjames</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/basic_msgs</url>
+  <depend package="std_msgs"/>
+
+</package>
+
+

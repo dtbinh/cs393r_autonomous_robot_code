@@ -117,8 +117,8 @@ class Blocker(Node):
     #commands.stand()
     commands.setHeadTilt(-13)
     ball = mem_objects.world_objects[core.WO_BALL]
-    if_seen_history[if_seen_history_counter] = ball.seen;
-    if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant;
+    if_seen_history[if_seen_history_counter] = ball.seen
+    if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant
     seen_times = sum(if_seen_history)
 
     x = 0.

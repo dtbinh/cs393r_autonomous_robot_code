@@ -11,14 +11,6 @@ namespace rpp
   {
   }
 
-//  struct root_less_than
-//  {
-//    inline bool operator()(const boost::shared_ptr<Component>& c1, const boost::shared_ptr<Component>& c2)
-//    {
-//      return (c1->num_supported_components > c2->num_supported_components);
-//    }
-//  };
-
   bool ComponentTree::fromString(std::string xml)
   {
     m_doc.load(xml.c_str());
@@ -26,18 +18,29 @@ namespace rpp
     std::map<std::string, std::string> parent_of;
     for(pugi::xml_node node = m_doc.child("robot").first_child(); node; node = node.next_sibling())
     {
-      std::string component_name = node.attribute("name").as_string();
-      m_component_tree[component_name].reset(new Component(node));
-      m_component_tree[component_name]->name = component_name;
-      m_component_tree[component_name]->type = node.name();
+      std::string type = node.name();
+      std::string name = node.attribute("name").as_string();
+      if(type == "" || name == "")
+        continue;
+
+      std::string uid = type+name;
+      m_component_tree[uid].reset(new Component(node));
+      m_component_tree[uid]->name = name;
+      m_component_tree[uid]->type = type;
+      m_valid_component_types.insert(type);
+      m_type_map[type][name] = m_component_tree[uid];
 
       if(node.child("parent"))
       {
-        parent_of[component_name] = node.child("parent").attribute("link").as_string();
+        parent_of[uid] = "link"+std::string(node.child("parent").attribute("link").as_string());
+      }
+      if(node.child("reference"))
+      {
+        parent_of[uid] = "link"+std::string(node.child("reference").attribute("link").as_string());
       }
       if(node.child("child"))
       {
-        parent_of[node.child("child").attribute("link").as_string()] = component_name;
+        parent_of["link"+std::string(node.child("child").attribute("link").as_string())] = uid;
       }
     }
 
@@ -46,8 +49,6 @@ namespace rpp
       m_component_tree[p.first]->parent = m_component_tree[p.second];
       m_component_tree[p.second]->children.push_back(m_component_tree[p.first]);
     }
-
-    //TODO: remove unconnected nodes (e.g. gazebo references)
 
     //find roots
     m_roots.clear();
@@ -62,7 +63,8 @@ namespace rpp
     for(auto r : m_roots)
       r->computeDepth();
 
-    std::sort(m_roots.begin(), m_roots.end(), [](const boost::shared_ptr<Component>& c1, const boost::shared_ptr<Component>& c2) { return (c1->num_supported_components > c2->num_supported_components);});
+    std::sort(m_roots.begin(), m_roots.end(), [](const boost::shared_ptr<Component>& c1, const boost::shared_ptr<Component>& c2)
+    { return (c1->num_supported_components > c2->num_supported_components);});
     std::cerr << "Longest root " << m_roots[0]->name << " had " << m_roots[0]->num_supported_components << " components!" << std::endl;
 
     return true;
@@ -81,34 +83,35 @@ namespace rpp
     std::string xml = std::string(&bytes[0], fileSize);
     return fromString(xml);
   }
-//
-//  bool ComponentTree::fromParam(std::string param_name)
-//  {
-//    if(!ros::param::has(param_name))
-//    {
-//      ROS_ERROR("Param %s did not exist!", param_name.c_str());
-//      return false;
-//    }
-//
-//    std::string xml;
-//    ros::param::get(param_name, xml);
-//
-//    return fromString(xml);
-//  }
 
-  boost::shared_ptr<Component> ComponentTree::getRootNode()
+  boost::shared_ptr<Component> ComponentTree::rootNode()
   {
     return m_roots[0];
   }
 
-  std::vector<boost::shared_ptr<Component> > ComponentTree::getRootNodes()
+  std::vector<boost::shared_ptr<Component> > ComponentTree::rootNodes()
   {
     return m_roots;
   }
 
+  std::set<std::string> ComponentTree::componentTypeList()
+  {
+    return m_valid_component_types;
+  }
+
+  std::map<std::string, boost::shared_ptr<Component> > ComponentTree::components(std::string type)
+  {
+    return m_type_map.at(type);
+  }
+
+  boost::shared_ptr<Component> ComponentTree::component(std::string type, std::string name)
+  {
+    return m_type_map.at(type).at(name);
+  }
+
   std::ostream& operator<<(std::ostream& stream, ComponentTree& tree)
   {
-    for(auto r : tree.getRootNodes())
+    for(auto r : tree.rootNodes())
       stream << *r;
     return stream;
   }

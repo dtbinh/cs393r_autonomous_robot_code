@@ -8,7 +8,6 @@
 #include <memory/JointBlock.h>
 #include <memory/SensorBlock.h>
 #include <memory/KickRequestBlock.h>
-#include <kack.hpp>
 
 #define JOINT_EPSILON (3.f * DEG_T_RAD)
 #define DEBUG false
@@ -84,10 +83,6 @@ void KickModule::processFrame() {
   }
 }
 
-
-
-
-//-------------------------------------old keyframe based kicking version-------------------------------------------- 
 void KickModule::performKick() {
   if(DEBUG) printf("performKick, state: %s, keyframe: %i, frames: %i\n", getName(state_), keyframe_, frames_);
   if(state_ == Finished) return;

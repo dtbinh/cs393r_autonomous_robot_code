@@ -1,6 +1,13 @@
 #ifndef KACK_HPP
 #define KACK_HPP
 
+class Point
+{
+  double x;
+  double y;
+  double z;
+};
+
 class Pose
 {
   double x;
@@ -16,6 +23,8 @@ class CartesianKeyframe
   double duration; //how long the keyframe should last, in seconds
   Pose min_pose;   // min/max pose allow the specification of tolerances on each axis. Set them to the same pose for zero tolerance
   Pose max_pose;   //poses are specified in the coordinate frame of the supporting foot
+  Point min_com;
+  Point max_com;
 };
 
 class FootSensor

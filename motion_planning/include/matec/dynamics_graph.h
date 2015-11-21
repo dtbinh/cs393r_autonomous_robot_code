@@ -1,6 +1,7 @@
 #ifndef DYNAMICS_GRAPH_H
 #define DYNAMICS_GRAPH_H
 
+#include <live_params/string_parameter_parsers.hpp>
 #include <component_tree/component_tree.hpp>
 #include "common_functions.h"
 #include "dynamics_tree.h"
@@ -19,7 +20,7 @@ namespace dynamics_tree
     void loadFromURDF(std::vector<std::string>& joint_names, rpp::ComponentTree& model, bool floating_base = false)
     {
       m_joint_names = joint_names;
-      loadRecursive(model.getRootNode());
+      loadRecursive(model.rootNode());
     }
 
     void spawnDynamicsTree(std::string root_link, bool floating_base, dynamics_tree::DynamicsTree& tree)
@@ -231,90 +232,102 @@ namespace dynamics_tree
       m_links[link->name]->mass = 1e-12;
       m_links[link->name]->com_position = dynamics_tree::Vector3::Zero();
       m_links[link->name]->com_inertia = dynamics_tree::Matrix3::Identity() * 1e-12;
-//      if(link->inertial)
-//      {
-//        m_links[link->name]->com_position << link->inertial->origin.position.x, link->inertial->origin.position.y, link->inertial->origin.position.z;
-//        m_links[link->name]->com_inertia << link->inertial->ixx, link->inertial->ixy, link->inertial->ixz, //
-//        link->inertial->ixy, link->inertial->iyy, link->inertial->iyz, //
-//        link->inertial->ixz, link->inertial->iyz, link->inertial->izz;
-//        m_links[link->name]->mass = link->inertial->mass;
-//      }
-//      m_links[link->name]->spatial_inertia = dynamics_tree::constructInertia(m_links[link->name]->mass, m_links[link->name]->com_position, m_links[link->name]->com_inertia);
-//      m_links[link->name]->originallinkTlinkcom.topRightCorner(3, 1) = -m_links[link->name]->com_position;
-//
-//      if(link->parent_joint)
-//      {
-//        //create and link the joint
-//        m_joints[link->parent_joint->name].reset(new Joint());
-//        m_joints[link->parent_joint->name]->name = link->parent_joint->name;
-//        m_links[link->name]->connected_joints.push_back(m_joints[link->parent_joint->name]);
-//        m_links[link->name]->jointToriginallink.push_back(dynamics_tree::Matrix4::Identity());
-//        m_joints[link->parent_joint->name]->child_link = m_links[link->name];
-//
-//        //set the type, axis, and index
-//        switch(link->parent_joint->type)
-//        {
-//        case urdf::Joint::REVOLUTE:
-//          m_joints[link->parent_joint->name]->type = REVOLUTE_JOINT;
-//          m_joints[link->parent_joint->name]->axis << link->parent_joint->axis.x, link->parent_joint->axis.y, link->parent_joint->axis.z, 0, 0, 0;
-//          m_joints[link->parent_joint->name]->idx = std::find(m_joint_names.begin(), m_joint_names.end(), m_joints[link->parent_joint->name]->name) - m_joint_names.begin();
-//          break;
-//        case urdf::Joint::PRISMATIC:
-//          m_joints[link->parent_joint->name]->type = PRISMATIC_JOINT;
-//          m_joints[link->parent_joint->name]->axis << 0, 0, 0, link->parent_joint->axis.x, link->parent_joint->axis.y, link->parent_joint->axis.z;
-//          m_joints[link->parent_joint->name]->idx = std::find(m_joint_names.begin(), m_joint_names.end(), m_joints[link->parent_joint->name]->name) - m_joint_names.begin();
-//          break;
-//        default:
-//        case urdf::Joint::FIXED:
-//          m_joints[link->parent_joint->name]->type = FIXED_JOINT;
-//          m_joints[link->parent_joint->name]->axis << 1, 0, 0, 0, 0, 0; //arbitrary
-//          m_joints[link->parent_joint->name]->idx = -1;
-//          break;
-//        }
-//
-//        //check joint index
-//        if((m_joints[link->parent_joint->name]->idx == (int) m_joint_names.size()) && m_joints[link->parent_joint->name]->type != FIXED_JOINT)
-//        {
-//          ROS_DEBUG("JOINT %s ASSOCIATED WITH LINK %s WAS NOT FOUND IN THE LIST OF JOINT NAMES! CONVERTING IT INTO A FIXED JOINT!!", m_joints[link->parent_joint->name]->name.c_str(), link->name.c_str());
-//          m_joints[link->parent_joint->name]->type = FIXED_JOINT;
-//        }
-//
-//        //set limits
-//        if(link->parent_joint->limits)
-//        {
-//          m_joints[link->parent_joint->name]->max_torque = link->parent_joint->limits->effort;
-//          m_joints[link->parent_joint->name]->max_q_dot = link->parent_joint->limits->velocity;
-//          m_joints[link->parent_joint->name]->min_q = link->parent_joint->limits->lower;
-//          m_joints[link->parent_joint->name]->max_q = link->parent_joint->limits->upper;
-//        }
-//
-//        //set dynamic properties
-//        if(link->parent_joint->dynamics)
-//        {
-//          m_joints[link->parent_joint->name]->viscous_friction = link->parent_joint->dynamics->damping;
-//          m_joints[link->parent_joint->name]->coulomb_friction = link->parent_joint->dynamics->friction;
-//        }
-//      }
-//
-//      for(unsigned int i = 0; i < link->child_links.size(); i++)
-//      {
-//        loadRecursive(link->child_links[i]);
-//      }
-//
-//      for(unsigned int i = 0; i < link->child_joints.size(); i++)
-//      {
-//        m_links[link->name]->connected_joints.push_back(m_joints[link->child_joints[i]->name]);
-//
-//        dynamics_tree::Matrix4 joint_transform = dynamics_tree::Matrix4::Identity();
-//        dynamics_tree::Matrix3 E = Eigen::Quaterniond(link->child_joints[i]->parent_to_joint_origin_transform.rotation.w, link->child_joints[i]->parent_to_joint_origin_transform.rotation.x, link->child_joints[i]->parent_to_joint_origin_transform.rotation.y, link->child_joints[i]->parent_to_joint_origin_transform.rotation.z).toRotationMatrix();
-//        dynamics_tree::Vector3 r;
-//        r << link->child_joints[i]->parent_to_joint_origin_transform.position.x, link->child_joints[i]->parent_to_joint_origin_transform.position.y, link->child_joints[i]->parent_to_joint_origin_transform.position.z;
-//        joint_transform.topLeftCorner(3, 3) = E.inverse();
-//        joint_transform.topRightCorner(3, 1) = -E.inverse() * r;
-//
-//        m_links[link->name]->jointToriginallink.push_back(joint_transform);
-//        m_joints[link->child_joints[i]->name]->parent_link = m_links[link->name];
-//      }
+      if(link->xml.child("inertial"))
+      {
+        m_links[link->name]->mass = link->xml.child("inertial").child("mass").attribute("value").as_double();
+
+        std::vector<double> xyz = rpp::parameterStringToFPVector(link->xml.child("inertial").child("origin").attribute("xyz").as_string());
+
+        m_links[link->name]->com_position << xyz[0], xyz[1], xyz[2];
+
+        pugi::xml_node in = link->xml.child("inertial").child("inertia");
+        m_links[link->name]->com_inertia << in.attribute("ixx").as_double(), in.attribute("ixy").as_double(), in.attribute("ixz").as_double(), //
+        in.attribute("ixy").as_double(), in.attribute("iyy").as_double(), in.attribute("iyz").as_double(), //
+        in.attribute("ixz").as_double(), in.attribute("iyz").as_double(), in.attribute("izz").as_double();
+      }
+      m_links[link->name]->spatial_inertia = dynamics_tree::constructInertia(m_links[link->name]->mass, m_links[link->name]->com_position, m_links[link->name]->com_inertia);
+      m_links[link->name]->originallinkTlinkcom.topRightCorner(3, 1) = -m_links[link->name]->com_position;
+
+      if(link->parent && link->parent->type == "joint")
+      {
+        //create and link the joint
+        m_joints[link->parent->name].reset(new Joint());
+        m_joints[link->parent->name]->name = link->parent->name;
+        m_links[link->name]->connected_joints.push_back(m_joints[link->parent->name]);
+        m_links[link->name]->jointToriginallink.push_back(dynamics_tree::Matrix4::Identity());
+        m_joints[link->parent->name]->child_link = m_links[link->name];
+
+        //set the type, axis, and index
+        std::string joint_type = link->parent->xml.attribute("type").as_string();
+        if(joint_type == "revolute")
+        {
+          std::vector<double> xyz = rpp::parameterStringToFPVector(link->parent->xml.child("axis").attribute("xyz").as_string());
+          m_joints[link->parent->name]->type = REVOLUTE_JOINT;
+          m_joints[link->parent->name]->axis << xyz[0], xyz[1], xyz[2], 0, 0, 0;
+          m_joints[link->parent->name]->idx = std::find(m_joint_names.begin(), m_joint_names.end(), m_joints[link->parent->name]->name) - m_joint_names.begin();
+        }
+        else if(joint_type == "prismatic")
+        {
+          std::vector<double> xyz = rpp::parameterStringToFPVector(link->parent->xml.child("axis").attribute("xyz").as_string());
+          m_joints[link->parent->name]->type = PRISMATIC_JOINT;
+          m_joints[link->parent->name]->axis << 0, 0, 0, xyz[0], xyz[1], xyz[2];
+          m_joints[link->parent->name]->idx = std::find(m_joint_names.begin(), m_joint_names.end(), m_joints[link->parent->name]->name) - m_joint_names.begin();
+        }
+        else
+        {
+          m_joints[link->parent->name]->type = FIXED_JOINT;
+          m_joints[link->parent->name]->axis << 1, 0, 0, 0, 0, 0; //arbitrary
+          m_joints[link->parent->name]->idx = -1;
+        }
+
+        //check joint index
+        if((m_joints[link->parent->name]->idx == (int) m_joint_names.size()) && m_joints[link->parent->name]->type != FIXED_JOINT)
+        {
+          ROS_DEBUG("JOINT %s ASSOCIATED WITH LINK %s WAS NOT FOUND IN THE LIST OF JOINT NAMES! CONVERTING IT INTO A FIXED JOINT!!", m_joints[link->parent->name]->name.c_str(), link->name.c_str());
+          m_joints[link->parent->name]->type = FIXED_JOINT;
+        }
+
+        //set limits
+        if(link->parent->xml.child("limits"))
+        {
+          m_joints[link->parent->name]->max_torque = link->parent->xml.child("limits").attribute("effort").as_double();
+          m_joints[link->parent->name]->max_q_dot = link->parent->xml.child("limits").attribute("velocity").as_double();
+          m_joints[link->parent->name]->min_q = link->parent->xml.child("limits").attribute("lower").as_double();
+          m_joints[link->parent->name]->max_q = link->parent->xml.child("limits").attribute("upper").as_double();
+        }
+
+        //set dynamic properties
+        if(link->parent->xml.child("dynamics"))
+        {
+          m_joints[link->parent->name]->viscous_friction = link->parent->xml.child("dynamics").attribute("damping").as_double();
+          m_joints[link->parent->name]->coulomb_friction = link->parent->xml.child("dynamics").attribute("friction").as_double();
+        }
+      }
+
+      for(auto cj : link->children)
+      {
+        if(cj->type != "joint")
+        {
+          loadRecursive(cj);
+          continue;
+        }
+
+        for(auto cl : cj->children)
+          loadRecursive(cl);
+
+        std::vector<double> xyz = rpp::parameterStringToFPVector(cj->xml.child("origin").attribute("xyz").as_string());
+        std::vector<double> rpy = rpp::parameterStringToFPVector(cj->xml.child("origin").attribute("rpy").as_string());
+
+        dynamics_tree::Matrix4 jointToriginallink = dynamics_tree::Matrix4::Identity();
+        dynamics_tree::Matrix3 E = dynamics_tree::rotationMatrix(rpy[0], rpy[1], rpy[2]);
+        dynamics_tree::Vector3 r(xyz[0], xyz[1], xyz[2]);
+        jointToriginallink.topLeftCorner(3, 3) = E.inverse();
+        jointToriginallink.topRightCorner(3, 1) = -E.inverse() * r;
+
+        m_links[link->name]->connected_joints.push_back(m_joints[cj->name]);
+        m_links[link->name]->jointToriginallink.push_back(jointToriginallink);
+        m_joints[cj->name]->parent_link = m_links[link->name];
+      }
     }
   };
 }

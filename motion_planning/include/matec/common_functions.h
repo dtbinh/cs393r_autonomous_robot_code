@@ -202,9 +202,28 @@ namespace dynamics_tree
     return mat;
   }
 
+  inline Matrix3 rotationMatrix(double roll, double pitch, double yaw)
+  {
+    double ci = cos(roll);
+    double cj = cos(pitch);
+    double ch = cos(yaw);
+    double si = sin(roll);
+    double sj = sin(pitch);
+    double sh = sin(yaw);
+    double cc = ci * ch;
+    double cs = ci * sh;
+    double sc = si * ch;
+    double ss = si * sh;
+    Matrix3 mat;
+    mat << cj * ch, sj * sc - cs, sj * cc + ss, cj * sh, sj * ss + cc, sj * cs - sc, -sj, cj * si, cj * ci;
+    return mat;
+  }
+
   inline Matrix4 pureRotation(double roll, double pitch, double yaw)
   {
-    return Matrix4::Identity(); //todo: pureRotation(tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw));
+    Matrix4 mat = Matrix4::Identity();
+    mat.topLeftCorner(3, 3) = rotationMatrix(roll, pitch, yaw);
+    return mat;
   }
 
   inline Vector stdVectorToEigenVector(std::vector<double> std_vector)
@@ -273,9 +292,8 @@ namespace dynamics_tree
 //    double P = fixAngle(angle_axis.angle() * angle_axis.axis().y());
 //    double Y = fixAngle(angle_axis.angle() * angle_axis.axis().z());
 
-
-    double R,P,Y;
-    matrixToRPY(E,R,P,Y);
+    double R, P, Y;
+    matrixToRPY(E, R, P, Y);
 
     rpyxyz << R, P, Y, r(0), r(1), r(2);
   }
@@ -299,8 +317,8 @@ namespace dynamics_tree
 //    twist(0) = weights(0) * fixAngle(angle_axis.angle() * angle_axis.axis().x()) / dt;
 //    twist(1) = weights(1) * fixAngle(angle_axis.angle() * angle_axis.axis().y()) / dt;
 //    twist(2) = weights(2) * fixAngle(angle_axis.angle() * angle_axis.axis().z()) / dt;
-    double R,P,Y;
-    matrixToRPY((dynamics_tree::Matrix3)delta.topLeftCorner(3,3),R,P,Y);
+    double R, P, Y;
+    matrixToRPY((dynamics_tree::Matrix3) delta.topLeftCorner(3, 3), R, P, Y);
     twist(0) = weights(0) * R / dt;
     twist(1) = weights(1) * P / dt;
     twist(2) = weights(2) * Y / dt;

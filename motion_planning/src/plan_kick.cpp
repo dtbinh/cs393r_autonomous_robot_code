@@ -80,6 +80,7 @@ namespace motion_planning
     exportKick(m_kick_filename);
     exportSparseKick(m_sparse_kick_filename);
   }
+  }
 
   PlanKick::~PlanKick()
   {
@@ -434,7 +435,7 @@ namespace motion_planning
 
       tf::StampedTransform trans;
       trans.frame_id_= "world";
-      trans.child_frame_id_ = m_urdf_model.getRoot()->name;
+      trans.child_frame_id_ = m_tree.getRootNode()->link_name;
       trans.stamp_ = m_js.header.stamp;
       m_odom_broadcaster.sendTransform(trans);
 

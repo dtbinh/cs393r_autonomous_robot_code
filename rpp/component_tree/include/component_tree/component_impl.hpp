@@ -5,18 +5,18 @@
 
 namespace rpp
 {
-  Component::Component(pugi::xml_node& node)
+  inline Component::Component(pugi::xml_node& node)
   {
     xml = node;
     depth = 0;
     num_supported_components = 1;
   }
 
-  Component::~Component()
+  inline Component::~Component()
   {
   }
 
-  void Component::computeDepth()
+  inline void Component::computeDepth()
   {
     for(auto c : children)
     {
@@ -26,7 +26,7 @@ namespace rpp
     }
   }
 
-  std::ostream& operator<<(std::ostream& stream, Component& node)
+  inline std::ostream& operator<<(std::ostream& stream, Component& node)
   {
     std::ostringstream oss;
     node.xml.print(oss, "  ");

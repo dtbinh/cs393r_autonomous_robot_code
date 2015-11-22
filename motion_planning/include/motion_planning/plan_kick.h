@@ -4,12 +4,12 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <matec/dynamics_graph.h>
 #include <geometry_msgs/PointStamped.h>
 #include <sensor_msgs/JointState.h>
 #include <tf/transform_broadcaster.h>
 #include <live_params/string_parameter_parsers.hpp>
 #include <component_tree/component_tree.hpp>
+#include <kack.hpp>
 #include <iostream>
 #include <fstream>
 
@@ -36,21 +36,10 @@ namespace motion_planning
     ros::Publisher m_js_pub;
     tf::TransformBroadcaster m_odom_broadcaster;
 
-    std::vector<std::vector<double> > m_joint_plan;
-    std::vector<std::pair<unsigned int, std::vector<double> > > m_sparse_joint_plan;
+    boost::shared_ptr<KACK::Kack> m_kack;
 
-    std::vector<std::string> m_joint_names;
-    std::vector<unsigned int> m_joint_ids;
-    std::vector<double> m_joint_mins;
-    std::vector<double> m_joint_maxes;
-    std::vector<double> m_joint_vels;
     sensor_msgs::JointState m_js;
     dynamics_tree::Matrix4 m_rootTworld;
-
-    rpp::ComponentTree m_model;
-//    urdf::Model m_urdf_model;
-    dynamics_tree::DynamicsGraph m_graph;
-    dynamics_tree::DynamicsTree m_tree;
 
     void planMove(double foot_x, double foot_y, double foot_z, double foot_pitch, double com_x, double com_y, double dt);
     void comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, dynamics_tree::Matrix& jacobian);

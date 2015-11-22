@@ -7,7 +7,12 @@ class Point
   double y;
   double z;
 
-  Point(double a, double b, double c):x(a),y(b),z(c){}
+  void point_update(double a, double b, double c)
+  {
+    x = a;
+    y = b;
+    z = c;
+  }
 };
 
 class Pose
@@ -20,7 +25,7 @@ class Pose
   double P; //=PI to +PI
   double Y; //=PI to +PI
 
-  Pose(bool flag, double a, double b, double c, double roll, double pitch, double yaw)
+  void pose_update(bool flag, double a, double b, double c, double roll, double pitch, double yaw)
   {
     Kick_foot = flag;
     x = a;
@@ -40,7 +45,7 @@ class CartesianKeyframe
   Point min_com;
   Point max_com;
 
-  CartesianKeyframe( double d, pose min_p, pose max_p, pose min_c, pose max_c)
+  void frame_update( double d, Pose min_p, Pose max_p, Point min_c, Point max_c)
   {
     duration = d;
     min_pose = min_p;
@@ -57,7 +62,13 @@ class FootSensor
   double rl;
   double rr;
 
-  FootSensor(double a, double b, double c, double d):fl(a), fr(b), rl(c), rr(d){}
+  void footsensor_update(double a, double b, double c, double d)
+  {
+    fl = a;
+    fr = b;
+    rl = c;
+    rr = d;
+  }
 };
 
 class Kack

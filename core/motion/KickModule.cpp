@@ -19,6 +19,12 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   ball_direction_ = RIGHT;
   goal_direction_ = MIDDLE;
   kick_foot_ = RIGHT;
+
+  current_ball_loction.x = 100.0;
+  current_ball_loction.y = -150.0;
+  current_ball_loction.z = 40.0;
+
+  
 }
 
 void KickModule::initSpecificModule() {

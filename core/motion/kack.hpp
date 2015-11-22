@@ -249,9 +249,9 @@ namespace KACK
       std::string supporting = left_foot_supporting? "l_ankle" : "r_ankle";
       std::string controlled = left_foot_supporting? "r_ankle" : "l_ankle";
 
-      for(unsigned int k = 0 ; k < keyframes.size(); k++)
+      for(unsigned int k = 0; k < keyframes.size(); k++)
       {
-        std::cerr << "Working on keyframe idx " << k+1 << "/" << keyframes.size() << std::endl;
+        std::cerr << "Working on keyframe idx " << k + 1 << "/" << keyframes.size() << std::endl;
         tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_rootTworld);
         dynamics_tree::Matrix4 leftTright;
         tree.lookupTransform(supporting, controlled, leftTright);
@@ -296,13 +296,23 @@ namespace KACK
         }
         std::cerr << std::endl;
       }
+      m_start_time = 0.0;
       return true;
     }
 
     //current_time in seconds, command is output joint positions
     void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command)
     {
-
+      if(m_start_time == 0.0)
+      {
+        m_start_time = current_time;
+      }
+      double dt = current_time - m_start_time;
+      unsigned long current_slice = dt * m_planning_rate;
+      if(current_slice < m_joint_plan.size())
+        command = m_joint_plan.at(current_slice);
+      else
+        command = m_joint_plan.back();
     }
 
     std::vector<std::string> getJointNames()
@@ -337,6 +347,8 @@ namespace KACK
     double m_planning_rate;
     std::vector<std::vector<double> > m_joint_plan;
     std::vector<Point> m_com_plan;
+
+    double m_start_time;
 
     inline void processState(dynamics_tree::DynamicsTree& tree, std::vector<double>& positions, dynamics_tree::Matrix4& rootTworld)
     {
@@ -472,7 +484,7 @@ namespace KACK
         tree.centerOfMass(support_frame, com_vector);
         double com_dx = cc.x - com_vector(0);
         double com_dy = cc.y - com_vector(1);
-        double com_dz = 0;//cc.z - com_vector(2);
+        double com_dz = 0; //cc.z - com_vector(2);
 
         dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
         comJacobian(tree, m_joint_ids, support_frame, Jcom);

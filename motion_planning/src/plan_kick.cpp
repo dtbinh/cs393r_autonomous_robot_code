@@ -42,9 +42,9 @@ namespace motion_planning
 
     std::vector<KACK::CartesianKeyframe> keyframes;
     keyframes.push_back(KACK::CartesianKeyframe(3.0, start, com_support, ppt, pot, cpt, czt));
-    keyframes.push_back(KACK::CartesianKeyframe(0.6, lift, com_support, ppt, pot, cpt, czt));
-    keyframes.push_back(KACK::CartesianKeyframe(0.6, start, com_support, ppt, pot, cpt, czt));
-    keyframes.push_back(KACK::CartesianKeyframe(0.6, start, com_center, ppt, pot, cpt, czt));
+    keyframes.push_back(KACK::CartesianKeyframe(3.0, lift, com_support, ppt, pot, cpt, czt));
+    keyframes.push_back(KACK::CartesianKeyframe(3.0, start, com_support, ppt, pot, cpt, czt));
+    keyframes.push_back(KACK::CartesianKeyframe(3.0, start, com_center, ppt, pot, cpt, czt));
     m_kack->plan(m_js.position, keyframes);
 
 //    planMove(0.0, -foot_separation, 0.0, 0.0, 0.01, 0.005, 3.0);

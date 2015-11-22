@@ -31,13 +31,13 @@ namespace motion_planning
 
     double ppt = 1e-3;
     double pot = 1e-3;
-    double cpt = 1e-1;
+    double cpt = 1e-3;
     double czt = 1.0;
 
     KACK::Pose start(0.0, -foot_separation, 0.0, 0.0, 0.0, 0.0);
-    KACK::Pose lift(0.0, -foot_separation, 0.3, 0.0, 0.0, 0.0);
+    KACK::Pose lift(0.0, -foot_separation, 0.05, 0.0, 0.0, 0.0);
 
-    KACK::Point com_center(0.0, -foot_separation / 2.0, 0.4);
+    KACK::Point com_center(0.0, -foot_separation / 2.0, 0.22);
     KACK::Point com_support(0.0, 0.0, 0.4);
 
     std::vector<KACK::CartesianKeyframe> keyframes;

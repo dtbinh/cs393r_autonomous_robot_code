@@ -262,10 +262,10 @@ namespace KACK
         double Ri, Pi, Yi;
         matrixToRPY((dynamics_tree::Matrix3) leftTright.topLeftCorner(3, 3), Ri, Pi, Yi);
 
-        printf("started at (%g,%g,%g)(%g,%g,%g)\n", xi, yi, zi, Ri, Pi, Yi);
-
         dynamics_tree::Vector4 com_vector;
-        tree.centerOfMass("l_ankle", com_vector);
+        tree.centerOfMass(supporting, com_vector);
+
+        printf("started at (%g,%g,%g)(%g,%g,%g), com(%g,%g,%g)\n", xi, yi, zi, Ri, Pi, Yi, com_vector(0), com_vector(1), com_vector(2));
 
         Pose pc, pt;
         Point cc, ct;
@@ -291,9 +291,8 @@ namespace KACK
           CartesianKeyframe interpolated = CartesianKeyframe((keyframes[k].duration / num_frames), Pose(x - pt.x, y - pt.y, z - pt.z, R - pt.R, P - pt.P, Y - pt.Y), Pose(x + pt.x, y + pt.y, z + pt.z, R + pt.R, P + pt.P, Y + pt.Y), Point(cx - ct.x, cy - ct.y, cz - ct.z), Point(cx + ct.x, cy + ct.y, cz + ct.z));
 
           std::vector<double> next_positions = m_joint_plan.at(m_joint_plan.size() - 1);
-          planPose(tree, supporting, controlled, m_joint_plan.at(m_joint_plan.size() - 1), next_positions, interpolated, 100000);
+          planPose(tree, supporting, controlled, m_joint_plan.at(m_joint_plan.size() - 1), next_positions, interpolated, 10000);
           m_joint_plan.push_back(next_positions);
-          std::cerr << "plan is now size " << m_joint_plan.size() << std::endl;
         }
         std::cerr << std::endl;
       }
@@ -473,7 +472,7 @@ namespace KACK
         tree.centerOfMass(support_frame, com_vector);
         double com_dx = cc.x - com_vector(0);
         double com_dy = cc.y - com_vector(1);
-        double com_dz = cc.z - com_vector(2);
+        double com_dz = 0;//cc.z - com_vector(2);
 
         dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
         comJacobian(tree, m_joint_ids, support_frame, Jcom);

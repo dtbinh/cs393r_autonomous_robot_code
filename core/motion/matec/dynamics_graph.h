@@ -238,7 +238,15 @@ namespace dynamics_tree
 
         std::vector<double> xyz = rpp::parameterStringToFPVector(link->xml.child("inertial").child("origin").attribute("xyz").as_string());
 
-        m_links[link->name]->com_position << xyz[0], xyz[1], xyz[2];
+        if(xyz.size() == 3)
+        {
+          m_links[link->name]->com_position << xyz[0], xyz[1], xyz[2];
+        }
+        else
+        {
+          std::cerr << "BAD INERTIAL XYZ BLOCK IN LINK " << link->name << std::endl;
+          m_links[link->name]->com_position = Vector3::Zero();
+        }
 
         pugi::xml_node in = link->xml.child("inertial").child("inertia");
         m_links[link->name]->com_inertia << in.attribute("ixx").as_double(), in.attribute("ixy").as_double(), in.attribute("ixz").as_double(), //
@@ -288,12 +296,12 @@ namespace dynamics_tree
         }
 
         //set limits
-        if(link->parent->xml.child("limits"))
+        if(link->parent->xml.child("limit"))
         {
-          m_joints[link->parent->name]->max_torque = link->parent->xml.child("limits").attribute("effort").as_double();
-          m_joints[link->parent->name]->max_q_dot = link->parent->xml.child("limits").attribute("velocity").as_double();
-          m_joints[link->parent->name]->min_q = link->parent->xml.child("limits").attribute("lower").as_double();
-          m_joints[link->parent->name]->max_q = link->parent->xml.child("limits").attribute("upper").as_double();
+          m_joints[link->parent->name]->max_torque = link->parent->xml.child("limit").attribute("effort").as_double();
+          m_joints[link->parent->name]->max_q_dot = link->parent->xml.child("limit").attribute("velocity").as_double();
+          m_joints[link->parent->name]->min_q = link->parent->xml.child("limit").attribute("lower").as_double();
+          m_joints[link->parent->name]->max_q = link->parent->xml.child("limit").attribute("upper").as_double();
         }
 
         //set dynamic properties

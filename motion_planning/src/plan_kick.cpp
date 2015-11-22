@@ -31,11 +31,11 @@ namespace motion_planning
 
     double ppt = 1e-3;
     double pot = 1e-3;
-    double cpt = 1e-3;
+    double cpt = 1e-1;
     double czt = 1.0;
 
     KACK::Pose start(0.0, -foot_separation, 0.0, 0.0, 0.0, 0.0);
-    KACK::Pose lift(0.0, -foot_separation, 0.0, 0.0, 0.0, 0.0);
+    KACK::Pose lift(0.0, -foot_separation, 0.3, 0.0, 0.0, 0.0);
 
     KACK::Point com_center(0.0, -foot_separation / 2.0, 0.4);
     KACK::Point com_support(0.0, 0.0, 0.4);
@@ -153,7 +153,7 @@ namespace motion_planning
     while(ros::ok())
     {
       m_js.position = joint_plan[plan_idx % joint_plan.size()];
-      KACK::Point com_point = com_plan[plan_idx % com_plan.size()];
+      KACK::Point com_point; // = com_plan[plan_idx % com_plan.size()];
       plan_idx++;
 
       geometry_msgs::PointStamped com;
@@ -166,10 +166,7 @@ namespace motion_planning
       m_js.header.stamp = ros::Time::now();
       m_js_pub.publish(m_js);
 
-      tf::StampedTransform trans;
-      trans.frame_id_ = "world";
-      trans.child_frame_id_ = "torso";
-      trans.stamp_ = m_js.header.stamp;
+      tf::StampedTransform trans = tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0, 0)), m_js.header.stamp, "world", "torso");
       m_odom_broadcaster.sendTransform(trans);
 
       ros::spinOnce();

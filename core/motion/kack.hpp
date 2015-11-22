@@ -200,9 +200,12 @@ namespace KACK
       m_xml_model.fromFile(model_filename);
       std::string joint_string = "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
       m_joint_names = rpp::parameterStringToStringVector(joint_string);
+      m_rootTworld = dynamics_tree::Matrix4::Identity();
+
+//      std::cerr << "Had " << m_joint_names.size() << " joint names" << std::endl;
 
       m_graph.loadFromURDF(m_joint_names, m_xml_model);
-      m_graph.print("l_ankle");
+//      m_graph.print("l_ankle");
       m_graph.spawnDynamicsTree("l_ankle", false, m_left_tree);
       m_graph.spawnDynamicsTree("r_ankle", false, m_right_tree);
 
@@ -213,18 +216,24 @@ namespace KACK
           continue;
         }
 
-        std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
+//        std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
         m_joint_ids.push_back(i);
 
         pugi::xml_node joint_xml = m_xml_model.component("joint", m_joint_names.at(i))->xml;
 
-        if(joint_xml && joint_xml.child("limits"))
+        if(joint_xml && joint_xml.child("limit"))
         {
-          m_joint_mins.push_back(joint_xml.child("limits").attribute("lower").as_double());
-          m_joint_maxes.push_back(joint_xml.child("limits").attribute("upper").as_double());
-          m_joint_vels.push_back(joint_xml.child("limits").attribute("velocity").as_double());
+          m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
+          m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
+          m_joint_vels.push_back(joint_xml.child("limit").attribute("velocity").as_double());
         }
+//        else
+//        {
+//          std::cerr << "joint " << m_joint_names.at(i) << " had no limits!" << std::endl;
+//        }
       }
+//      std::cerr << "Had " << m_joint_ids.size() << " joint ids" << std::endl;
+//      std::cerr << "Had " << m_joint_maxes.size() << " joint limits" << std::endl;
     }
 
     ~Kack()
@@ -240,11 +249,12 @@ namespace KACK
       std::string supporting = left_foot_supporting? "l_ankle" : "r_ankle";
       std::string controlled = left_foot_supporting? "r_ankle" : "l_ankle";
 
-      for(auto k : keyframes)
+      for(unsigned int k = 0 ; k < keyframes.size(); k++)
       {
+        std::cerr << "Working on keyframe idx " << k+1 << "/" << keyframes.size() << std::endl;
         tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_rootTworld);
         dynamics_tree::Matrix4 leftTright;
-        tree.lookupTransform("l_ankle", "r_ankle", leftTright);
+        tree.lookupTransform(supporting, controlled, leftTright);
         double xi = leftTright(0, 3);
         double yi = leftTright(1, 3);
         double zi = leftTright(2, 3);
@@ -252,17 +262,19 @@ namespace KACK
         double Ri, Pi, Yi;
         matrixToRPY((dynamics_tree::Matrix3) leftTright.topLeftCorner(3, 3), Ri, Pi, Yi);
 
+        printf("started at (%g,%g,%g)(%g,%g,%g)\n", xi, yi, zi, Ri, Pi, Yi);
+
         dynamics_tree::Vector4 com_vector;
         tree.centerOfMass("l_ankle", com_vector);
 
         Pose pc, pt;
         Point cc, ct;
-        k.getPoseCentroid(pc);
-        k.getPoseTolerances(pt);
-        k.getCoMCentroid(cc);
-        k.getCoMTolerances(ct);
+        keyframes[k].getPoseCentroid(pc);
+        keyframes[k].getPoseTolerances(pt);
+        keyframes[k].getCoMCentroid(cc);
+        keyframes[k].getCoMTolerances(ct);
 
-        unsigned int num_frames = std::ceil(k.duration * m_planning_rate);
+        unsigned int num_frames = std::ceil(keyframes[k].duration * m_planning_rate);
         for(unsigned int i = 1; i <= num_frames; i++)
         {
           double x = xi + i * (pc.x - xi) / (double) num_frames;
@@ -276,11 +288,12 @@ namespace KACK
           double cy = com_vector(1) + i * (cc.y - com_vector(1)) / (double) num_frames;
           double cz = com_vector(2) + i * (cc.z - com_vector(2)) / (double) num_frames;
 
-          CartesianKeyframe interpolated = CartesianKeyframe((k.duration / num_frames), Pose(x - pt.x, y - pt.y, z - pt.z, R - pt.R, P - pt.P, Y - pt.Y), Pose(x + pt.x, y + pt.y, z + pt.z, R + pt.R, P + pt.P, Y + pt.Y), Point(cx - ct.x, cy - ct.y, cz - ct.z), Point(cx + ct.x, cy + ct.y, cz + ct.z));
+          CartesianKeyframe interpolated = CartesianKeyframe((keyframes[k].duration / num_frames), Pose(x - pt.x, y - pt.y, z - pt.z, R - pt.R, P - pt.P, Y - pt.Y), Pose(x + pt.x, y + pt.y, z + pt.z, R + pt.R, P + pt.P, Y + pt.Y), Point(cx - ct.x, cy - ct.y, cz - ct.z), Point(cx + ct.x, cy + ct.y, cz + ct.z));
 
           std::vector<double> next_positions = m_joint_plan.at(m_joint_plan.size() - 1);
           planPose(tree, supporting, controlled, m_joint_plan.at(m_joint_plan.size() - 1), next_positions, interpolated, 100000);
           m_joint_plan.push_back(next_positions);
+          std::cerr << "plan is now size " << m_joint_plan.size() << std::endl;
         }
         std::cerr << std::endl;
       }

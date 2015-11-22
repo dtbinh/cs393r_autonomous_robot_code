@@ -60,7 +60,7 @@ namespace rpp
   };
 }
 
-#include <component_tree/component_impl.hpp>
-#include <component_tree/component_tree_impl.hpp>
+#include "component_impl.hpp"
+#include "component_tree_impl.hpp"
 
 #endif //COMPONENT_TREE_HPP

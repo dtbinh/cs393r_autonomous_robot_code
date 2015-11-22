@@ -17,7 +17,7 @@ class Point
 
 class Pose
 {
-  int Kick_foot_state; //0:double stand; 1:Right; 2: Left;
+  //int Kick_foot_state; //0:double stand; 1:Right; 2: Left;
   double x;
   double y;
   double z;
@@ -25,9 +25,9 @@ class Pose
   double P; //=PI to +PI
   double Y; //=PI to +PI
 
-  void update(int kick_foot_s, double a, double b, double c, double roll, double pitch, double yaw)
+  void update(double a, double b, double c, double roll, double pitch, double yaw)
   {
-    Kick_foot_state = kick_foot_s;
+    //Kick_foot_state = kick_foot_s;
     x = a;
     y = b;
     z = c;

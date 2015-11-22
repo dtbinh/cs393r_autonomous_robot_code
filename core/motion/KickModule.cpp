@@ -55,35 +55,22 @@ void KickModule::Initializing()
   current_ball_location = get_ball_location(coordinate_shift);
   current_goal_location = get_goal_location(coordinate_shift);
 
-  if(current_ball_location.y > 30) //left foot
+  if(current_ball_location.y > 30 || (abs(current_ball_location) < 30 && current_goal_location.y < 0)) //left foot
   {
     coordinate_shift.update(0 , -40 , -200);
     ball_direction_ = LEFT;
     current_ball_location = get_ball_location(coordinate_shift);
-    current_foot_pose.update();
-    desired_foot_pose.update(0,0,0,0,0,0,0);
+    current_foot_pose.update( 0    , -100  , 0  , 0 , 0 , 0);
+    desired_foot_pose.update( 0    , -100  , 0  , 0 , 0 , 0);
   }
-  else if(current_ball_location.y > -30) //right foot
+  else if(current_ball_location.y < -30 || (abs(current_ball_location) < 30 && current_goal_location.y > 0)) //right foot
   {
     coordinate_shift.update(0 , 40 , -200);
     ball_direction_ = RIGHT;
     current_ball_location = get_ball_location(coordinate_shift);
-    current_foot_pose.update();
-    desired_foot_pose.update(0,0,0,0,0,0,0);
+    current_foot_pose.update( 0    ,  100  , 0  , 0 , 0 , 0);
+    desired_foot_pose.update( 0    ,  100  , 0  , 0 , 0 , 0);
   }
-  else//center
-  {
-    if(current_goal_location > 0) //using right foot
-    {
-
-    }
-    else //using left foot
-    {
-
-    }
-  }
-
-
 
 
 }
@@ -137,17 +124,17 @@ FootSensor KickModule::get_foot_sensor(KickFoot state)
   FootSensor foot_force;
   if(state = LEFT)
   {
-    foot_force.fl = cache_.sensor->values_[14];
-    foot_force.fr = cache_.sensor->values_[15];
-    foot_force.rl = cache_.sensor->values_[16];
-    foot_force.rr = cache_.sensor->values_[17];
+    foot_force.fl = cache_.sensor->values_[fsrRFL];
+    foot_force.fr = cache_.sensor->values_[fsrRFR];
+    foot_force.rl = cache_.sensor->values_[fsrRRL];
+    foot_force.rr = cache_.sensor->values_[fsrRRR];
   }
   else(state = RIGHT)
   {
-    foot_force.fl = cache_.sensor->values_[10];
-    foot_force.fr = cache_.sensor->values_[11];
-    foot_force.rl = cache_.sensor->values_[12];
-    foot_force.rr = cache_.sensor->values_[13];
+    foot_force.fl = cache_.sensor->values_[fsrLFL];
+    foot_force.fr = cache_.sensor->values_[fsrLFR];
+    foot_force.rl = cache_.sensor->values_[fsrLRL];
+    foot_force.rr = cache_.sensor->values_[fsrLRR];
   }
 
   return foot_force;

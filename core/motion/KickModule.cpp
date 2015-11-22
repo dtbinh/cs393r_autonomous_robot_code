@@ -13,7 +13,13 @@
 #define JOINT_EPSILON (3.f * DEG_T_RAD)
 #define DEBUG false
 
-KickModule::KickModule() : state_(Finished), sequence_(NULL) { }
+KickModule::KickModule() : state_(Finished), sequence_(NULL) 
+{
+  kick_state_ = Finished;
+  ball_direction_ = RIGHT;
+  goal_direction_ = MIDDLE;
+  kick_foot_ = RIGHT;
+}
 
 void KickModule::initSpecificModule() {
   auto file = cache_.memory->data_path_ + "kicks/default.yaml";

@@ -6,16 +6,30 @@ class Point
   double x;
   double y;
   double z;
+
+  Point(double a, double b, double c):x(a),y(b),z(c){}
 };
 
 class Pose
 {
+  bool Kick_foot;
   double x;
   double y;
   double z;
   double R; //=PI to +PI
   double P; //=PI to +PI
   double Y; //=PI to +PI
+
+  Pose(bool flag, double a, double b, double c, double roll, double pitch, double yaw)
+  {
+    Kick_foot = flag;
+    x = a;
+    y = b;
+    z = c;
+    R = roll;
+    P = pitch;
+    Y = yaw;
+  }
 };
 
 class CartesianKeyframe
@@ -25,6 +39,15 @@ class CartesianKeyframe
   Pose max_pose;   //poses are specified in the coordinate frame of the supporting foot
   Point min_com;
   Point max_com;
+
+  CartesianKeyframe( double d, pose min_p, pose max_p, pose min_c, pose max_c)
+  {
+    duration = d;
+    min_pose = min_p;
+    max_pose = max_p;
+    min_com  = min_c;
+    max_com  = max_c;
+  }
 };
 
 class FootSensor
@@ -33,6 +56,8 @@ class FootSensor
   double fr;
   double rl;
   double rr;
+
+  FootSensor(double a, double b, double c, double d):fl(a), fr(b), rl(c), rr(d){}
 };
 
 class Kack
@@ -62,3 +87,4 @@ public:
 };
 
 #endif //KACK_HPP
+

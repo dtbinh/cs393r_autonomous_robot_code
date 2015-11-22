@@ -24,7 +24,7 @@ class KickModule : public Module {
       Tracking,
       Executing,
       Putting_back,
-      Finished
+      Finishing
     );
 
     ENUM(BallDirection,
@@ -40,17 +40,20 @@ class KickModule : public Module {
     );
 
     ENUM(KickFoot,
+      STAND,
       LEFT,
       RIGHT
     );
 
-    bool Initializing();
+    void Initializing();
     bool Tracking();
-    bool Executing();
-    bool Putting_back();
-    bool Finished();
+    void Executing();
+    void Putting_back();
+    bool Finishing();
 
-
+    Point get_ball_location(Point shift);
+    Point get_goal_location(Point shift);
+    FootSensor get_foot_sensor(KickFoot state);
 
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
     ENUM(KickState,
@@ -73,17 +76,23 @@ class KickModule : public Module {
     KickFoot kick_foot_
 
     Point current_ball_location;
+    Point current_goal_location;
+    Point coordinate_shift;
     Pose  current_foot_pose;
-    Pose  desired_initial_left_foot_pose;
-    Pose  desired_initial_right_foot_pose;
-    Pose  desired_current_left_foot_pose;
-    Pose  desired_current_right_foot_pose;
+    Pose  desired_foot_pose;
+
+
+
+    //Pose  desired_initial_left_foot_pose;
+    //Pose  desired_initial_right_foot_pose;
 
     struct ReachableArea
     {
       Point center;
       double radius;
-      double ratio;
+      double short_radius;
+
+      ReachableArea( Point c, double r, double, sr):center(c), radius(r), short_radius(sr){}
     };
 
     //-------------------------------------old keyframe based kicking version--------------------------------------------

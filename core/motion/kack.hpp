@@ -7,7 +7,7 @@ class Point
   double y;
   double z;
 
-  void point_update(double a, double b, double c)
+  void update(double a, double b, double c)
   {
     x = a;
     y = b;
@@ -17,7 +17,7 @@ class Point
 
 class Pose
 {
-  bool Kick_foot;
+  int Kick_foot_state; //0:double stand; 1:Right; 2: Left;
   double x;
   double y;
   double z;
@@ -25,9 +25,9 @@ class Pose
   double P; //=PI to +PI
   double Y; //=PI to +PI
 
-  void pose_update(bool flag, double a, double b, double c, double roll, double pitch, double yaw)
+  void update(int kick_foot_s, double a, double b, double c, double roll, double pitch, double yaw)
   {
-    Kick_foot = flag;
+    Kick_foot_state = kick_foot_s;
     x = a;
     y = b;
     z = c;
@@ -45,7 +45,7 @@ class CartesianKeyframe
   Point min_com;
   Point max_com;
 
-  void frame_update( double d, Pose min_p, Pose max_p, Point min_c, Point max_c)
+  void update( double d, Pose min_p, Pose max_p, Point min_c, Point max_c)
   {
     duration = d;
     min_pose = min_p;
@@ -62,7 +62,7 @@ class FootSensor
   double rl;
   double rr;
 
-  void footsensor_update(double a, double b, double c, double d)
+  void update(double a, double b, double c, double d)
   {
     fl = a;
     fr = b;

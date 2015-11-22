@@ -15,18 +15,147 @@
 
 KickModule::KickModule() : state_(Finished), sequence_(NULL) 
 {
-  kick_state_ = Finished;
+  Point area_center;
+  double area_radius, area_short_radius;
+
+  kick_state_ = Finishing;
   ball_direction_ = RIGHT;
   goal_direction_ = MIDDLE;
-  kick_foot_ = RIGHT;
+  kick_foot_ = STAND;
 
-  current_ball_loction.x = 100.0;
-  current_ball_loction.y = -150.0;
-  current_ball_loction.z = 40.0;
+  coordinate_shift.update(0,0,0);
+  current_ball_location.update(0,0,0);
+  current_goal_location.update(0,0,0);
+  current_foot_pose.update(0,0,0,0,0,0,0);
+  desired_foot_pose.update(0,0,0,0,0,0,0);
 
-  
+  area_center.update(0, 150.0 , 40.0);
+  area_radius = 150.0;
+  area_short_radius = 100.0;
+
+  ReachableArea REACHAREA(area_center , area_radius , area_short_radius);
 }
 
+void KickModule::processFrame() {
+  if(cache_.kick_request->kick_type_ == Kick::STRAIGHT) {
+    if(state_ == Finished) Initializing();
+  }
+  if(state_ == Initial || state_ == Running) {
+    cache_.kick_request->kick_running_ = true;
+    performKick();
+  }
+}
+
+void KickModule::Initializing()
+{
+  auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+
+  kick_state_ = Initialing;
+
+  current_ball_location = get_ball_location(coordinate_shift);
+  current_goal_location = get_goal_location(coordinate_shift);
+
+  if(current_ball_location.y > 30) //left foot
+  {
+    coordinate_shift.update(0 , -40 , -200);
+    ball_direction_ = LEFT;
+    current_ball_location = get_ball_location(coordinate_shift);
+    current_foot_pose.update();
+    desired_foot_pose.update(0,0,0,0,0,0,0);
+  }
+  else if(current_ball_location.y > -30) //right foot
+  {
+    coordinate_shift.update(0 , 40 , -200);
+    ball_direction_ = RIGHT;
+    current_ball_location = get_ball_location(coordinate_shift);
+    current_foot_pose.update();
+    desired_foot_pose.update(0,0,0,0,0,0,0);
+  }
+  else//center
+  {
+    if(current_goal_location > 0) //using right foot
+    {
+
+    }
+    else //using left foot
+    {
+
+    }
+  }
+
+
+
+
+}
+
+bool KickModule::Tracking()
+{
+
+}
+
+void KickModule::Executing()
+{
+
+}
+
+void KickModule::Putting_back()
+{
+
+}
+
+bool KickModule::Finishing()
+{
+  return true;
+}
+
+Point KickModule::get_ball_location(Point shift)
+{
+  Point location;
+  auto& ball = cache_.world_object->objects_[WO_BALL];
+
+  location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
+  location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
+  location.z = 40.0;
+
+  return location;
+}
+
+Point KickModule::get_goal_location(Point shift)
+{
+  Point location;
+  auto& goal = cache_.world_object->objects_[WO_OPP_GOAL];
+
+  location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+  location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+  location.z = 40.0;
+
+  return location;
+}
+
+FootSensor KickModule::get_foot_sensor(KickFoot state)
+{
+  FootSensor foot_force;
+  if(state = LEFT)
+  {
+    foot_force.fl = cache_.sensor->values_[14];
+    foot_force.fr = cache_.sensor->values_[15];
+    foot_force.rl = cache_.sensor->values_[16];
+    foot_force.rr = cache_.sensor->values_[17];
+  }
+  else(state = RIGHT)
+  {
+    foot_force.fl = cache_.sensor->values_[10];
+    foot_force.fr = cache_.sensor->values_[11];
+    foot_force.rl = cache_.sensor->values_[12];
+    foot_force.rr = cache_.sensor->values_[13];
+  }
+
+  return foot_force;
+}
+
+
+
+//-------------------------------------old keyframe based kicking version-------------------------------------------- 
 void KickModule::initSpecificModule() {
   auto file = cache_.memory->data_path_ + "kicks/default.yaml";
   sequence_ = new KeyframeSequence();
@@ -86,20 +215,7 @@ void KickModule::specifyMemoryBlocks() {
   getMemoryBlock(cache_.kick_request,"kick_request");
 }
 
-void KickModule::processFrame() {
-  if(cache_.kick_request->kick_type_ == Kick::STRAIGHT) {
-    if(state_ == Finished) start();
-  }
-  if(state_ == Initial || state_ == Running) {
-    cache_.kick_request->kick_running_ = true;
-    performKick();
-  }
-}
 
-
-
-
-//-------------------------------------old keyframe based kicking version-------------------------------------------- 
 void KickModule::performKick() {
   if(DEBUG) printf("performKick, state: %s, keyframe: %i, frames: %i\n", getName(state_), keyframe_, frames_);
   if(state_ == Finished) return;

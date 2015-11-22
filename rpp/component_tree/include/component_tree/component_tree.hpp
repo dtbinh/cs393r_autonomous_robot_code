@@ -2,8 +2,8 @@
 #define COMPONENT_TREE_HPP
 
 #define PUGIXML_HEADER_ONLY
-#include "component_tree/pugixml.hpp"
-#include "component_tree/pugixml.cpp"
+#include "pugixml.hpp"
+#include "pugixml.cpp"
 #include <iostream>
 #include <fstream>
 #include <boost/algorithm/string.hpp>

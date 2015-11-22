@@ -1,7 +1,7 @@
 #ifndef KACK_HPP
 #define KACK_HPP
 
-#include <matec/dynamics_graph.h>
+#include "matec/dynamics_graph.h"
 
 namespace KACK
 {
@@ -393,7 +393,7 @@ namespace KACK
       jacobian.resize(6, joint_indices.size());
       for(unsigned int i = 0; i < joint_indices.size(); i++)
       {
-        boost::this_thread::interruption_point();
+        //boost::this_thread::interruption_point();
         boost::shared_ptr<dynamics_tree::DynamicsTreeNode> joint_node = tree.getNodeByIndex(joint_indices[i]);
         if(!joint_node)
         {
@@ -448,9 +448,9 @@ namespace KACK
         //transpose
         //dQ = J^T * e * (<e, J*J^T*e> / <J*J^T*e, J*J^T*e>)
         //      dynamics_tree::Vector JJTe = JJT * foot_twist;
-        //      boost::this_thread::interruption_point();
+        //      //boost::this_thread::interruption_point();
         //      dynamics_tree::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
-        //      boost::this_thread::interruption_point();
+        //      //boost::this_thread::interruption_point();
 
         //pinv
         dynamics_tree::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
@@ -475,9 +475,9 @@ namespace KACK
 
         //transpose
         //      dynamics_tree::Vector JJTe_com = JcomJcomT * com_twist;
-        //      boost::this_thread::interruption_point();
+        //      //boost::this_thread::interruption_point();
         //      dynamics_tree::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
-        //      boost::this_thread::interruption_point();
+        //      //boost::this_thread::interruption_point();
 
         //pinv
         dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
@@ -499,7 +499,7 @@ namespace KACK
         //!NAO SPECIFIC
 
         //simulate forward (euler)
-        for(unsigned int j = 0; j < m_joint_ids.size() && ros::ok(); j++)
+        for(unsigned int j = 0; j < m_joint_ids.size(); j++)
         {
           unsigned int joint_id = m_joint_ids[j];
           unsigned int num_velocities = 0;

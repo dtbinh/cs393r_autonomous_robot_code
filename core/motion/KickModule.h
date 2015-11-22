@@ -3,7 +3,10 @@
 #include <Module.h>
 #include <common/RobotInfo.h>
 #include <memory/MemoryCache.h>
+#include <memory/WorldObjectBlock.h>
 #include "kack.hpp"
+#include <stdio.h>    
+#include <sys/time.h>      
 
 class Keyframe;
 class KeyframeSequence;
@@ -11,6 +14,7 @@ class KeyframeSequence;
 class KickModule : public Module {
   public:
     KickModule();
+    ~KickModule();
     void initSpecificModule();
     void specifyMemoryDependency();
     void specifyMemoryBlocks();
@@ -35,7 +39,7 @@ class KickModule : public Module {
 
     ENUM(GoalDirection,
       LEFTGOAL,
-      MIDDELGOAL,
+      MIDDLEGOAL,
       RIGHTGOAL
     );
 
@@ -55,6 +59,8 @@ class KickModule : public Module {
     KACK::Point get_goal_location(KACK::Point shift);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
+    void getCurrentTime();    
+    void getCurrentJoints();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
     ENUM(KickState,
       Initial,
@@ -82,8 +88,15 @@ class KickModule : public Module {
     KACK::Pose  desired_foot_pose;
 
     KACK::Kack* kack;
+    std::vector<KACK::CartesianKeyframe> KickKeyFrames ;
+    std::vector<double> CurrentJoints;
+    std::vector<double> CurrentCommand;
+    double CurrentTime;
 
-
+    double t_d_pose;
+    double t_a_pose;
+    double t_d_com;
+    double z_index;
 
     //Pose  desired_initial_left_foot_pose;
     //Pose  desired_initial_right_foot_pose;
@@ -94,7 +107,7 @@ class KickModule : public Module {
       double radius;
       double short_radius;
 
-      ReachableArea( KACK::Point c, double r, double, sr):center(c), radius(r), short_radius(sr){}
+      ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
     };
 
     //-------------------------------------old keyframe based kicking version--------------------------------------------

@@ -5,7 +5,7 @@ namespace dynamics_tree
 {
   inline void DynamicsTree::computeSupportedCentersOfMassRecursive(boost::shared_ptr<DynamicsTreeNode> node)
   {
-    boost::this_thread::interruption_point();
+    //boost::this_thread::interruption_point();
     node->supported_mass = node->mass;
     node->supported_com = node->mass * node->iTicom.topRightCorner(4, 1);
     for(unsigned int i = 0; i < node->children.size(); i++) //todo: use preexisting recursion structure?
@@ -19,7 +19,7 @@ namespace dynamics_tree
 
   inline void DynamicsTree::supportedCenterOfMass(boost::shared_ptr<DynamicsTreeNode> node, dynamics_tree::Vector4& com, double& supported_mass)
   {
-    boost::this_thread::interruption_point();
+    //boost::this_thread::interruption_point();
     supported_mass = node->mass;
     com = node->mass * node->iTicom.topRightCorner(4, 1);
     dynamics_tree::Vector4 zero_point = dynamics_tree::Vector4::Zero();
@@ -37,7 +37,7 @@ namespace dynamics_tree
 
   inline void DynamicsTree::centerOfMass(std::string target_frame, dynamics_tree::Vector4& com)
   {
-    boost::this_thread::interruption_point();
+    //boost::this_thread::interruption_point();
     com = dynamics_tree::Vector4::Zero();
     dynamics_tree::Vector4 zero_point = dynamics_tree::Vector4::Zero();
     zero_point(3) = 1.0;
@@ -56,7 +56,7 @@ namespace dynamics_tree
 
   inline bool DynamicsTree::getSupportingSubset(std::vector<unsigned int> desired_joint_indices, std::string tool_frame, std::vector<unsigned int>& supporting_joint_indices)
   {
-    boost::this_thread::interruption_point();
+    //boost::this_thread::interruption_point();
     if(m_nodes.find(tool_frame) == m_nodes.end())
     {
       std::cerr << "Couldn't find tool frame " << tool_frame << " in the tree!" << std::endl;
@@ -101,7 +101,7 @@ namespace dynamics_tree
     jacobian.resize(6, joint_indices.size());
     for(unsigned int i = 0; i < joint_indices.size(); i++)
     {
-      boost::this_thread::interruption_point();
+      //boost::this_thread::interruption_point();
       boost::shared_ptr<DynamicsTreeNode> joint_node = getNodeByIndex(joint_indices[i]);
       if(!joint_node)
       {
@@ -144,7 +144,7 @@ namespace dynamics_tree
     joint_velocities.resize(joint_indices.size());
     for(unsigned int i = 0; i < joint_indices.size(); i++)
     {
-      boost::this_thread::interruption_point();
+      //boost::this_thread::interruption_point();
       boost::shared_ptr<DynamicsTreeNode> joint_node = getNodeByIndex(joint_indices[i]);
       if(!joint_node)
       {
@@ -169,7 +169,7 @@ namespace dynamics_tree
 
       dynamics_tree::Vector6 JJTe = Ji * Ji.transpose() * twist;
       double alpha = (double) (twist.transpose() * JJTe) / (double) (JJTe.transpose() * JJTe); //possibly wrong
-      if(isnan(alpha) || isinf(alpha)) //usually happens when error is zero
+      if(std::isnan(alpha) || std::isinf(alpha)) //usually happens when error is zero
       {
         alpha = 0;
       }

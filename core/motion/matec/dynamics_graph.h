@@ -1,8 +1,8 @@
 #ifndef DYNAMICS_GRAPH_H
 #define DYNAMICS_GRAPH_H
 
-#include <live_params/string_parameter_parsers.hpp>
-#include <component_tree/component_tree.hpp>
+#include "../../../rpp/live_params/include/live_params/string_parameter_parsers.hpp"
+#include "../../../rpp/component_tree/include/component_tree/component_tree.hpp"
 #include "common_functions.h"
 #include "dynamics_tree.h"
 #include "matec_joint.h"
@@ -283,7 +283,7 @@ namespace dynamics_tree
         //check joint index
         if((m_joints[link->parent->name]->idx == (int) m_joint_names.size()) && m_joints[link->parent->name]->type != FIXED_JOINT)
         {
-          ROS_DEBUG("JOINT %s ASSOCIATED WITH LINK %s WAS NOT FOUND IN THE LIST OF JOINT NAMES! CONVERTING IT INTO A FIXED JOINT!!", m_joints[link->parent->name]->name.c_str(), link->name.c_str());
+          //ROS_DEBUG("JOINT %s ASSOCIATED WITH LINK %s WAS NOT FOUND IN THE LIST OF JOINT NAMES! CONVERTING IT INTO A FIXED JOINT!!", m_joints[link->parent->name]->name.c_str(), link->name.c_str());
           m_joints[link->parent->name]->type = FIXED_JOINT;
         }
 

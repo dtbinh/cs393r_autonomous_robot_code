@@ -125,7 +125,7 @@ namespace rpp
       {
         ROS_ID_INFO_THROTTLED_STREAM("Waiting for shared memory space " << interface_name << " to become available (is the manager running?)...");
       }
-      //boost::this_thread::interruption_point();
+      ////boost::this_thread::interruption_point();
     }
 
     m_field_name = field_name;
@@ -304,7 +304,7 @@ namespace rpp
         std::cerr << "Exception " << ex.what() << " occurred while getting data from field " << m_field_name << std::endl;
       }
 
-      //boost::this_thread::interruption_point();
+      ////boost::this_thread::interruption_point();
     }
 
     PRINT_TRACE_EXIT
@@ -379,7 +379,7 @@ namespace rpp
       {
         CATCH_SHUTDOWN_SIGNAL
         ROS_ID_WARN_THROTTLED_STREAM("Waiting for field " << m_field_name << " to become valid.");
-        //boost::this_thread::interruption_point();
+        ////boost::this_thread::interruption_point();
       }
       m_already_read_valid = true;
     }
@@ -411,7 +411,7 @@ namespace rpp
           PRINT_TRACE_EXIT
           return false;
         }
-        //boost::this_thread::interruption_point();
+        ////boost::this_thread::interruption_point();
       }
     }
 

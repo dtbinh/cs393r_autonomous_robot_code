@@ -163,7 +163,7 @@ namespace rpp
         }
         ROS_WARN_STREAM_THROTTLE(1.0, m_nh->getNamespace() << ": Trying to connect to field " << smt->getFieldName() << "...");
         loop_rate.sleep();
-        boost::this_thread::interruption_point();
+        //boost::this_thread::interruption_point();
       }
 
       if(getCurrentMessage(msg))
@@ -189,7 +189,7 @@ namespace rpp
         {
           ROS_ERROR("%s: Deserialization failed for topic %s! The string was:\n%s", m_nh->getNamespace().c_str(), m_full_topic_path.c_str(), serialized_data.c_str());
         }
-        boost::this_thread::interruption_point();
+        //boost::this_thread::interruption_point();
       }
     }
 

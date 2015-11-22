@@ -8,6 +8,8 @@
 #include <memory/JointBlock.h>
 #include <memory/SensorBlock.h>
 #include <memory/KickRequestBlock.h>
+#include <stdio.h>
+#include <time.h> 
 #include "kack.hpp"
 
 #define JOINT_EPSILON (3.f * DEG_T_RAD)
@@ -26,16 +28,24 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   coordinate_shift.update(0,0,0);
   current_ball_location.update(0,0,0);
   current_goal_location.update(0,0,0);
-  current_foot_pose.update(0,0,0,0,0,0,0);
-  desired_foot_pose.update(0,0,0,0,0,0,0);
+  current_foot_pose.update(0,0,0,0,0,0);
+  desired_foot_pose.update(0,0,0,0,0,0);
 
-  area_center.update(0, 150.0 , 40.0);
+  t_d_pose = 5.0;
+  t_a_pose = 0.04;
+  t_d_com  = 2.5;
+  z_index  = 50.0;
+
+  CurrentJoints.resize(NUM_JOINTS);
+  CurrentCommand.resize(NUM_JOINTS);
+
+  area_center.update(0, 150.0 , z_index);
   area_radius = 150.0;
   area_short_radius = 100.0;
 
   ReachableArea REACHAREA(area_center , area_radius , area_short_radius);
 
-  kack = new Kack(/*model name*/);
+  kack = new KACK::Kack("motion_planning/nao.urdf");
 }
 
 KickModule::~KickModule()
@@ -45,55 +55,77 @@ KickModule::~KickModule()
 
 void KickModule::processFrame() {
   if(cache_.kick_request->kick_type_ == Kick::STRAIGHT) {
-    if(state_ == Finished) Initializing();
+    if(kick_state_ == FINISHED || kick_state_ == INITIALIZING) Initializing();
   }
-  if(state_ == Initial || state_ == Running) {
-    cache_.kick_request->kick_running_ = true;
-    performKick();
-  }
+  // if(state_ == Initial || state_ == Running) {
+  //   cache_.kick_request->kick_running_ = true;
+  //   performKick();
+  // }
 }
 
 
 
 void KickModule::Initializing()
 {
-  CartesianKeyframe moving_mass;
-  FootSensor left_foot_force_sensor, right_foot_force_sensor;
-  Pose min_pose, max_pose;
-  Point min_com, max_com;
+  KACK::CartesianKeyframe moving_com;
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
+  KACK::Pose min_pose, max_pose;
+  KACK::Point min_com, max_com;
+  double desired_initial_y = 100 ;
+  KickKeyFrames.clear();
 
-  auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+  //auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
   kick_state_ = INITIALIZING;
 
   current_ball_location = get_ball_location(coordinate_shift);
   current_goal_location = get_goal_location(coordinate_shift);
 
-  if(current_ball_location.y > 30 || (abs(current_ball_location) < 30 && current_goal_location.y < 0)) //left foot
+  if(current_ball_location.y > 30 || (abs(current_ball_location.y) < 30 && current_goal_location.y < 0)) //left foot
   {
-    coordinate_shift.update(0 , -40 , -200);
+    coordinate_shift.update(0 , -z_index , -200);
     ball_direction_ = LEFTBALL;
+    kick_foot_ = LEFTFOOT;
     current_ball_location = get_ball_location(coordinate_shift);
-    current_foot_pose.update( 0    , -100  , 0  , 0 , 0 , 0);
-    desired_foot_pose.update( 0    , -100  , 0  , 0 , 0 , 0);
+    current_goal_location = get_goal_location(coordinate_shift);
+    current_foot_pose.update( 0    , -desired_initial_y  , 0  , 0 , 0 , 0);
+    desired_foot_pose.update( 0    , -desired_initial_y  , 0  , 0 , 0 , 0);
+
+    min_pose.update( -t_d_pose , -desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
+    max_pose.update(  t_d_pose , -desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
+    min_com.update(-t_d_com , -t_d_com , 0);
+    max_com.update( t_d_com ,  t_d_com , 0);
+
+    moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
 
   }
-  else if(current_ball_location.y < -30 || (abs(current_ball_location) < 30 && current_goal_location.y > 0)) //right foot
+  else if(current_ball_location.y < -30 || (abs(current_ball_location.y) < 30 && current_goal_location.y > 0)) //right foot
   {
-    coordinate_shift.update(0 , 40 , -200);
+    coordinate_shift.update(0 , z_index , -200);
     ball_direction_ = RIGHTBALL;
+    kick_foot_ = RIGHTFOOT;
     current_ball_location = get_ball_location(coordinate_shift);
-    current_foot_pose.update( 0    ,  100  , 0  , 0 , 0 , 0);
-    desired_foot_pose.update( 0    ,  100  , 0  , 0 , 0 , 0);
+    current_goal_location = get_goal_location(coordinate_shift);
+    current_foot_pose.update( 0    ,  desired_initial_y  , 0  , 0 , 0 , 0);
+    desired_foot_pose.update( 0    ,  desired_initial_y  , 0  , 0 , 0 , 0);
+
+    min_pose.update( -t_d_pose , desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
+    max_pose.update(  t_d_pose , desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
+    min_com.update(-t_d_com , -t_d_com , 0);
+    max_com.update( t_d_com ,  t_d_com , 0);
+
+    moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
 
   left_foot_force_sensor  = get_left_foot_sensor();
   right_foot_force_sensor = get_right_foot_sensor();
 
+  KickKeyFrames.push_back(moving_com);
+  getCurrentTime();
+  getCurrentJoints();
 
-
-
-
+  if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
+    kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
 
 }
 
@@ -117,33 +149,49 @@ bool KickModule::Finishing()
   return true;
 }
 
-Point KickModule::get_ball_location(Point shift)
+KACK::Point KickModule::get_ball_location(KACK::Point shift)
 {
-  Point location;
+  KACK::Point location;
   auto& ball = cache_.world_object->objects_[WO_BALL];
 
   location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
   location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
-  location.z = 40.0;
+  location.z = z_index;
 
   return location;
 }
 
-Point KickModule::get_goal_location(Point shift)
+KACK::Point KickModule::get_goal_location(KACK::Point shift)
 {
-  Point location;
-  auto& goal = cache_.world_object->objects_[WO_OPP_GOAL];
+  KACK::Point location;
+  auto& goal  = cache_.world_object->objects_[WO_OPP_GOAL];
+  auto& enemy = cache_.world_object->objects_[WO_OPPONENT1];
 
-  location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
-  location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
-  location.z = 40.0;
+  if(!goal.seen) location.update(0,0,0);
+  else if(!enemy.seen)
+  {
+    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+    location.z = z_index;
+  }
+  else
+  {
+    // double gx = goal.visionDistance  * cos(goal.visionBearing);
+    // double gy = goal.visionDistance  * sin(goal.visionBearing);
+    // double ex = enemy.visionDistance * cos(enemy.visionBearing);
+    // double ey = enemy.visionDistance * sin(enemy.visionBearing);
+    // double center_threshold = goal.radius*0.1;
+    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+    location.z = z_index;
+  }
 
   return location;
 }
 
-FootSensor KickModule::get_left_foot_sensor()
+KACK::FootSensor KickModule::get_left_foot_sensor()
 {
-  FootSensor foot_force;
+  KACK::FootSensor foot_force;
   
   foot_force.fl = cache_.sensor->values_[fsrLFL];
   foot_force.fr = cache_.sensor->values_[fsrLFR];
@@ -153,9 +201,9 @@ FootSensor KickModule::get_left_foot_sensor()
   return foot_force;
 }
 
-FootSensor KickModule::get_right_foot_sensor()
+KACK::FootSensor KickModule::get_right_foot_sensor()
 {
-  FootSensor foot_force;
+  KACK::FootSensor foot_force;
 
   foot_force.fl = cache_.sensor->values_[fsrRFL];
   foot_force.fr = cache_.sensor->values_[fsrRFR];
@@ -164,6 +212,21 @@ FootSensor KickModule::get_right_foot_sensor()
 
   return foot_force;
 }
+
+
+void KickModule::getCurrentTime()    
+{    
+  struct timeval tv;    
+  gettimeofday(&tv,NULL);    
+  CurrentTime = tv.tv_sec*1.0 + tv.tv_usec / 1000000.0;    
+}
+
+void KickModule::getCurrentJoints()
+{
+  for(int i = 0 ; i < NUM_JOINTS ; i++)
+    CurrentJoints[i] = cache_.joint->values_[i];
+}
+
 
 
 

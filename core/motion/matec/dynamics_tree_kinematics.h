@@ -85,7 +85,7 @@ namespace dynamics_tree
 
   inline void DynamicsTree::kinematicsPass(boost::shared_ptr<DynamicsTreeNode> node, std::vector<double>& positions, std::vector<double>& velocities, std::vector<double>& accelerations, std::vector<double>& torques, std::vector<dynamics_tree::Vector6>& external_wrenches)
   {
-    boost::this_thread::interruption_point();
+    //boost::this_thread::interruption_point();
     if(node->parent)
     {
       double q = 0.0;

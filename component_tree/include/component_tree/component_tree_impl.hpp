@@ -3,15 +3,15 @@
 
 namespace rpp
 {
-  ComponentTree::ComponentTree()
+  inline ComponentTree::ComponentTree()
   {
   }
 
-  ComponentTree::~ComponentTree()
+  inline ComponentTree::~ComponentTree()
   {
   }
 
-  bool ComponentTree::fromString(std::string xml)
+  inline bool ComponentTree::fromString(std::string xml)
   {
     m_doc.load(xml.c_str());
 
@@ -70,7 +70,7 @@ namespace rpp
     return true;
   }
 
-  bool ComponentTree::fromFile(std::string filename)
+  inline bool ComponentTree::fromFile(std::string filename)
   {
     std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 
@@ -84,32 +84,32 @@ namespace rpp
     return fromString(xml);
   }
 
-  boost::shared_ptr<Component> ComponentTree::rootNode()
+  inline boost::shared_ptr<Component> ComponentTree::rootNode()
   {
     return m_roots[0];
   }
 
-  std::vector<boost::shared_ptr<Component> > ComponentTree::rootNodes()
+  inline std::vector<boost::shared_ptr<Component> > ComponentTree::rootNodes()
   {
     return m_roots;
   }
 
-  std::set<std::string> ComponentTree::componentTypeList()
+  inline std::set<std::string> ComponentTree::componentTypeList()
   {
     return m_valid_component_types;
   }
 
-  std::map<std::string, boost::shared_ptr<Component> > ComponentTree::components(std::string type)
+  inline std::map<std::string, boost::shared_ptr<Component> > ComponentTree::components(std::string type)
   {
     return m_type_map.at(type);
   }
 
-  boost::shared_ptr<Component> ComponentTree::component(std::string type, std::string name)
+  inline boost::shared_ptr<Component> ComponentTree::component(std::string type, std::string name)
   {
     return m_type_map.at(type).at(name);
   }
 
-  std::ostream& operator<<(std::ostream& stream, ComponentTree& tree)
+  inline std::ostream& operator<<(std::ostream& stream, ComponentTree& tree)
   {
     for(auto r : tree.rootNodes())
       stream << *r;

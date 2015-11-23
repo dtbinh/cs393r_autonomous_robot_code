@@ -36,6 +36,8 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   t_d_com  = 2.5;
   z_index  = 50.0;
 
+  if_planned = 0;
+
   CurrentJoints.resize(NUM_JOINTS);
   CurrentCommand.resize(NUM_JOINTS);
 
@@ -46,6 +48,7 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   ReachableArea REACHAREA(area_center , area_radius , area_short_radius);
 
   kack = new KACK::Kack("motion_planning/nao.urdf");
+
 }
 
 KickModule::~KickModule()
@@ -74,6 +77,9 @@ void KickModule::Initializing()
   double desired_initial_y = 100 ;
   KickKeyFrames.clear();
 
+  printf("I'm running this part\n");
+
+  cache_.kick_request->kick_running_ = true;
   //auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
   kick_state_ = INITIALIZING;
@@ -81,7 +87,7 @@ void KickModule::Initializing()
   current_ball_location = get_ball_location(coordinate_shift);
   current_goal_location = get_goal_location(coordinate_shift);
 
-  if(current_ball_location.y > 30 || (abs(current_ball_location.y) < 30 && current_goal_location.y < 0)) //left foot
+  if(current_ball_location.y > 15 || (abs(current_ball_location.y) < 15 && current_goal_location.y < 0)) //left foot
   {
     coordinate_shift.update(0 , -z_index , -200);
     ball_direction_ = LEFTBALL;
@@ -99,7 +105,7 @@ void KickModule::Initializing()
     moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
 
   }
-  else if(current_ball_location.y < -30 || (abs(current_ball_location.y) < 30 && current_goal_location.y > 0)) //right foot
+  else if(current_ball_location.y < -15 || (abs(current_ball_location.y) < 15 && current_goal_location.y > 0)) //right foot
   {
     coordinate_shift.update(0 , z_index , -200);
     ball_direction_ = RIGHTBALL;
@@ -124,8 +130,16 @@ void KickModule::Initializing()
   getCurrentTime();
   getCurrentJoints();
 
-  if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
-    kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
+  if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ) && if_planned == 0)
+    if_planned = 1;
+
+  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
+
+  std::array<float, NUM_JOINTS> JointsCommand;
+  for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
+
+  cache_.joint_command->setSendAllAngles(true, 1 * 10);
+  cache_.joint_command->setPoseRad(JointsCommand.data());
 
 }
 
@@ -227,6 +241,39 @@ void KickModule::getCurrentJoints()
     CurrentJoints[i] = cache_.joint->values_[i];
 }
 
+
+KACK::Point KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area)
+{
+  KACK::Point foot;
+
+  double slope = (ball.y - goal.y)/(ball.x - goal.x);
+  double interception = ball.y - slope * ball.x;
+
+  double a = slope;
+  double b = interception;
+  double c = area.center.y;
+  double r = area.radius;
+
+  double delta = (a*a+1)*r*r - (b-c)*(b-c);
+  double x = 0, y = 0;
+
+  if( delta > 0 ) x = (a*(c-b)-sqrt(delta))/(a*a+1);
+  else
+  {
+    foot.update(0,0,0);
+    return foot;
+  }
+
+  y = a*x + b;
+  if(y > c + area.short_radius)
+  {
+    y = c + area.short_radius;
+    x = (y - b)/a;
+  }
+
+  foot.update(x,y,z_index);
+  return foot;
+}
 
 
 

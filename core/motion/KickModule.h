@@ -49,6 +49,15 @@ class KickModule : public Module {
       RIGHTFOOT
     );
 
+    struct ReachableArea
+    {
+      KACK::Point center;
+      double radius;
+      double short_radius;
+
+      ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
+    };
+
     void Initializing();
     bool Tracking();
     void Executing();
@@ -57,6 +66,7 @@ class KickModule : public Module {
 
     KACK::Point get_ball_location(KACK::Point shift);
     KACK::Point get_goal_location(KACK::Point shift);
+    KACK::Point get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
     void getCurrentTime();    
@@ -98,17 +108,10 @@ class KickModule : public Module {
     double t_d_com;
     double z_index;
 
+    int if_planned;
+
     //Pose  desired_initial_left_foot_pose;
     //Pose  desired_initial_right_foot_pose;
-
-    struct ReachableArea
-    {
-      KACK::Point center;
-      double radius;
-      double short_radius;
-
-      ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
-    };
 
     //-------------------------------------old keyframe based kicking version--------------------------------------------
     KickState state_;

@@ -126,10 +126,10 @@ void KickModule::Initializing()
     frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
 
-  point_first_tracking = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+  //point_first_tracking = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
 
   KickKeyFrames.push_back(frame_moving_com);
-  KickKeyFrames.push_back(frame_first_tracking);
+  //KickKeyFrames.push_back(frame_first_tracking);
 
   if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ) && if_planned == 0)
     if_planned = 1;

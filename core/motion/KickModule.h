@@ -71,7 +71,7 @@ class KickModule : public Module {
     KACK::FootSensor get_right_foot_sensor();
     void getCurrentTime();    
     void getCurrentJoints();
-    void SendingFrame()
+    void SendingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
     ENUM(KickState,
       Initial,

@@ -194,8 +194,10 @@ namespace KACK
   class Kack
   {
   public:
-    Kack(std::string model_filename, double planning_rate = 30.0)
+    Kack(std::string model_filename, double planning_rate = 30.0) :
+        m_supporting_tree(m_left_tree)
     {
+      m_have_plan = false;
       m_planning_rate = planning_rate;
       m_xml_model.fromFile(model_filename);
       std::string joint_string = "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
@@ -250,19 +252,20 @@ namespace KACK
     //first keyframe should be at the foot's pose in the nominal standing position
     bool plan(std::vector<double> starting_joint_positions, std::vector<CartesianKeyframe> keyframes, bool left_foot_supporting = true)
     {
-      invertJoints(starting_joint_positions);
+      m_left_foot_supporting = left_foot_supporting;
+      m_supporting_tree = left_foot_supporting? m_left_tree : m_right_tree;
+      m_supporting_frame = left_foot_supporting? "l_ankle" : "r_ankle";
+      m_controlled_frame = left_foot_supporting? "r_ankle" : "l_ankle";
 
+      invertJoints(starting_joint_positions);
       m_joint_plan.push_back(starting_joint_positions);
-      dynamics_tree::DynamicsTree& tree = left_foot_supporting? m_left_tree : m_right_tree;
-      std::string supporting = left_foot_supporting? "l_ankle" : "r_ankle";
-      std::string controlled = left_foot_supporting? "r_ankle" : "l_ankle";
 
       for(unsigned int k = 0; k < keyframes.size(); k++)
       {
         std::cerr << "Working on keyframe idx " << k + 1 << "/" << keyframes.size() << std::endl;
-        tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_rootTworld);
+        m_supporting_tree.kinematics(m_joint_plan.at(m_joint_plan.size() - 1), m_rootTworld);
         dynamics_tree::Matrix4 leftTright;
-        tree.lookupTransform(supporting, controlled, leftTright);
+        m_supporting_tree.lookupTransform(m_supporting_frame, m_controlled_frame, leftTright);
         double xi = leftTright(0, 3);
         double yi = leftTright(1, 3);
         double zi = leftTright(2, 3);
@@ -271,7 +274,7 @@ namespace KACK
         matrixToRPY((dynamics_tree::Matrix3) leftTright.topLeftCorner(3, 3), Ri, Pi, Yi);
 
         dynamics_tree::Vector4 com_vector;
-        tree.centerOfMass(supporting, com_vector);
+        m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
 
         printf("started at (%g,%g,%g)(%g,%g,%g), com(%g,%g,%g)\n", xi, yi, zi, Ri, Pi, Yi, com_vector(0), com_vector(1), com_vector(2));
 
@@ -299,30 +302,82 @@ namespace KACK
           CartesianKeyframe interpolated = CartesianKeyframe((keyframes[k].duration / num_frames), Pose(x - pt.x, y - pt.y, z - pt.z, R - pt.R, P - pt.P, Y - pt.Y), Pose(x + pt.x, y + pt.y, z + pt.z, R + pt.R, P + pt.P, Y + pt.Y), Point(cx - ct.x, cy - ct.y, cz - ct.z), Point(cx + ct.x, cy + ct.y, cz + ct.z));
 
           std::vector<double> next_positions = m_joint_plan.at(m_joint_plan.size() - 1);
-          planPose(tree, supporting, controlled, m_joint_plan.at(m_joint_plan.size() - 1), next_positions, interpolated, 10000);
+          planPose(m_joint_plan.at(m_joint_plan.size() - 1), next_positions, interpolated, 10000);
           m_joint_plan.push_back(next_positions);
         }
         std::cerr << std::endl;
       }
       m_start_time = 0.0;
+      m_have_plan = true;
       return true;
     }
 
-    //current_time in seconds, command is output joint positions
-    void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command)
+    Point calculateCoP(FootSensor f)
     {
+      double X = 0.1;
+      double Y = 0.05;
+      double d = 2.0 * (f.fr + f.rr + f.fl + f.rl);
+      Point cop;
+      cop.x = X * (f.fr + f.rr - f.fl - f.rl) / d;
+      cop.y = Y * (f.fr + f.fl - f.rr - f.rl) / d;
+      return cop;
+    }
+
+    double calculateForce(FootSensor f)
+    {
+      return (f.fr + f.rr + f.fl + f.rl);
+    }
+
+    //current_time in seconds, command is output joint positions
+    void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double cop_x_desired = 0.0, double cop_y_desired = 0.0, double kicking_foot_force_threshold = 0.1)
+    {
+      if(!m_have_plan)
+      {
+        std::cerr << "Execute called before planning completed!" << std::endl;
+        return;
+      }
       if(m_start_time == 0.0)
       {
         m_start_time = current_time;
       }
-      invertJoints(current_joint_positions);
       
-      double dt = current_time - m_start_time;
-      unsigned long current_slice = dt * m_planning_rate;
-      if(current_slice < m_joint_plan.size())
-        command = m_joint_plan.at(current_slice);
+      //get current slice
+      double time_since_start = current_time - m_start_time;
+      unsigned long current_slice = time_since_start * m_planning_rate;
+      for(unsigned int i = 0; i < command.size(); i++) //explicit copy just in case
+      {
+        command[i] = (current_slice < m_joint_plan.size())? m_joint_plan.at(current_slice)[i] : m_joint_plan.back()[i];
+      }
+
+      //compute CoM adjustment
+      Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
+      double kicking_foot_force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
+      std::cerr << "CoP is at (" << cop.x << ", " << cop.y << ")" << std::endl;
+      if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
+      {
+        dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
+        invertJoints(current_joint_positions);
+        processState(current_joint_positions, m_rootTworld);
+        comJacobian(m_joint_ids, m_supporting_frame, Jcom);
+        JcomT = Jcom.transpose();
+        JcomJcomT = Jcom * JcomT;
+
+        dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
+        com_twist(3) = kp_cop_x * (cop_x_desired - cop.x);
+        com_twist(4) = kp_cop_y * (cop_y_desired - cop.y);
+        com_twist(5) = 0.0;
+        com_twist *= m_planning_rate;
+        dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
+
+        for(unsigned int i = 0; i < command.size(); i++)
+          command[i] += com_pinv_velocities(i) / m_planning_rate;
+      }
       else
-        command = m_joint_plan.back();
+      {
+        std::cerr << "Kicking foot is still on the ground! Not balancing!" << std::endl;
+      }
+
+      //switch command to UT's signs
       invertJoints(command);
     }
 
@@ -349,6 +404,12 @@ namespace KACK
     dynamics_tree::DynamicsTree m_right_tree;
     std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
 
+    bool m_have_plan;
+    bool m_left_foot_supporting;
+    dynamics_tree::DynamicsTree& m_supporting_tree;
+    std::string m_supporting_frame;
+    std::string m_controlled_frame;
+
     std::vector<unsigned int> m_joint_ids;
     std::vector<double> m_joint_mins;
     std::vector<double> m_joint_maxes;
@@ -362,11 +423,11 @@ namespace KACK
 
     double m_start_time;
 
-    inline void processState(dynamics_tree::DynamicsTree& tree, std::vector<double>& positions, dynamics_tree::Matrix4& rootTworld)
+    inline void processState(std::vector<double>& positions, dynamics_tree::Matrix4& rootTworld)
     {
-      tree.getRootNode()->iTO = rootTworld;
-      tree.getRootNode()->iXO = dynamics_tree::motionTransformFromAffine(tree.getRootNode()->iTO);
-      processStateRecursive(tree.getRootNode(), positions);
+      m_supporting_tree.getRootNode()->iTO = rootTworld;
+      m_supporting_tree.getRootNode()->iXO = dynamics_tree::motionTransformFromAffine(m_supporting_tree.getRootNode()->iTO);
+      processStateRecursive(m_supporting_tree.getRootNode(), positions);
     }
 
     void processStateRecursive(boost::shared_ptr<dynamics_tree::DynamicsTreeNode> node, std::vector<double>& positions)
@@ -408,29 +469,29 @@ namespace KACK
 
       //backwards pass
       node->supported_mass += node->mass;
-      node->supported_com += node->mass * node->iTicom.topRightCorner(3, 1);
+      node->supported_com += node->mass * node->iTicom.topRightCorner(4, 1);
       if(node->parent)
       {
         node->parent->supported_mass += node->supported_mass;
-        node->parent->supported_com += node->supported_com;
+        node->parent->supported_com += node->supported_com; //node->iTip.inverse() * node->supported_com;
       }
       node->supported_com /= node->supported_mass;
     }
 
-    void comJacobian(dynamics_tree::DynamicsTree& tree, std::vector<unsigned int> joint_indices, std::string goal_frame, dynamics_tree::Matrix& jacobian)
+    void comJacobian(std::vector<unsigned int> joint_indices, std::string goal_frame, dynamics_tree::Matrix& jacobian)
     {
-      if(tree.getNodes().find(goal_frame) == tree.getNodes().end())
+      if(m_supporting_tree.getNodes().find(goal_frame) == m_supporting_tree.getNodes().end())
       {
         std::cerr << "Couldn't find goal frame " << goal_frame << " in the tree!" << std::endl;
         return;
       }
 
-      boost::shared_ptr<dynamics_tree::DynamicsTreeNode> goal_node = tree.getNodes()[goal_frame];
+      boost::shared_ptr<dynamics_tree::DynamicsTreeNode> goal_node = m_supporting_tree.getNodes()[goal_frame];
       jacobian.resize(6, joint_indices.size());
       for(unsigned int i = 0; i < joint_indices.size(); i++)
       {
         //boost::this_thread::interruption_point();
-        boost::shared_ptr<dynamics_tree::DynamicsTreeNode> joint_node = tree.getNodeByIndex(joint_indices[i]);
+        boost::shared_ptr<dynamics_tree::DynamicsTreeNode> joint_node = m_supporting_tree.getNodeByIndex(joint_indices[i]);
         if(!joint_node)
         {
           std::cerr << "Couldn't look up joint at index " << joint_indices[i] << "!" << std::endl;
@@ -447,10 +508,10 @@ namespace KACK
         jacobian.block<6, 1>(0, i) = goalXjoint * joint_node->axis * joint_node->supported_mass;
       }
 
-      jacobian /= tree.getTotalMass();
+      jacobian /= m_supporting_tree.getTotalMass();
     }
 
-    void planPose(dynamics_tree::DynamicsTree& tree, std::string support_frame, std::string control_frame, std::vector<double> last_positions, std::vector<double>& next_positions, CartesianKeyframe k, int maxiter)
+    void planPose(std::vector<double> last_positions, std::vector<double>& next_positions, CartesianKeyframe k, int maxiter)
     {
       next_positions = last_positions;
 
@@ -466,13 +527,13 @@ namespace KACK
 
       for(int i = 0; i < maxiter; i++)
       {
-        processState(tree, next_positions, m_rootTworld);
+        processState(next_positions, m_rootTworld);
 
         dynamics_tree::Matrix4 supportTcontrol;
-        tree.lookupTransform(support_frame, control_frame, supportTcontrol);
+        m_supporting_tree.lookupTransform(m_supporting_frame, m_controlled_frame, supportTcontrol);
 
         dynamics_tree::Matrix J, JT, JJT;
-        tree.jacobian(m_joint_ids, support_frame, control_frame, J);
+        m_supporting_tree.jacobian(m_joint_ids, m_supporting_frame, m_controlled_frame, J);
         JT = J.transpose();
         JJT = J * JT;
 
@@ -493,13 +554,13 @@ namespace KACK
 
         //===========COM==================
         dynamics_tree::Vector4 com_vector;
-        tree.centerOfMass(support_frame, com_vector);
+        m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
         double com_dx = cc.x - com_vector(0);
         double com_dy = cc.y - com_vector(1);
         double com_dz = 0; //cc.z - com_vector(2);
 
         dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
-        comJacobian(tree, m_joint_ids, support_frame, Jcom);
+        comJacobian(m_joint_ids, m_supporting_frame, Jcom);
         JcomT = Jcom.transpose();
         JcomJcomT = Jcom * JcomT;
 

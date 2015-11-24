@@ -37,6 +37,9 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   z_index  = 50.0;
 
   if_planned = 0;
+  if_ready_for_initializing = 0;
+  running_counter = 0;
+  executing_counter = 0;
 
   CurrentJoints.resize(NUM_JOINTS);
   CurrentCommand.resize(NUM_JOINTS);
@@ -70,10 +73,11 @@ void KickModule::processFrame() {
 
 void KickModule::Initializing()
 {
-  KACK::CartesianKeyframe moving_com;
-  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
+  KACK::CartesianKeyframe frame_moving_com, frame_first_tracking ;
   KACK::Pose min_pose, max_pose;
   KACK::Point min_com, max_com;
+  KACK::Point point_first_tracking ;
+
   double desired_initial_y = 100 ;
   KickKeyFrames.clear();
 
@@ -102,8 +106,7 @@ void KickModule::Initializing()
     min_com.update(-t_d_com , -t_d_com , 0);
     max_com.update( t_d_com ,  t_d_com , 0);
 
-    moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
-
+    frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
   else if(current_ball_location.y < -15 || (abs(current_ball_location.y) < 15 && current_goal_location.y > 0)) //right foot
   {
@@ -120,27 +123,18 @@ void KickModule::Initializing()
     min_com.update(-t_d_com , -t_d_com , 0);
     max_com.update( t_d_com ,  t_d_com , 0);
 
-    moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
+    frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
 
-  left_foot_force_sensor  = get_left_foot_sensor();
-  right_foot_force_sensor = get_right_foot_sensor();
+  point_first_tracking = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
 
-  KickKeyFrames.push_back(moving_com);
-  getCurrentTime();
-  getCurrentJoints();
+  KickKeyFrames.push_back(frame_moving_com);
+  KickKeyFrames.push_back(frame_first_tracking);
 
   if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ) && if_planned == 0)
     if_planned = 1;
 
-  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
-
-  std::array<float, NUM_JOINTS> JointsCommand;
-  for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
-
-  cache_.joint_command->setSendAllAngles(true, 1 * 10);
-  cache_.joint_command->setPoseRad(JointsCommand.data());
-
+  SendingFrame();
 }
 
 bool KickModule::Tracking()
@@ -190,14 +184,14 @@ KACK::Point KickModule::get_goal_location(KACK::Point shift)
   }
   else
   {
+    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+    location.z = z_index;
     // double gx = goal.visionDistance  * cos(goal.visionBearing);
     // double gy = goal.visionDistance  * sin(goal.visionBearing);
     // double ex = enemy.visionDistance * cos(enemy.visionBearing);
     // double ey = enemy.visionDistance * sin(enemy.visionBearing);
     // double center_threshold = goal.radius*0.1;
-    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
-    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
-    location.z = z_index;
   }
 
   return location;
@@ -265,14 +259,36 @@ KACK::Point KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point 
   }
 
   y = a*x + b;
-  if(y > c + area.short_radius)
+  if(y > c + area.short_radius && c < 0)
   {
     y = c + area.short_radius;
+    x = (y - b)/a;
+  }
+  else if( y < c - area.short_radius && c > 0)
+  {
+    y = c - area.short_radius;
     x = (y - b)/a;
   }
 
   foot.update(x,y,z_index);
   return foot;
+}
+
+void KickModule::SendingFrame()
+{
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
+
+  left_foot_force_sensor  = get_left_foot_sensor();
+  right_foot_force_sensor = get_right_foot_sensor();
+  getCurrentTime();
+  getCurrentJoints();
+  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
+
+  std::array<float, NUM_JOINTS> JointsCommand;
+  for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
+
+  cache_.joint_command->setSendAllAngles(true, 1 * 10);
+  cache_.joint_command->setPoseRad(JointsCommand.data());
 }
 
 
@@ -399,6 +415,7 @@ void KickModule::moveBetweenKeyframes(const Keyframe& start, const Keyframe& fin
     joints[15] -= kp * cache_.sensor->fsr_left_side_;
     printf("Adding offset of %g => %g\n", kp * cache_.sensor->fsr_left_side_, joints[15]);
     cache_.joint_command->setSendAllAngles(true, finish.frames * 10);
+    printf("finish.frames = %d\n", finish.frames);
     cache_.joint_command->setPoseRad(joints.data());
   }
 }

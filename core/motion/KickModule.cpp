@@ -8,6 +8,7 @@
 #include <memory/JointBlock.h>
 #include <memory/SensorBlock.h>
 #include <memory/KickRequestBlock.h>
+#include <memory/Memory.h>
 #include <stdio.h>
 #include <time.h> 
 #include "kack.hpp"
@@ -99,7 +100,7 @@ void KickModule::Initializing()
 
   if(current_ball_location.y > 15 || (abs(current_ball_location.y) < 15 && current_goal_location.y < 0)) //left foot
   {
-    coordinate_shift.update(0 , -z_index , -200);
+    coordinate_shift.update(0 , -z_index , -0.2);
     ball_direction_ = LEFTBALL;
     kick_foot_ = LEFTFOOT;
     current_ball_location = get_ball_location(coordinate_shift);
@@ -116,7 +117,7 @@ void KickModule::Initializing()
   }
   else if(current_ball_location.y < -15 || (abs(current_ball_location.y) < 15 && current_goal_location.y > 0)) //right foot
   {
-    coordinate_shift.update(0 , z_index , -200);
+    coordinate_shift.update(0 , z_index , -0.2);
     ball_direction_ = RIGHTBALL;
     kick_foot_ = RIGHTFOOT;
     current_ball_location = get_ball_location(coordinate_shift);
@@ -195,13 +196,13 @@ bool KickModule::Finishing()
 KACK::Point KickModule::get_ball_location(KACK::Point shift)
 {
   KACK::Point location;
-  // auto& ball = cache_.world_object->objects_[WO_BALL];
+  auto& ball = cache_.world_object->objects_[WO_BALL];
 
-  // location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
-  // location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
-  // location.z = z_index;
+  location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
+  location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
+  location.z = z_index;
 
-  location.update(50, -100 , 50);
+  //location.update(50, -100 , 50);
   return location;
 }
 
@@ -369,6 +370,7 @@ bool KickModule::finished() {
 }
 
 void KickModule::specifyMemoryDependency() {
+  requiresMemoryBlock("world_objects");
   requiresMemoryBlock("frame_info");
   requiresMemoryBlock("walk_request");
   requiresMemoryBlock("processed_joint_angles");
@@ -381,6 +383,7 @@ void KickModule::specifyMemoryDependency() {
 
 void KickModule::specifyMemoryBlocks() {
   cache_.memory = memory_;
+  cache_.memory->getBlockByName(cache_.world_object,"world_objects",MemoryOwner::VISION);
   getMemoryBlock(cache_.frame_info,"frame_info");
   getMemoryBlock(cache_.walk_request,"walk_request");
   getMemoryBlock(cache_.joint,"processed_joint_angles");

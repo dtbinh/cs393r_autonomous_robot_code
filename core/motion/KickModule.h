@@ -4,6 +4,7 @@
 #include <common/RobotInfo.h>
 #include <memory/MemoryCache.h>
 #include <memory/WorldObjectBlock.h>
+#include <memory/Memory.h>
 #include "kack.hpp"
 #include <stdio.h>    
 #include <sys/time.h>      

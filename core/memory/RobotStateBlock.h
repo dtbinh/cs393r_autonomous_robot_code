@@ -31,6 +31,10 @@ public:
   int head_version_, body_version_;
   char body_id_[16+1];
 
+  bool ball_seen;
+  double ball_visionBearing;
+  double ball_visionDistance;
+
   std::string bodyId() { return std::string(body_id_).substr(0, 15); }
 };
 

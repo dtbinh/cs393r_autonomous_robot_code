@@ -196,10 +196,14 @@ bool KickModule::Finishing()
 KACK::Point KickModule::get_ball_location(KACK::Point shift)
 {
   KACK::Point location;
-  auto& ball = cache_.world_object->objects_[WO_BALL];
+  // auto& ball = cache_.world_object->objects_[WO_BALL];
 
-  location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
-  location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
+  // location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
+  // location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
+  // location.z = z_index;
+
+  location.x = cache_.robot_state->ball_visionDistance * cos(cache_.robot_state->ball_visionBearing) + shift.x;
+  location.y = cache_.robot_state->ball_visionDistance * sin(cache_.robot_state->ball_visionBearing) + shift.y;
   location.z = z_index;
 
   //location.update(50, -100 , 50);
@@ -379,11 +383,12 @@ void KickModule::specifyMemoryDependency() {
   requiresMemoryBlock("processed_sensors");
   requiresMemoryBlock("body_model");
   requiresMemoryBlock("kick_request");
+  requiresMemoryBlock("robot_state");
 }
 
 void KickModule::specifyMemoryBlocks() {
   cache_.memory = memory_;
-  cache_.memory->getBlockByName(cache_.world_object,"world_objects",MemoryOwner::VISION);
+  // cache_.memory->getBlockByName(cache_.world_object,"world_objects",MemoryOwner::VISION);
   getMemoryBlock(cache_.frame_info,"frame_info");
   getMemoryBlock(cache_.walk_request,"walk_request");
   getMemoryBlock(cache_.joint,"processed_joint_angles");
@@ -392,6 +397,7 @@ void KickModule::specifyMemoryBlocks() {
   getMemoryBlock(cache_.sensor,"processed_sensors");
   getMemoryBlock(cache_.body_model,"body_model");
   getMemoryBlock(cache_.kick_request,"kick_request");
+  getMemoryBlock(cache_.robot_state,"robot_state");
 }
 
 

@@ -481,6 +481,10 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   ball->seen = true;
   ball->radius = real_radius;
 
+  vblocks_.robot_state->ball_seen = ball->seen;
+  vblocks_.robot_state->ball_visionDistance = ball->visionDistance;
+  vblocks_.robot_state->ball_visionBearing = ball->visionBearing;
+
   return true;
 
 }

@@ -108,6 +108,7 @@ class KickModule : public Module {
     double t_a_pose;
     double t_d_com;
     double z_index;
+    int NUMBER_JOINTS;
 
     int if_planned;
 

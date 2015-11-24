@@ -31,26 +31,27 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   current_foot_pose.update(0,0,0,0,0,0);
   desired_foot_pose.update(0,0,0,0,0,0);
 
-  t_d_pose = 5.0;
+  t_d_pose = 0.005;
   t_a_pose = 0.04;
-  t_d_com  = 2.5;
-  z_index  = 50.0;
+  t_d_com  = 0.0025;
+  z_index  = 0.05;
+  NUMBER_JOINTS = 26;
 
   if_planned = 0;
   if_ready_for_initializing = 0;
   running_counter = 0;
   executing_counter = 0;
 
-  CurrentJoints.resize(NUM_JOINTS);
-  CurrentCommand.resize(NUM_JOINTS);
+  CurrentJoints.resize(NUMBER_JOINTS);
+  CurrentCommand.resize(NUMBER_JOINTS);
 
-  area_center.update(0, 150.0 , z_index);
-  area_radius = 150.0;
-  area_short_radius = 100.0;
+  area_center.update(0, 0.150 , z_index);
+  area_radius = 0.15;
+  area_short_radius = 0.1;
 
   ReachableArea REACHAREA(area_center , area_radius , area_short_radius);
 
-  kack = new KACK::Kack("motion_planning/nao.urdf");
+  kack = new KACK::Kack("/home/nao/nao.urdf");
 
 }
 
@@ -63,10 +64,11 @@ void KickModule::processFrame() {
   if(cache_.kick_request->kick_type_ == Kick::STRAIGHT) {
     if(kick_state_ == FINISHED || kick_state_ == INITIALIZING) Initializing();
   }
-  // if(state_ == Initial || state_ == Running) {
-  //   cache_.kick_request->kick_running_ = true;
-  //   performKick();
-  // }
+  
+  if(kick_state_ == INITIALIZING) {
+    cache_.kick_request->kick_running_ = true;
+    Initializing();
+  }
 }
 
 
@@ -78,18 +80,22 @@ void KickModule::Initializing()
   KACK::Point min_com, max_com;
   KACK::Point point_first_tracking ;
 
-  double desired_initial_y = 100 ;
+  double desired_initial_y = 0.1 ;
   KickKeyFrames.clear();
 
-  printf("I'm running this part\n");
+  printf("I'm running this part , NUM_JOINTS = %d\n" , NUM_JOINTS);
 
   cache_.kick_request->kick_running_ = true;
+  printf("I'm running this part 2\n");
   //auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
   kick_state_ = INITIALIZING;
-
+  printf("I'm running this part 3\n");
   current_ball_location = get_ball_location(coordinate_shift);
+  printf("I'm running this part 4\n");
   current_goal_location = get_goal_location(coordinate_shift);
+
+  printf("I'm running this part 5\n");
 
   if(current_ball_location.y > 15 || (abs(current_ball_location.y) < 15 && current_goal_location.y < 0)) //left foot
   {
@@ -101,10 +107,10 @@ void KickModule::Initializing()
     current_foot_pose.update( 0    , -desired_initial_y  , 0  , 0 , 0 , 0);
     desired_foot_pose.update( 0    , -desired_initial_y  , 0  , 0 , 0 , 0);
 
-    min_pose.update( -t_d_pose , -desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
-    max_pose.update(  t_d_pose , -desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
+    min_pose.update( -t_d_pose , desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
+    max_pose.update(  t_d_pose , desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
     min_com.update(-t_d_com , -t_d_com , 0);
-    max_com.update( t_d_com ,  t_d_com , 0);
+    max_com.update( t_d_com ,  t_d_com , 1);
 
     frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
@@ -118,23 +124,52 @@ void KickModule::Initializing()
     current_foot_pose.update( 0    ,  desired_initial_y  , 0  , 0 , 0 , 0);
     desired_foot_pose.update( 0    ,  desired_initial_y  , 0  , 0 , 0 , 0);
 
-    min_pose.update( -t_d_pose , desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
-    max_pose.update(  t_d_pose , desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
+    min_pose.update( -t_d_pose , -desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
+    max_pose.update(  t_d_pose , -desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
     min_com.update(-t_d_com , -t_d_com , 0);
-    max_com.update( t_d_com ,  t_d_com , 0);
+    max_com.update( t_d_com ,  t_d_com , 1);
 
     frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
   }
 
-  //point_first_tracking = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+  printf("I'm running this part 6\n");
 
+  //point_first_tracking = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+  printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , min_pose.x , min_pose.y, min_pose.z , min_pose.R, min_pose.P, min_pose.Y);
+  printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
+  printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
+  printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
   KickKeyFrames.push_back(frame_moving_com);
   //KickKeyFrames.push_back(frame_first_tracking);
+  printf("I'm running this part 7\n");
 
-  if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ) && if_planned == 0)
+  getCurrentJoints();
+  if(if_planned == 0 && kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
     if_planned = 1;
 
-  SendingFrame();
+  printf("I'm running this part 8\n");
+
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
+
+  left_foot_force_sensor  = get_left_foot_sensor();
+  right_foot_force_sensor = get_right_foot_sensor();
+  getCurrentTime();
+  getCurrentJoints();
+  printf("I'm running this part 9\n");
+  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
+  printf("I'm running this part 10\n");
+
+  std::array<float, NUM_JOINTS> JointsCommand;
+  for( int i = 0 ; i < NUM_JOINTS ; i++) 
+  {
+    JointsCommand[i]= CurrentCommand[i];
+    printf("JointsCommand[%d] = %f\n", i , JointsCommand[i] );
+  }
+
+  cache_.joint_command->setSendAllAngles(true, 1 * 10);
+  cache_.joint_command->setPoseRad(JointsCommand.data());
+
+ 
 }
 
 bool KickModule::Tracking()
@@ -160,40 +195,41 @@ bool KickModule::Finishing()
 KACK::Point KickModule::get_ball_location(KACK::Point shift)
 {
   KACK::Point location;
-  auto& ball = cache_.world_object->objects_[WO_BALL];
+  // auto& ball = cache_.world_object->objects_[WO_BALL];
 
-  location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
-  location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
-  location.z = z_index;
+  // location.x = ball.visionDistance * cos(ball.visionBearing) + shift.x;
+  // location.y = ball.visionDistance * sin(ball.visionBearing) + shift.y;
+  // location.z = z_index;
 
+  location.update(50, -100 , 50);
   return location;
 }
 
 KACK::Point KickModule::get_goal_location(KACK::Point shift)
 {
   KACK::Point location;
-  auto& goal  = cache_.world_object->objects_[WO_OPP_GOAL];
-  auto& enemy = cache_.world_object->objects_[WO_OPPONENT1];
+  // auto& goal  = cache_.world_object->objects_[WO_OPP_GOAL];
+  // auto& enemy = cache_.world_object->objects_[WO_OPPONENT1];
 
-  if(!goal.seen) location.update(0,0,0);
-  else if(!enemy.seen)
-  {
-    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
-    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
-    location.z = z_index;
-  }
-  else
-  {
-    location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
-    location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
-    location.z = z_index;
-    // double gx = goal.visionDistance  * cos(goal.visionBearing);
-    // double gy = goal.visionDistance  * sin(goal.visionBearing);
-    // double ex = enemy.visionDistance * cos(enemy.visionBearing);
-    // double ey = enemy.visionDistance * sin(enemy.visionBearing);
-    // double center_threshold = goal.radius*0.1;
-  }
-
+  // if(!goal.seen) location.update(0,0,0);
+  // else if(!enemy.seen)
+  // {
+  //   location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+  //   location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+  //   location.z = z_index;
+  // }
+  // else
+  // {
+  //   location.x = goal.visionDistance * cos(goal.visionBearing) + shift.x;
+  //   location.y = goal.visionDistance * sin(goal.visionBearing) + shift.y;
+  //   location.z = z_index;
+  //   // double gx = goal.visionDistance  * cos(goal.visionBearing);
+  //   // double gy = goal.visionDistance  * sin(goal.visionBearing);
+  //   // double ex = enemy.visionDistance * cos(enemy.visionBearing);
+  //   // double ey = enemy.visionDistance * sin(enemy.visionBearing);
+  //   // double center_threshold = goal.radius*0.1;
+  // }
+  location.update(1000, 0 , 100);
   return location;
 }
 
@@ -233,6 +269,8 @@ void KickModule::getCurrentJoints()
 {
   for(int i = 0 ; i < NUM_JOINTS ; i++)
     CurrentJoints[i] = cache_.joint->values_[i];
+  for(int i = NUM_JOINTS ; i < NUMBER_JOINTS ; i++)
+    CurrentJoints[i] = 0;
 }
 
 

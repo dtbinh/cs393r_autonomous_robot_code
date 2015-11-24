@@ -241,9 +241,17 @@ namespace KACK
 
     }
 
+    void invertJoints(std::vector<double>& joints)
+    {
+      for(unsigned int i = 0; i < joints.size(); i++)
+        joints[i] *= m_inverted_joints[i];
+    }
+
     //first keyframe should be at the foot's pose in the nominal standing position
     bool plan(std::vector<double> starting_joint_positions, std::vector<CartesianKeyframe> keyframes, bool left_foot_supporting = true)
     {
+      invertJoints(starting_joint_positions);
+
       m_joint_plan.push_back(starting_joint_positions);
       dynamics_tree::DynamicsTree& tree = left_foot_supporting? m_left_tree : m_right_tree;
       std::string supporting = left_foot_supporting? "l_ankle" : "r_ankle";
@@ -307,12 +315,15 @@ namespace KACK
       {
         m_start_time = current_time;
       }
+      invertJoints(current_joint_positions);
+      
       double dt = current_time - m_start_time;
       unsigned long current_slice = dt * m_planning_rate;
       if(current_slice < m_joint_plan.size())
         command = m_joint_plan.at(current_slice);
       else
         command = m_joint_plan.back();
+      invertJoints(command);
     }
 
     std::vector<std::string> getJointNames()
@@ -336,6 +347,7 @@ namespace KACK
     dynamics_tree::DynamicsGraph m_graph;
     dynamics_tree::DynamicsTree m_left_tree;
     dynamics_tree::DynamicsTree m_right_tree;
+    std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
 
     std::vector<unsigned int> m_joint_ids;
     std::vector<double> m_joint_mins;

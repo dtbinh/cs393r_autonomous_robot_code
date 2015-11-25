@@ -85,14 +85,14 @@ keyframes:
       HeadPitch: 22.8714
       LHipYawPitch: 0.102507
       LHipRoll: 9
-      LHipPitch: -33.9469
-      LKneePitch: 55.9947
+      LHipPitch: -25.9469
+      LKneePitch: 38.9947
       LAnklePitch: -19.7748
       LAnkleRoll: -18
       RHipYawPitch: -0.102507
       RHipRoll: -19.2426
-      RHipPitch: -21
-      RKneePitch: 51
+      RHipPitch: -4
+      RKneePitch: 52
       RAnklePitch: -54
       RAnkleRoll: 28
       LShoulderPitch: -76.4131

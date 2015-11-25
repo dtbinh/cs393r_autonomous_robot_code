@@ -127,6 +127,9 @@ class KickModule : public Module {
     int executing_counter;
     int putting_back_counter;
 
+    int IF_KICK_TRRESHOLD;
+    int if_kick_counter;
+
     ReachableArea REACHAREA;
 
     //Pose  desired_initial_left_foot_pose;

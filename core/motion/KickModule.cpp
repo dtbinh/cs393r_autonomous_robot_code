@@ -33,7 +33,7 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   desired_next_pose.update(0,0,0,0,0,0);
   desired_next_com.update(0,0,0);
   
-  PoseOffset.update(0.005 , 0.005 , 0.005 , 0.04 , 0.04 , 0.04);
+  PoseOffset.update(0.005 , 0.005 , 0.005 , 0.04 , 0.2 , 0.2);
   ComOffset.update(0.0025 , 0.0025 , 0.0025);
 
   z_index  = 0.05;
@@ -47,9 +47,12 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   CurrentJoints.resize(NUMBER_JOINTS);
   CurrentCommand.resize(NUMBER_JOINTS);
 
-  area_center.update(0, 150 , z_index);
-  area_radius = 150;
-  area_short_radius = 100;
+  IF_KICK_TRRESHOLD = 300;
+  if_kick_counter = 0;
+
+  area_center.update(0, -120 , 50);
+  area_radius = 120;
+  area_short_radius = 80;
 
   REACHAREA.center = area_center;
   REACHAREA.radius = area_radius;
@@ -80,11 +83,15 @@ void KickModule::processFrame() {
     if(initializing_counter)
       Initializing();
     else
-      kick_state_ = TRACKING;
+      Initializing();
+      //kick_state_ = TRACKING;
   }
   else if(kick_state_ == TRACKING)
   {
-    kick_state_ = EXECUTING;
+    // if(!TRACKING())
+    //   kick_state_ = TRACKING;
+    // else
+      kick_state_ = EXECUTING;
   }
   else if(kick_state_ == EXECUTING)
   {
@@ -110,10 +117,10 @@ bool KickModule::Initializing()
 
   double desired_initial_y = 0.1 ;
   double period0 = 0, period1 = 0;
-  KickKeyFrames.clear();
 
   if(initializing_counter == -1)
   {
+    KickKeyFrames.clear();
     current_ball_location = get_ball_location(coordinate_shift);
     current_goal_location = get_goal_location(coordinate_shift);
 
@@ -122,6 +129,7 @@ bool KickModule::Initializing()
       coordinate_shift.update(0 , z_index , -0.2);
       ball_direction_ = LEFTBALL;
       kick_foot_ = LEFTFOOT;
+      REACHAREA.center.y = -REACHAREA.center.y;
       current_ball_location = get_ball_location(coordinate_shift);
       current_goal_location = get_goal_location(coordinate_shift);
       current_pose.update( 0 , desired_initial_y , 0  , 0 , 0 , 0);
@@ -152,7 +160,7 @@ bool KickModule::Initializing()
 
     AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
     AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
-    period0 = 0.5;
+    period0 = 2;
     frame_moving_com.update( period0 , min_pose, max_pose, min_com, max_com );
     KickKeyFrames.push_back(frame_moving_com);
 
@@ -161,13 +169,14 @@ bool KickModule::Initializing()
     printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
-    desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+    //desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+    desired_next_pose.update(-0.07 , -0.1 , 0.04 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     if(desired_next_pose.y != 0)
     {
       AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
       AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
-      period1 = getRunningTime(current_pose , desired_next_pose);
+      period1 = 1;
       frame_first_tracking.update( period1 , min_pose, max_pose, min_com, max_com );
       KickKeyFrames.push_back(frame_first_tracking);
       current_pose = desired_next_pose;
@@ -182,7 +191,7 @@ bool KickModule::Initializing()
     CurrentJoints = getCurrentJoints();
     CurrentTime = getCurrentTime();
     if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
-      initializing_counter = (period0 + period1)*100;
+      initializing_counter = (period0 + period1)*100 + 100;
   }
 
   SendingFrame();
@@ -196,7 +205,45 @@ bool KickModule::Initializing()
 
 bool KickModule::Tracking()
 {
+  double RunningTime = 0;
+  KACK::Pose min_pose, max_pose;
+  KACK::Point min_com, max_com;
+  KACK::CartesianKeyframe TrackingFrame;
 
+  if(tracking_counter == -1)
+  {
+    current_ball_location = get_ball_location(coordinate_shift);
+    current_goal_location = get_goal_location(coordinate_shift);
+
+    current_pose = desired_next_pose;
+    desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+    RunningTime = getRunningTime( current_pose , desired_next_pose ); 
+    if(RunningTime > 0.2)
+    {
+      if_kick_counter = 0;
+      KickKeyFrames.clear();
+
+      AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
+      AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
+      TrackingFrame.update(RunningTime , min_pose, max_pose, min_com, max_com);
+      KickKeyFrames.push_back(TrackingFrame);
+
+      CurrentJoints = getCurrentJoints();
+      CurrentTime = getCurrentTime();
+      if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
+        tracking_counter = RunningTime*100;
+    }
+    else
+      if_kick_counter++;
+  }
+  else
+  {
+    SendingFrame();
+    if(tracking_counter > -1) tracking_counter--;
+  }
+
+  if( if_kick_counter < IF_KICK_TRRESHOLD) return false;
+  else return true;
 }
 
 bool KickModule::Executing()
@@ -300,7 +347,7 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
   else
   {
     foot.update(0,0,0,0,0,0);
-    printf("delta = %s\n" , delta);
+    printf("delta = %f\n" , delta);
     return foot;
   }
 
@@ -351,10 +398,13 @@ void KickModule::SendingFrame()
   right_foot_force_sensor = get_right_foot_sensor();
   CurrentJoints = getCurrentJoints();
   CurrentTime = getCurrentTime();
-  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand);
+  kack->execute( CurrentTime, CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.9, 0.0,0.0,0.0,0.0);
 
   std::array<float, NUM_JOINTS> JointsCommand;
   for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
+
+  printf("sensed: leftpitchyaw = %f , rightpitchyaw = %f , righthippitch = %f \n", CurrentJoints[LHipYawPitch] , CurrentJoints[RHipYawPitch] , CurrentJoints[RHipPitch]);
+  printf("commanded: leftpitchyaw = %f , rightpitchyaw = %f , righthippitch = %f \n", JointsCommand[LHipYawPitch] , JointsCommand[RHipYawPitch] , JointsCommand[RHipPitch]);
 
   cache_.joint_command->setSendAllAngles(true, 1 * 10);
   cache_.joint_command->setPoseRad(JointsCommand.data());

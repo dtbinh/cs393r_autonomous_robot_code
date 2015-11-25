@@ -218,6 +218,11 @@ namespace KACK
           continue;
         }
 
+        if(m_joint_names.at(i) != "HeadYaw" && m_joint_names.at(i) != "HeadPitch" && 
+          m_joint_names.at(i) != "LHipYawPitch" && m_joint_names.at(i) != "LHipRoll" && m_joint_names.at(i) != "LHipPitch" && m_joint_names.at(i) != "LKneePitch" && m_joint_names.at(i) != "LAnklePitch" && m_joint_names.at(i) != "LAnkleRoll" &&
+          m_joint_names.at(i) != "RHipYawPitch" && m_joint_names.at(i) != "RHipRoll" && m_joint_names.at(i) != "RHipPitch" && m_joint_names.at(i) != "RKneePitch" && m_joint_names.at(i) != "RAnklePitch" && m_joint_names.at(i) != "RAnkleRoll")
+          m_balance_joint_ids.push_back(i);
+
 //        std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
         m_joint_ids.push_back(i);
 
@@ -329,7 +334,7 @@ namespace KACK
     }
 
     //current_time in seconds, command is output joint positions
-    void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double cop_x_desired = 0.0, double cop_y_desired = 0.0, double kicking_foot_force_threshold = 0.1)
+    void execute(double current_time, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double kmax_cop_x = 1e-2, double kmax_cop_y = 1e-2, double cop_x_desired = 0.0, double cop_y_desired = 0.0, double kicking_foot_force_threshold = 0.1)
     {
       if(!m_have_plan)
       {
@@ -351,31 +356,46 @@ namespace KACK
 
       //compute CoM adjustment
       Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
+      m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
+      m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
       double kicking_foot_force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
-      std::cerr << "CoP is at (" << cop.x << ", " << cop.y << ")" << std::endl;
-      if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
-      {
+      std::cerr << "CoP is at (" << m_cop.x << ", " << m_cop.y << ")" << std::endl;
+      // if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
+      // {
         dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
-        invertJoints(current_joint_positions);
-        processState(current_joint_positions, m_rootTworld);
-        comJacobian(m_joint_ids, m_supporting_frame, Jcom);
+        // invertJoints(current_joint_positions);
+        processState(command, m_rootTworld);
+        comJacobian(m_balance_joint_ids, m_supporting_frame, Jcom);
         JcomT = Jcom.transpose();
         JcomJcomT = Jcom * JcomT;
 
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        com_twist(3) = kp_cop_x * (cop_x_desired - cop.x);
-        com_twist(4) = kp_cop_y * (cop_y_desired - cop.y);
+        // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
+        // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
+        com_twist(3) = (kp_cop_y * (cop_y_desired - m_cop.y));
+        com_twist(4) = -(kp_cop_x * (cop_x_desired - m_cop.x));
         com_twist(5) = 0.0;
+        std::cerr << "CoM twist is (" << com_twist(3) << ", " << com_twist(4) << ")" << std::endl;
         com_twist *= m_planning_rate;
         dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
 
-        for(unsigned int i = 0; i < command.size(); i++)
-          command[i] += com_pinv_velocities(i) / m_planning_rate;
-      }
-      else
-      {
-        std::cerr << "Kicking foot is still on the ground! Not balancing!" << std::endl;
-      }
+        //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
+        // double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
+        // com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
+        // com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
+        //!NAO SPECIFIC
+
+        for(unsigned int i = 0; i < m_balance_joint_ids.size(); i++)
+        {
+          double vel = com_pinv_velocities(i);//dynamics_tree::clamp(com_pinv_velocities(i), -1.0, 1.0);
+          command[m_balance_joint_ids[i]] += vel / m_planning_rate;
+          std::cerr << "vel is " << vel <<  ", cmd is " << command[m_balance_joint_ids[i]] << std::endl;
+        }
+      // }
+      // else
+      // {
+      //   std::cerr << "Kicking foot is still on the ground! Not balancing!" << std::endl;
+      // }
 
       //switch command to UT's signs
       invertJoints(command);
@@ -402,7 +422,7 @@ namespace KACK
     dynamics_tree::DynamicsGraph m_graph;
     dynamics_tree::DynamicsTree m_left_tree;
     dynamics_tree::DynamicsTree m_right_tree;
-    std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
 
     bool m_have_plan;
     bool m_left_foot_supporting;
@@ -410,10 +430,13 @@ namespace KACK
     std::string m_supporting_frame;
     std::string m_controlled_frame;
 
+    std::vector<unsigned int> m_balance_joint_ids;
     std::vector<unsigned int> m_joint_ids;
     std::vector<double> m_joint_mins;
     std::vector<double> m_joint_maxes;
     std::vector<double> m_joint_vels;
+
+    Point m_cop;
 
     dynamics_tree::Matrix4 m_rootTworld;
 

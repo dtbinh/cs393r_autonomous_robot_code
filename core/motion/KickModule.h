@@ -59,10 +59,10 @@ class KickModule : public Module {
       ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
     };
 
-    void Initializing();
+    bool Initializing();
     bool Tracking();
-    void Executing();
-    void Putting_back();
+    bool Executing();
+    bool Putting_back();
     bool Finishing();
 
     KACK::Point get_ball_location(KACK::Point shift);
@@ -70,8 +70,12 @@ class KickModule : public Module {
     KACK::Point get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
-    void getCurrentTime();    
-    void getCurrentJoints();
+    std::vector<double> getCurrentJoints();
+    void AddPoseTolerance(KACK::Pose DesirePose, KACK::Pose &min_pose, KACK::Pose &max_pose, KACK::Pose offset );
+    void AddComTolerance(KACK::Point DesireCom , KACK::Point &min_com, KACK::Point &max_com, KACK::Point offset);
+    double getCurrentTime();
+    double getRunningTime(KACK::Pose current , KACK::Pose next);    
+    
     void SendingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
     ENUM(KickState,
@@ -96,26 +100,26 @@ class KickModule : public Module {
     KACK::Point current_ball_location;
     KACK::Point current_goal_location;
     KACK::Point coordinate_shift;
-    KACK::Pose  current_foot_pose;
-    KACK::Pose  desired_foot_pose;
+    KACK::Point desired_next_com;
+    KACK::Pose  desired_next_pose;
+    KACK::Pose  current_pose;
+    
 
     KACK::Kack* kack;
     std::vector<KACK::CartesianKeyframe> KickKeyFrames ;
     std::vector<double> CurrentJoints;
     std::vector<double> CurrentCommand;
     double CurrentTime;
-
-    double t_d_pose;
-    double t_a_pose;
-    double t_d_com;
     double z_index;
+
+    KACK::Pose PoseOffset;
+    KACK::Point ComOffset;
     int NUMBER_JOINTS;
-
-    int if_planned;
-
-    int if_ready_for_initializing;
-    int running_counter;
+    
+    int initializing_counter;
+    int tracking_counter;
     int executing_counter;
+    int putting_back_counter;
 
     //Pose  desired_initial_left_foot_pose;
     //Pose  desired_initial_right_foot_pose;

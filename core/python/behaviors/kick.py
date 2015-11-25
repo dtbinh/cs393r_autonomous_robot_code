@@ -33,4 +33,4 @@ class Playing(StateMachine):
         self.finish()
 
   def setup(self):
-    self.trans(self.Stand(), C, self.Kick(), C , self.Stiff() , T(500) , pose.Sit(), C, self.Off())
+    self.trans(self.Stand(), C, self.Kick(), C , pose.Sit(), C, self.Off())

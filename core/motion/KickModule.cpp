@@ -394,6 +394,8 @@ void KickModule::SendingFrame()
 {
   KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
 
+  double a = 180.0/3.14159;
+
   left_foot_force_sensor  = get_left_foot_sensor();
   right_foot_force_sensor = get_right_foot_sensor();
   CurrentJoints = getCurrentJoints();
@@ -403,8 +405,8 @@ void KickModule::SendingFrame()
   std::array<float, NUM_JOINTS> JointsCommand;
   for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
 
-  printf("sensed: leftpitchyaw = %f , rightpitchyaw = %f , righthippitch = %f \n", CurrentJoints[LHipYawPitch] , CurrentJoints[RHipYawPitch] , CurrentJoints[RHipPitch]);
-  printf("commanded: leftpitchyaw = %f , rightpitchyaw = %f , righthippitch = %f \n", JointsCommand[LHipYawPitch] , JointsCommand[RHipYawPitch] , JointsCommand[RHipPitch]);
+  printf("sensed: lefthippitch = %f , leftknee = %f , righthippitch = %f, rightknee = %f \n", CurrentJoints[LHipPitch]*a , CurrentJoints[LKneePitch]*a , CurrentJoints[RHipPitch]*a , CurrentJoints[RKneePitch]*a);
+  printf("commanded: lefthippitch = %f , leftknee = %f , righthippitch = %f , rightknee = %f \n", JointsCommand[LHipPitch]*a , JointsCommand[LKneePitch]*a , JointsCommand[RHipPitch]*a , JointsCommand[RKneePitch]*a);
 
   cache_.joint_command->setSendAllAngles(true, 1 * 10);
   cache_.joint_command->setPoseRad(JointsCommand.data());

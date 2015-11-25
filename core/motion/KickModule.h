@@ -57,6 +57,12 @@ class KickModule : public Module {
       double short_radius;
 
       ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
+      ReachableArea()
+      {
+        center.x = 0 ; center.y = 0 ; center.z = 0;
+        radius = 0;
+        short_radius = 0;
+      }
     };
 
     bool Initializing();
@@ -67,7 +73,7 @@ class KickModule : public Module {
 
     KACK::Point get_ball_location(KACK::Point shift);
     KACK::Point get_goal_location(KACK::Point shift);
-    KACK::Point get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area);
+    KACK::Pose get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
     std::vector<double> getCurrentJoints();
@@ -120,6 +126,8 @@ class KickModule : public Module {
     int tracking_counter;
     int executing_counter;
     int putting_back_counter;
+
+    ReachableArea REACHAREA;
 
     //Pose  desired_initial_left_foot_pose;
     //Pose  desired_initial_right_foot_pose;

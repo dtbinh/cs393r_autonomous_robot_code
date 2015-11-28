@@ -194,22 +194,20 @@ namespace KACK
   class Kack
   {
   public:
-    Kack(std::string model_filename, double planning_rate = 30.0) :
+    Kack(std::string model_filename, double planning_rate = 100.0) :
         m_supporting_tree(m_left_tree)
     {
       m_have_plan = false;
       m_planning_rate = planning_rate;
       m_xml_model.fromFile(model_filename);
-      std::string joint_string = "HeadYaw, HeadPitch, LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll, RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll, LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, LWristYaw, LHand, RWristYaw, RHand";
-      m_joint_names = rpp::parameterStringToStringVector(joint_string);
       m_rootTworld = dynamics_tree::Matrix4::Identity();
 
 //      std::cerr << "Had " << m_joint_names.size() << " joint names" << std::endl;
 
       m_graph.loadFromURDF(m_joint_names, m_xml_model);
-//      m_graph.print("l_ankle");
-      m_graph.spawnDynamicsTree("l_ankle", false, m_left_tree);
-      m_graph.spawnDynamicsTree("r_ankle", false, m_right_tree);
+//      m_graph.print("l_sole");
+      m_graph.spawnDynamicsTree("l_sole", false, m_left_tree);
+      m_graph.spawnDynamicsTree("r_sole", false, m_right_tree);
 
       for(unsigned int i = 0; i < (m_joint_names.size() - 4); i++)
       {
@@ -218,9 +216,7 @@ namespace KACK
           continue;
         }
 
-        if(m_joint_names.at(i) != "HeadYaw" && m_joint_names.at(i) != "HeadPitch" && 
-          m_joint_names.at(i) != "LHipYawPitch" && m_joint_names.at(i) != "LHipRoll" && m_joint_names.at(i) != "LHipPitch" && m_joint_names.at(i) != "LKneePitch" && m_joint_names.at(i) != "LAnklePitch" && m_joint_names.at(i) != "LAnkleRoll" &&
-          m_joint_names.at(i) != "RHipYawPitch" && m_joint_names.at(i) != "RHipRoll" && m_joint_names.at(i) != "RHipPitch" && m_joint_names.at(i) != "RKneePitch" && m_joint_names.at(i) != "RAnklePitch" && m_joint_names.at(i) != "RAnkleRoll")
+        if(m_joint_names.at(i) != "HeadYaw" && m_joint_names.at(i) != "HeadPitch" && m_joint_names.at(i) != "LHipYawPitch" && m_joint_names.at(i) != "LHipRoll" && m_joint_names.at(i) != "LHipPitch" && m_joint_names.at(i) != "LKneePitch" && m_joint_names.at(i) != "LAnklePitch" && m_joint_names.at(i) != "LAnkleRoll" && m_joint_names.at(i) != "RHipYawPitch" && m_joint_names.at(i) != "RHipRoll" && m_joint_names.at(i) != "RHipPitch" && m_joint_names.at(i) != "RKneePitch" && m_joint_names.at(i) != "RAnklePitch" && m_joint_names.at(i) != "RAnkleRoll")
           m_balance_joint_ids.push_back(i);
 
 //        std::cerr << "joint " << i << " is " << m_joint_names.at(i) << std::endl;
@@ -257,10 +253,14 @@ namespace KACK
     //first keyframe should be at the foot's pose in the nominal standing position
     bool plan(std::vector<double> starting_joint_positions, std::vector<CartesianKeyframe> keyframes, bool left_foot_supporting = true)
     {
+      m_cartesian_plan.clear();
+      m_joint_plan.clear();
+      m_com_plan.clear();
+
       m_left_foot_supporting = left_foot_supporting;
       m_supporting_tree = left_foot_supporting? m_left_tree : m_right_tree;
-      m_supporting_frame = left_foot_supporting? "l_ankle" : "r_ankle";
-      m_controlled_frame = left_foot_supporting? "r_ankle" : "l_ankle";
+      m_supporting_frame = left_foot_supporting? "l_sole" : "r_sole";
+      m_controlled_frame = left_foot_supporting? "r_sole" : "l_sole";
 
       invertJoints(starting_joint_positions);
       m_joint_plan.push_back(starting_joint_positions);
@@ -362,35 +362,35 @@ namespace KACK
       std::cerr << "CoP is at (" << m_cop.x << ", " << m_cop.y << ")" << std::endl;
       // if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
       // {
-        dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
-        // invertJoints(current_joint_positions);
-        processState(command, m_rootTworld);
-        comJacobian(m_balance_joint_ids, m_supporting_frame, Jcom);
-        JcomT = Jcom.transpose();
-        JcomJcomT = Jcom * JcomT;
+      dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
+      // invertJoints(current_joint_positions);
+      processState(command, m_rootTworld);
+      comJacobian(m_balance_joint_ids, m_supporting_frame, Jcom);
+      JcomT = Jcom.transpose();
+      JcomJcomT = Jcom * JcomT;
 
-        dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
-        // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
-        com_twist(3) = (kp_cop_y * (cop_y_desired - m_cop.y));
-        com_twist(4) = -(kp_cop_x * (cop_x_desired - m_cop.x));
-        com_twist(5) = 0.0;
-        std::cerr << "CoM twist is (" << com_twist(3) << ", " << com_twist(4) << ")" << std::endl;
-        com_twist *= m_planning_rate;
-        dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
+      dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
+      // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
+      // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
+      com_twist(3) = (kp_cop_y * (cop_y_desired - m_cop.y));
+      com_twist(4) = -(kp_cop_x * (cop_x_desired - m_cop.x));
+      com_twist(5) = 0.0;
+      std::cerr << "CoM twist is (" << com_twist(3) << ", " << com_twist(4) << ")" << std::endl;
+      com_twist *= m_planning_rate;
+      dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
 
-        //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
-        // double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
-        // com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
-        // com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
-        //!NAO SPECIFIC
+      //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
+      // double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
+      // com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
+      // com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
+      //!NAO SPECIFIC
 
-        for(unsigned int i = 0; i < m_balance_joint_ids.size(); i++)
-        {
-          double vel = com_pinv_velocities(i);//dynamics_tree::clamp(com_pinv_velocities(i), -1.0, 1.0);
-          command[m_balance_joint_ids[i]] += vel / m_planning_rate;
-          std::cerr << "vel is " << vel <<  ", cmd is " << command[m_balance_joint_ids[i]] << std::endl;
-        }
+      for(unsigned int i = 0; i < m_balance_joint_ids.size(); i++)
+      {
+        double vel = com_pinv_velocities(i); //dynamics_tree::clamp(com_pinv_velocities(i), -1.0, 1.0);
+        command[m_balance_joint_ids[i]] += vel / m_planning_rate;
+        std::cerr << "vel is " << vel << ", cmd is " << command[m_balance_joint_ids[i]] << std::endl;
+      }
       // }
       // else
       // {
@@ -399,6 +399,72 @@ namespace KACK
 
       //switch command to UT's signs
       invertJoints(command);
+    }
+
+    //returns true when foot satisfies k
+    bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double kmax_cop_x = 1e-2, double kmax_cop_y = 1e-2, double kicking_foot_force_threshold = 0.1)
+    {
+      if(m_last_commanded.size() == 0)
+      {
+        m_last_commanded = current_joint_positions;
+        invertJoints(m_last_commanded);
+      }
+      m_planning_rate = rate;
+      m_left_foot_supporting = left_foot_supporting;
+      m_supporting_tree = left_foot_supporting? m_left_tree : m_right_tree;
+      m_supporting_frame = left_foot_supporting? "l_sole" : "r_sole";
+      m_controlled_frame = left_foot_supporting? "r_sole" : "l_sole";
+      processState(m_last_commanded, m_rootTworld);
+
+      Pose pc, pt;
+      Point cc, ct;
+      k.getPoseCentroid(pc);
+      k.getPoseTolerances(pt);
+      k.getCoMCentroid(cc);
+      k.getCoMTolerances(ct);
+
+      dynamics_tree::Matrix4 supportTtarget = dynamics_tree::pureRotation(pc.R, pc.P, pc.Y);
+      supportTtarget.topRightCorner(3, 1) << pc.x, pc.y, pc.z;
+
+      dynamics_tree::Matrix4 supportTcontrol;
+      m_supporting_tree.lookupTransform(m_supporting_frame, m_controlled_frame, supportTcontrol);
+
+      double dx, dy, dz, dR, dP, dY;
+      dynamics_tree::Vector6 foot_twist = frameTwist(supportTcontrol, supportTtarget, 1.0 / m_planning_rate, dx, dy, dz, dR, dP, dY);
+
+      dynamics_tree::Vector4 com_vector;
+      m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
+      double com_dx = cc.x - com_vector(0);
+      double com_dy = cc.y - com_vector(1);
+      double com_dz = cc.z - com_vector(2);
+
+      //check if done
+      if(fabs(com_dx) < ct.x && fabs(com_dy) < ct.y && fabs(com_dz) < ct.z && fabs(dx) < pt.x && fabs(dy) < pt.y && fabs(dz) < pt.z && fabs(dR) < pt.R && fabs(dP) < pt.P && fabs(dY) < pt.Y)
+      {
+        std::cerr << ".";
+        return true;
+      }
+
+      //compute CoM adjustment
+      Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
+      m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
+      m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
+
+      dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
+      // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
+      // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
+//      com_twist(3) = (kp_cop_y * (cc.y - m_cop.y));
+//      com_twist(4) = -(kp_cop_x * (cc.x - m_cop.x));
+      com_twist(3) = com_dx;
+      com_twist(4) = com_dy;
+      com_twist(5) = 0.0;
+      com_twist *= m_planning_rate;
+
+      move(m_last_commanded, m_last_commanded, foot_twist, com_twist, 1.0 / m_planning_rate, false);
+      command = m_last_commanded;
+      invertJoints(command); //switch command to UT's signs
+
+      return false;
     }
 
     std::vector<std::string> getJointNames()
@@ -417,12 +483,13 @@ namespace KACK
     }
 
   private:
-    std::vector<std::string> m_joint_names;
+    std::vector<std::string> m_joint_names = {"HeadYaw", "HeadPitch", "LHipYawPitch", "LHipRoll", "LHipPitch", "LKneePitch", "LAnklePitch", "LAnkleRoll", "RHipYawPitch", "RHipRoll", "RHipPitch", "RKneePitch", "RAnklePitch", "RAnkleRoll", "LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll", "LWristYaw", "LHand", "RWristYaw", "RHand"};
+    std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
+
     rpp::ComponentTree m_xml_model;
     dynamics_tree::DynamicsGraph m_graph;
     dynamics_tree::DynamicsTree m_left_tree;
     dynamics_tree::DynamicsTree m_right_tree;
-    std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
 
     bool m_have_plan;
     bool m_left_foot_supporting;
@@ -441,8 +508,10 @@ namespace KACK
     dynamics_tree::Matrix4 m_rootTworld;
 
     double m_planning_rate;
+    std::vector<CartesianKeyframe> m_cartesian_plan;
     std::vector<std::vector<double> > m_joint_plan;
     std::vector<Point> m_com_plan;
+    std::vector<double> m_last_commanded;
 
     double m_start_time;
 
@@ -534,6 +603,59 @@ namespace KACK
       jacobian /= m_supporting_tree.getTotalMass();
     }
 
+    void move(std::vector<double> last_positions, std::vector<double>& next_positions, dynamics_tree::Vector6 foot_twist, dynamics_tree::Vector6 com_twist, double dt, bool do_kinematics = false)
+    {
+      if(do_kinematics)
+      {
+        processState(next_positions, m_rootTworld);
+      }
+
+      //compute jacobians
+      dynamics_tree::Matrix J, JT, JJT, Jcom, JcomT, JcomJcomT;
+      m_supporting_tree.jacobian(m_joint_ids, m_supporting_frame, m_controlled_frame, J);
+      JT = J.transpose();
+      JJT = J * JT;
+      comJacobian(m_joint_ids, m_supporting_frame, Jcom);
+      JcomT = Jcom.transpose();
+      JcomJcomT = Jcom * JcomT;
+
+      dynamics_tree::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
+      dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
+
+      //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
+      double pinv_hip_yaw_avg = (pinv_velocities[2] - pinv_velocities[8]) / 2.0;
+      pinv_velocities[2] = pinv_hip_yaw_avg;
+      pinv_velocities[8] = -pinv_hip_yaw_avg;
+      double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
+      com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
+      com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
+      //!NAO SPECIFIC
+
+      //simulate forward (euler)
+      for(unsigned int j = 0; j < m_joint_ids.size(); j++)
+      {
+        unsigned int joint_id = m_joint_ids[j];
+        unsigned int num_velocities = 0;
+        double combined_joint_velocity = 0.0;
+        if(pinv_velocities[j] != 0.0)
+        {
+          combined_joint_velocity += pinv_velocities[j];
+          num_velocities++;
+        }
+        if(com_pinv_velocities[j] != 0.0)
+        {
+          combined_joint_velocity += com_pinv_velocities[j];
+          num_velocities++;
+        }
+
+        double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * dt));
+        double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));
+
+        next_positions.at(joint_id) += dt * combined_joint_velocity / (double) num_velocities;
+        next_positions.at(joint_id) = dynamics_tree::clamp(next_positions.at(joint_id), local_min, local_max);
+      }
+    }
+
     void planPose(std::vector<double> last_positions, std::vector<double>& next_positions, CartesianKeyframe k, int maxiter)
     {
       next_positions = last_positions;
@@ -555,52 +677,22 @@ namespace KACK
         dynamics_tree::Matrix4 supportTcontrol;
         m_supporting_tree.lookupTransform(m_supporting_frame, m_controlled_frame, supportTcontrol);
 
-        dynamics_tree::Matrix J, JT, JJT;
-        m_supporting_tree.jacobian(m_joint_ids, m_supporting_frame, m_controlled_frame, J);
-        JT = J.transpose();
-        JJT = J * JT;
-
         double twist_scale = 0.1;
         double dx, dy, dz, dR, dP, dY;
         dynamics_tree::Vector6 foot_twist = frameTwist(supportTcontrol, supportTtarget, k.duration, dx, dy, dz, dR, dP, dY);
         foot_twist *= twist_scale;
 
-        //transpose
-        //dQ = J^T * e * (<e, J*J^T*e> / <J*J^T*e, J*J^T*e>)
-        //      dynamics_tree::Vector JJTe = JJT * foot_twist;
-        //      //boost::this_thread::interruption_point();
-        //      dynamics_tree::Vector trans_velocities = JT * foot_twist * (foot_twist.transpose() * JJTe) / (JJTe.transpose() * JJTe);
-        //      //boost::this_thread::interruption_point();
-
-        //pinv
-        dynamics_tree::Vector pinv_velocities = JT * JJT.inverse() * foot_twist;
-
-        //===========COM==================
         dynamics_tree::Vector4 com_vector;
         m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
         double com_dx = cc.x - com_vector(0);
         double com_dy = cc.y - com_vector(1);
         double com_dz = 0; //cc.z - com_vector(2);
 
-        dynamics_tree::Matrix Jcom, JcomT, JcomJcomT;
-        comJacobian(m_joint_ids, m_supporting_frame, Jcom);
-        JcomT = Jcom.transpose();
-        JcomJcomT = Jcom * JcomT;
-
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
         com_twist(3) = com_dx / k.duration;
         com_twist(4) = com_dy / k.duration;
         com_twist(5) = com_dz / k.duration;
         com_twist *= twist_scale;
-
-        //transpose
-        //      dynamics_tree::Vector JJTe_com = JcomJcomT * com_twist;
-        //      //boost::this_thread::interruption_point();
-        //      dynamics_tree::Vector com_trans_velocities = JcomT * com_twist * (com_twist.transpose() * JJTe_com) / (JJTe_com.transpose() * JJTe_com);
-        //      //boost::this_thread::interruption_point();
-
-        //pinv
-        dynamics_tree::Vector com_pinv_velocities = JcomT * JcomJcomT.inverse() * com_twist;
 
         //check if done
         if(fabs(com_dx) < ct.x && fabs(com_dy) < ct.y && fabs(com_dz) < ct.z && fabs(dx) < pt.x && fabs(dy) < pt.y && fabs(dz) < pt.z && fabs(dR) < pt.R && fabs(dP) < pt.P && fabs(dY) < pt.Y)
@@ -609,48 +701,7 @@ namespace KACK
           return;
         }
 
-        //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
-        double pinv_hip_yaw_avg = (pinv_velocities[2] - pinv_velocities[8]) / 2.0;
-        pinv_velocities[2] = pinv_hip_yaw_avg;
-        pinv_velocities[8] = -pinv_hip_yaw_avg;
-        double com_pinv_hip_yaw_avg = (com_pinv_velocities[2] - com_pinv_velocities[8]) / 2.0;
-        com_pinv_velocities[2] = com_pinv_hip_yaw_avg;
-        com_pinv_velocities[8] = -com_pinv_hip_yaw_avg;
-        //!NAO SPECIFIC
-
-        //simulate forward (euler)
-        for(unsigned int j = 0; j < m_joint_ids.size(); j++)
-        {
-          unsigned int joint_id = m_joint_ids[j];
-          unsigned int num_velocities = 0;
-          double combined_joint_velocity = 0.0;
-          //        if(trans_velocities[j] != 0.0)
-          //        {
-          //          combined_joint_velocity += trans_velocities[j];
-          //          num_velocities++;
-          //        }
-          if(pinv_velocities[j] != 0.0)
-          {
-            combined_joint_velocity += pinv_velocities[j];
-            num_velocities++;
-          }
-          //        if(com_trans_velocities[j] != 0.0)
-          //        {
-          //          combined_joint_velocity += com_trans_velocities[j];
-          //          num_velocities++;
-          //        }
-          if(com_pinv_velocities[j] != 0.0)
-          {
-            combined_joint_velocity += com_pinv_velocities[j];
-            num_velocities++;
-          }
-
-          double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * k.duration));
-          double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * k.duration));
-
-          next_positions.at(joint_id) += k.duration * combined_joint_velocity / (double) num_velocities;
-          next_positions.at(joint_id) = dynamics_tree::clamp(next_positions.at(joint_id), local_min, local_max);
-        }
+        move(next_positions, next_positions, foot_twist, com_twist, k.duration, false);
       }
 
       std::cerr << "Failed to solve!" << std::endl;

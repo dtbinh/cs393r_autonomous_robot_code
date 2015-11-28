@@ -657,5 +657,19 @@
       <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
     </inertial>
   </link>
+  <joint name="LLeg_effector_fixedjoint" type="fixed">
+    <parent link="l_ankle"/>
+    <child link="l_sole"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.04511"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <link name="l_sole"/>
+  <joint name="RLeg_effector_fixedjoint" type="fixed">
+    <parent link="r_ankle"/>
+    <child link="r_sole"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.04511"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <link name="r_sole"/>
 </robot>
 

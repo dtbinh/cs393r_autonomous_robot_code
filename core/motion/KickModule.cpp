@@ -111,12 +111,12 @@ bool KickModule::Initializing()
 {
   // printf("I'm running this part , NUM_JOINTS = %d\n" , NUM_JOINTS);
 
-  KACK::CartesianKeyframe frame_moving_com, frame_first_tracking ;
+  KACK::CartesianKeyframe frame_moving_com, frame_first_tracking, frame_second_tracking ;
   KACK::Pose min_pose, max_pose;
   KACK::Point min_com, max_com;
 
   double desired_initial_y = 0.1 ;
-  double period0 = 0, period1 = 0;
+  double period0 = 0, period1 = 0, period2 = 0;
 
   if(initializing_counter == -1)
   {
@@ -187,7 +187,22 @@ bool KickModule::Initializing()
     printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
     printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
-    
+
+    // desired_next_pose.update(-0.05 , -0.15 , 0.04 , 0 , 0 , 0);
+    // desired_next_com.update(0 , 0 , 0);
+    // AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
+    // AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
+    // period2 = 1;
+    // frame_second_tracking.update( period1 , min_pose, max_pose, min_com, max_com );
+    // KickKeyFrames.push_back(frame_first_tracking);
+    // current_pose = desired_next_pose;
+    // printf("period1 = %f\n", period1 );
+    // printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , min_pose.x , min_pose.y, min_pose.z , min_pose.R, min_pose.P, min_pose.Y);
+    // printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
+    // printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
+    // printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
+
+
     CurrentJoints = getCurrentJoints();
     CurrentTime = getCurrentTime();
     if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
@@ -405,8 +420,32 @@ void KickModule::SendingFrame()
   std::array<float, NUM_JOINTS> JointsCommand;
   for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
 
-  printf("sensed: lefthippitch = %f , leftknee = %f , righthippitch = %f, rightknee = %f \n", CurrentJoints[LHipPitch]*a , CurrentJoints[LKneePitch]*a , CurrentJoints[RHipPitch]*a , CurrentJoints[RKneePitch]*a);
-  printf("commanded: lefthippitch = %f , leftknee = %f , righthippitch = %f , rightknee = %f \n", JointsCommand[LHipPitch]*a , JointsCommand[LKneePitch]*a , JointsCommand[RHipPitch]*a , JointsCommand[RKneePitch]*a);
+  //printf("sensed: lefthippitch = %f , leftknee = %f , righthippitch = %f, rightknee = %f \n", CurrentJoints[LHipPitch]*a , CurrentJoints[LKneePitch]*a , CurrentJoints[RHipPitch]*a , CurrentJoints[RKneePitch]*a);
+  //printf("commanded: lefthippitch = %f , leftknee = %f , righthippitch = %f , rightknee = %f \n", JointsCommand[LHipPitch]*a , JointsCommand[LKneePitch]*a , JointsCommand[RHipPitch]*a , JointsCommand[RKneePitch]*a);
+  printf("HeadYaw: %f \n", JointsCommand[0]);
+  printf("HeadPitch: %f \n", JointsCommand[1]);
+  printf("LHipYawPitch: %f \n", JointsCommand[2]);
+  printf("LHipRoll: %f \n", JointsCommand[3]);
+  printf("LHipPitch: %f \n", JointsCommand[4]);
+  printf("LKneePitch: %f \n", JointsCommand[5]);
+  printf("LAnklePitch: %f \n", JointsCommand[6]);
+  printf("LAnkleRoll: %f \n", JointsCommand[7]);
+  printf("RHipYawPitch: %f \n", JointsCommand[8]);
+  printf("RHipRoll: %f \n", JointsCommand[9]);
+  printf("RHipPitch: %f \n", JointsCommand[10]);
+  printf("RKneePitch: %f \n", JointsCommand[11]);
+  printf("RAnklePitch: %f \n", JointsCommand[12]);
+  printf("RAnkleRoll: %f \n", JointsCommand[13]);
+  printf("LShoulderPitch: %f \n", JointsCommand[14]);
+  printf("LShoulderRoll: %f \n", JointsCommand[15]);
+  printf("LElbowYaw: %f \n", JointsCommand[16]);
+  printf("LElbowRoll: %f \n", JointsCommand[17]);
+  printf("RShoulderPitch: %f \n", JointsCommand[18]);
+  printf("RShoulderRoll: %f \n", JointsCommand[19]);
+  printf("RElbowYaw: %f \n", JointsCommand[20]);
+  printf("RElbowRoll: %f \n", JointsCommand[21]);
+
+
 
   cache_.joint_command->setSendAllAngles(true, 1 * 10);
   cache_.joint_command->setPoseRad(JointsCommand.data());

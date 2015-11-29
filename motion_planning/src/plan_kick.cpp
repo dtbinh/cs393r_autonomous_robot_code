@@ -297,13 +297,11 @@ namespace motion_planning
     tf::quaternionMsgToTF(m_foot_target.orientation, tf_quat);
     tf::Matrix3x3(tf_quat).getRPY(R, P, Y);
 
-    std::cerr << "foot target\n" << m_foot_target << std::endl;
-
     KACK::Pose kack_foot_pose(m_foot_target.position.x, m_foot_target.position.y, m_foot_target.position.z, R, P, Y);
     KACK::Point kack_com_point(m_com_target.position.x, m_com_target.position.y, m_com_target.position.z);
-    KACK::CartesianKeyframe k(3.0, kack_foot_pose, kack_com_point, 1e-3, 1e-3, 1e-3, 10.0);
+    KACK::CartesianKeyframe k(3.0, kack_foot_pose, kack_com_point, 1e-3, 1e-3, 1e-3, 1e3);
 
-    m_kack->moveFoot(m_frame_rate, true, k, m_js.position, KACK::FootSensor(), KACK::FootSensor(), m_js.position);
+    m_kack->moveFoot(m_frame_rate, true, k, m_js.position, KACK::FootSensor(), KACK::FootSensor(), m_js.position, 0, 0, 0, 0, 0, 0, false);
   }
 
   void PlanKick::spin()
@@ -324,14 +322,18 @@ namespace motion_planning
         m_js.position = joint_plan[plan_idx % joint_plan.size()];
         KACK::Point com_point; // = com_plan[plan_idx % com_plan.size()];
         plan_idx++;
-
-        geometry_msgs::PointStamped com;
-        com.header.frame_id = "l_ankle";
-        com.header.stamp = ros::Time::now();
-        com.point.x = com_point.x;
-        com.point.y = com_point.y;
-        m_com_pub.publish(com);
       }
+
+      m_kack->tree(true).kinematics(m_js.position, m_rootTworld);
+      dynamics_tree::Vector4 com_vector;
+      m_kack->tree(true).centerOfMass("l_sole", com_vector);
+      geometry_msgs::PointStamped com;
+      com.header.frame_id = "l_sole";
+      com.header.stamp = ros::Time::now();
+      com.point.x = com_vector(0);
+      com.point.y = com_vector(1);
+      com.point.z = com_vector(2);
+      m_com_pub.publish(com);
 
       m_js.header.stamp = ros::Time::now();
       m_js_pub.publish(m_js);

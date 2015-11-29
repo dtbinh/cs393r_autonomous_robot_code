@@ -112,7 +112,6 @@ class KickModule : public Module {
     
 
     KACK::Kack* kack;
-    std::vector<KACK::CartesianKeyframe> KickKeyFrames ;
     std::vector<double> CurrentJoints;
     std::vector<double> CurrentCommand;
     double CurrentTime;
@@ -127,10 +126,47 @@ class KickModule : public Module {
     int executing_counter;
     int putting_back_counter;
 
-    int IF_KICK_TRRESHOLD;
+    int IF_KICK_THRESHOLD;
+    int IF_RETRACK_THRESHOLD;
     int if_kick_counter;
-
+    int if_retrack_counter;
     ReachableArea REACHAREA;
+
+    KACK::CartesianKeyframe KickKeyFramesQueue[16];
+    int CounterQueue[16];
+    int QueueHead;
+    int QueueRear;
+
+    bool QueuePush( KACK::CartesianKeyframe a , int a_time)
+    {
+      if(QueueRear >= QueueHead)
+      {
+        KickKeyFramesQueue[QueueRear%16] = a;
+        CounterQueue[QueueRear%16] = a_time;
+        QueueRear++;
+        return true;
+      }
+      else
+      {
+        printf("QueueRear < QueueHead \n");
+        return false;
+      }
+    }
+
+    bool QueuePop()
+    {
+      if(QueueHead != QueueRear)
+      {
+        QueueHead++;
+        return true;
+      }
+      else
+      {
+        printf("Empty!\n");
+        return false;
+      }
+    }
+
 
     //Pose  desired_initial_left_foot_pose;
     //Pose  desired_initial_right_foot_pose;

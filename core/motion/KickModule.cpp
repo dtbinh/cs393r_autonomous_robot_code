@@ -47,8 +47,13 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   CurrentJoints.resize(NUMBER_JOINTS);
   CurrentCommand.resize(NUMBER_JOINTS);
 
-  IF_KICK_TRRESHOLD = 300;
+  IF_KICK_THRESHOLD = 300;
   if_kick_counter = 0;
+  IF_RETRACK_THRESHOLD = 10;
+  if_retrack_counter = 0;
+
+  QueueHead = 0;
+  QueueRear = 0;
 
   area_center.update(0, -120 , 50);
   area_radius = 120;
@@ -80,10 +85,8 @@ void KickModule::processFrame() {
   if(kick_state_ == INITIALIZING) 
   {
     cache_.kick_request->kick_running_ = true;
-    if(initializing_counter)
-      Initializing();
-    else
-      Initializing();
+    if(!Initializing()) kick_state_ = INITIALIZING;
+    else kick_state_ =  INITIALIZING;
       //kick_state_ = TRACKING;
   }
   else if(kick_state_ == TRACKING)
@@ -120,7 +123,7 @@ bool KickModule::Initializing()
 
   if(initializing_counter == -1)
   {
-    KickKeyFrames.clear();
+    //KickKeyFrames.clear();
     current_ball_location = get_ball_location(coordinate_shift);
     current_goal_location = get_goal_location(coordinate_shift);
 
@@ -136,15 +139,6 @@ bool KickModule::Initializing()
       desired_next_pose.update( 0 , desired_initial_y , 0 , 0 , 0 , 0);
       desired_next_com.update(  0 , 0 , 0);
 
-      // AddPoseTolerance(desired_foot_pose , min_pose , max_pose , PoseOffset);
-      // AddComTolerance(desired_next_com , min_com , max_com, ComOffset);
-
-      // min_pose.update( -t_d_pose , desired_initial_y - t_d_pose , -t_d_pose, -t_a_pose , -t_a_pose , -t_a_pose );
-      // max_pose.update(  t_d_pose , desired_initial_y + t_d_pose ,  t_d_pose,  t_a_pose ,  t_a_pose ,  t_a_pose );
-      // min_com.update(-t_d_com , -t_d_com , 0);
-      // max_com.update( t_d_com ,  t_d_com , 1);
-
-      // frame_moving_com.update( 0.5 , min_pose, max_pose, min_com, max_com );
     }
     else if(current_ball_location.y < -15 || (abs(current_ball_location.y) <= 15 && current_goal_location.y >= 0)) //right foot
     {
@@ -162,7 +156,8 @@ bool KickModule::Initializing()
     AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
     period0 = 2;
     frame_moving_com.update( period0 , min_pose, max_pose, min_com, max_com );
-    KickKeyFrames.push_back(frame_moving_com);
+    // KickKeyFrames.push_back(frame_moving_com);
+    QueuePush( frame_moving_com , period0*100 + 50 );
 
     printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , min_pose.x , min_pose.y, min_pose.z , min_pose.R, min_pose.P, min_pose.Y);
     printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
@@ -170,7 +165,7 @@ bool KickModule::Initializing()
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
     //desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
-    desired_next_pose.update(-0.1 , -0.1 , 0.04 , 0 , 0 , 0);
+    desired_next_pose.update(-0.0 , -0.11 , 0.04 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     if(desired_next_pose.y != 0)
     {
@@ -178,7 +173,8 @@ bool KickModule::Initializing()
       AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
       period1 = 1;
       frame_first_tracking.update( period1 , min_pose, max_pose, min_com, max_com );
-      KickKeyFrames.push_back(frame_first_tracking);
+      // KickKeyFrames.push_back(frame_first_tracking);
+      QueuePush( frame_first_tracking , period1*100 + 50 );
       current_pose = desired_next_pose;
     }
 
@@ -202,63 +198,120 @@ bool KickModule::Initializing()
     // printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
     // printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
-
-    CurrentJoints = getCurrentJoints();
-    CurrentTime = getCurrentTime();
-    if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
-      initializing_counter = (period0 + period1)*100 + 100;
+    initializing_counter = (period0 + period1)*100 + 100;
   }
 
-  SendingFrame();
-  if(initializing_counter == 0) return true;
-  else
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
+
+  left_foot_force_sensor  = get_left_foot_sensor();
+  right_foot_force_sensor = get_right_foot_sensor();
+  CurrentJoints = getCurrentJoints();
+  CurrentTime = getCurrentTime();
+  double kp = 0.005;
+  kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[QueueHead%16], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.5, kp,kp, 1e-2, 1e-2, 0.1);
+
+  //printf("period1 = %f\n", period1 );
+  // printf("---------------------------------------------------------------------------------------------------------------------------------------\n");
+  // printf("CounterQueue[%d] = %d , QueueRear = %d\n" , QueueHead , CounterQueue[QueueHead%16] , QueueRear);
+  // printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , KickKeyFramesQueue[QueueHead%16].min_pose.x , KickKeyFramesQueue[QueueHead%16].min_pose.y, KickKeyFramesQueue[QueueHead%16].min_pose.z 
+  //                    , KickKeyFramesQueue[QueueHead%16].min_pose.R, KickKeyFramesQueue[QueueHead%16].min_pose.P, KickKeyFramesQueue[QueueHead%16].min_pose.Y);
+  // printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , KickKeyFramesQueue[QueueHead%16].max_pose.x , KickKeyFramesQueue[QueueHead%16].max_pose.y, KickKeyFramesQueue[QueueHead%16].max_pose.z 
+  //                    , KickKeyFramesQueue[QueueHead%16].max_pose.R, KickKeyFramesQueue[QueueHead%16].max_pose.P, KickKeyFramesQueue[QueueHead%16].max_pose.Y);
+  // printf("min_com = (%f,%f,%f)\n", KickKeyFramesQueue[QueueHead%16].min_com.x, KickKeyFramesQueue[QueueHead%16].min_com.y, KickKeyFramesQueue[QueueHead%16].min_com.z);
+  // printf("max_com = (%f,%f,%f)\n", KickKeyFramesQueue[QueueHead%16].max_com.x, KickKeyFramesQueue[QueueHead%16].max_com.y, KickKeyFramesQueue[QueueHead%16].max_com.z);
+
+  std::array<float, NUM_JOINTS> JointsCommand;
+  for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i] = CurrentCommand[i];
+  JointsCommand[RHipYawPitch] = - JointsCommand[RHipYawPitch];
+  // JointsCommand[RHipPitch] = 3*JointsCommand[RHipPitch] + 0.82;
+  // JointsCommand[LHipPitch] += 0;
+
+  
+
+  //printf("sensed: lefthippitch = %f , leftknee = %f , righthippitch = %f, rightknee = %f \n", CurrentJoints[LHipPitch]*a , CurrentJoints[LKneePitch]*a , CurrentJoints[RHipPitch]*a , CurrentJoints[RKneePitch]*a);
+  //printf("commanded: lefthippitch = %f , leftknee = %f , righthippitch = %f , rightknee = %f \n", JointsCommand[LHipPitch]*a , JointsCommand[LKneePitch]*a , JointsCommand[RHipPitch]*a , JointsCommand[RKneePitch]*a);
+  // printf("CounterQueue[%d] = %d , QueueRear = %d\n" , QueueHead , CounterQueue[QueueHead%16] , QueueRear);
+  // printf("HeadYaw: %f\n", JointsCommand[0]*180/3.1415926);
+  // printf("HeadPitch: %f\n", JointsCommand[1]*180/3.1415926);
+  // printf("LHipYawPitch: %f\n", JointsCommand[2]*180/3.1415926);
+  // printf("LHipRoll: %f\n", JointsCommand[3]*180/3.1415926);
+  // printf("LHipPitch: %f\n", JointsCommand[4]*180/3.1415926);
+  // printf("LKneePitch: %f\n", JointsCommand[5]*180/3.1415926);
+  // printf("LAnklePitch: %f\n", JointsCommand[6]*180/3.1415926);
+  // printf("LAnkleRoll: %f\n", JointsCommand[7]*180/3.1415926);
+  // printf("RHipYawPitch: %f\n", JointsCommand[8]*180/3.1415926);
+  // printf("RHipRoll: %f\n", JointsCommand[9]*180/3.1415926);
+  // printf("RHipPitch: %f\n", JointsCommand[10]*180/3.1415926);
+  // printf("RKneePitch: %f\n", JointsCommand[11]*180/3.1415926);
+  // printf("RAnklePitch: %f\n", JointsCommand[12]*180/3.1415926);
+  // printf("RAnkleRoll: %f\n", JointsCommand[13]*180/3.1415926);
+  // printf("LShoulderPitch: %f\n", JointsCommand[14]*180/3.1415926);
+  // printf("LShoulderRoll: %f\n", JointsCommand[15]*180/3.1415926);
+  // printf("LElbowYaw: %f\n", JointsCommand[16]*180/3.1415926);
+  // printf("LElbowRoll: %f\n", JointsCommand[17]*180/3.1415926);
+  // printf("RShoulderPitch: %f\n", JointsCommand[18]*180/3.1415926);
+  // printf("RShoulderRoll: %f\n", JointsCommand[19]*180/3.1415926);
+  // printf("RElbowYaw: %f\n", JointsCommand[20]*180/3.1415926);
+  // printf("RElbowRoll: %f\n", JointsCommand[21]*180/3.1415926);
+
+
+
+  cache_.joint_command->setSendAllAngles(true,10.0);
+  cache_.joint_command->setPoseRad(JointsCommand.data());
+
+
+  //SendingFrame();
+  if(QueueHead != QueueRear)
   {
-    initializing_counter--;
+    if(CounterQueue[QueueHead%16] != 0) CounterQueue[QueueHead%16]--;
+    else QueuePop();
     return false;
   }
+  else return true;
+
 }
 
 bool KickModule::Tracking()
 {
-  double RunningTime = 0;
-  KACK::Pose min_pose, max_pose;
-  KACK::Point min_com, max_com;
-  KACK::CartesianKeyframe TrackingFrame;
+  // double RunningTime = 0;
+  // KACK::Pose min_pose, max_pose;
+  // KACK::Point min_com, max_com;
+  // KACK::CartesianKeyframe TrackingFrame;
 
-  if(tracking_counter == -1)
-  {
-    current_ball_location = get_ball_location(coordinate_shift);
-    current_goal_location = get_goal_location(coordinate_shift);
+  // if(tracking_counter == -1)
+  // {
+  //   current_ball_location = get_ball_location(coordinate_shift);
+  //   current_goal_location = get_goal_location(coordinate_shift);
 
-    current_pose = desired_next_pose;
-    desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
-    RunningTime = getRunningTime( current_pose , desired_next_pose ); 
-    if(RunningTime > 0.2)
-    {
-      if_kick_counter = 0;
-      KickKeyFrames.clear();
+  //   current_pose = desired_next_pose;
+  //   desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
+  //   RunningTime = getRunningTime( current_pose , desired_next_pose ); 
+  //   if(RunningTime > 0.2)
+  //   {
+  //     if_kick_counter = 0;
+  //     KickKeyFrames.clear();
 
-      AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
-      AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
-      TrackingFrame.update(RunningTime , min_pose, max_pose, min_com, max_com);
-      KickKeyFrames.push_back(TrackingFrame);
+  //     AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
+  //     AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
+  //     TrackingFrame.update(RunningTime , min_pose, max_pose, min_com, max_com);
+  //     KickKeyFrames.push_back(TrackingFrame);
 
-      CurrentJoints = getCurrentJoints();
-      CurrentTime = getCurrentTime();
-      if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
-        tracking_counter = RunningTime*100;
-    }
-    else
-      if_kick_counter++;
-  }
-  else
-  {
-    SendingFrame();
-    if(tracking_counter > -1) tracking_counter--;
-  }
+  //     CurrentJoints = getCurrentJoints();
+  //     CurrentTime = getCurrentTime();
+  //     if(kack->plan(CurrentJoints, KickKeyFrames , kick_foot_ == RIGHTFOOT ))
+  //       tracking_counter = RunningTime*100;
+  //   }
+  //   else
+  //     if_kick_counter++;
+  // }
+  // else
+  // {
+  //   SendingFrame();
+  //   if(tracking_counter > -1) tracking_counter--;
+  // }
 
-  if( if_kick_counter < IF_KICK_TRRESHOLD) return false;
-  else return true;
+  // if( if_kick_counter < IF_KICK_TRRESHOLD) return false;
+  // else return true;
 }
 
 bool KickModule::Executing()
@@ -394,8 +447,8 @@ void KickModule::AddPoseTolerance(KACK::Pose DesirePose, KACK::Pose &min_pose, K
 
 void KickModule::AddComTolerance(KACK::Point DesireCom , KACK::Point &min_com, KACK::Point &max_com, KACK::Point offset)
 {
-  min_com.update(DesireCom.x - offset.x , DesireCom.y - offset.y , 0);
-  max_com.update(DesireCom.x + offset.x , DesireCom.y + offset.y , 1);
+  min_com.update(DesireCom.x - offset.x , DesireCom.y - offset.y , 0.24);
+  max_com.update(DesireCom.x + offset.x , DesireCom.y + offset.y , 0.28);
 }
 
 double KickModule::getRunningTime(KACK::Pose current , KACK::Pose next)

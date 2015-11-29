@@ -226,7 +226,7 @@ namespace KACK
 
         if(joint_xml && joint_xml.child("limit"))
         {
-          double velocity_limit_scale = 0.25;
+          double velocity_limit_scale = 0.1;
           m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
           m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
           m_joint_vels.push_back(velocity_limit_scale * joint_xml.child("limit").attribute("velocity").as_double());
@@ -405,6 +405,7 @@ namespace KACK
     }
 
     //returns true when foot satisfies k
+    dynamics_tree::Vector4 cc_offset = dynamics_tree::Vector4::Zero();
     bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double kmax_cop_x = 1e-2, double kmax_cop_y = 1e-2, double kicking_foot_force_threshold = 0.1, bool invert_joints = true)
     {
       if(m_last_commanded.size() == 0)
@@ -440,11 +441,32 @@ namespace KACK
         double dx, dy, dz, dR, dP, dY;
         dynamics_tree::Vector6 foot_twist = frameTwist(supportTcontrol, supportTtarget, 1.0 / m_planning_rate, dx, dy, dz, dR, dP, dY);
 
+        //compute CoM adjustment
+        Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
+        double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
+        if(fabs(force) < 0.1)
+        {
+          m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
+          m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
+          // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
+          // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
+  //      com_twist(3) = (kp_cop_y * (cc.y - m_cop.y));
+  //      com_twist(4) = -(kp_cop_x * (cc.x - m_cop.x));
+          cc_offset(0) += (kp_cop_y * (cc.y - m_cop.y));
+          cc_offset(1) -= (kp_cop_x * (cc.x - m_cop.x));
+        }
+        else
+        {
+          cc_offset = dynamics_tree::Vector4::Zero();
+        }
+
         dynamics_tree::Vector4 com_vector;
         m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
-        double com_dx = cc.x - com_vector(0);
-        double com_dy = cc.y - com_vector(1);
-        double com_dz = cc.z - com_vector(2);
+        double com_dx = (cc.x + cc_offset(0)) - com_vector(0);
+        double com_dy = (cc.y + cc_offset(1)) - com_vector(1);
+        double com_dz = 0;//cc.z - com_vector(2);
+
+        // std::cerr << "Com is at " << com_vector.transpose() << std::endl;
 
         //check if done
         if(fabs(com_dx) < ct.x && fabs(com_dy) < ct.y && fabs(com_dz) < ct.z && fabs(dx) < pt.x && fabs(dy) < pt.y && fabs(dz) < pt.z && fabs(dR) < pt.R && fabs(dP) < pt.P && fabs(dY) < pt.Y)
@@ -459,20 +481,15 @@ namespace KACK
         torso_twist(0) = -0.25 * torso_roll * m_planning_rate;
         torso_twist(1) = -0.5 * torso_pitch * m_planning_rate;
 
-        //compute CoM adjustment
-        Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
-        m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
-        m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
-
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
-        // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
-//      com_twist(3) = (kp_cop_y * (cc.y - m_cop.y));
-//      com_twist(4) = -(kp_cop_x * (cc.x - m_cop.x));
-        com_twist(3) = com_dx; // + (kp_cop_y * (cc.y - m_cop.y));
-        com_twist(4) = com_dy; // - (kp_cop_x * (cc.x - m_cop.x));
+        com_twist(3) = com_dx;
+        com_twist(4) = com_dy;
         com_twist(5) = com_dz;
         com_twist *= m_planning_rate;
+
+        std::cerr << "foot twist: " << foot_twist.transpose() << std::endl;
+        // std::cerr << "torso twist: " << torso_twist.transpose() << std::endl;
+        std::cerr << "com twist: " << com_twist.transpose() << std::endl;
 
         move(m_last_commanded, m_last_commanded, foot_twist, torso_twist, com_twist, 1.0 / m_planning_rate, false);
       }
@@ -641,7 +658,8 @@ namespace KACK
       m_supporting_tree.jacobian(m_joint_ids, m_supporting_frame, "torso", Jtorso);
       JtorsoT = Jtorso.transpose();
       JtorsoJtorsoT = Jtorso * JtorsoT;
-      comJacobian(m_joint_ids, m_supporting_frame, Jcom);
+      // comJacobian(m_joint_ids, m_supporting_frame, Jcom);
+      comJacobian(m_balance_joint_ids, m_supporting_frame, Jcom);
       JcomT = Jcom.transpose();
       JcomJcomT = Jcom * JcomT;
 
@@ -656,15 +674,16 @@ namespace KACK
       double torso_hip_yaw_avg = (torso_velocities[2] + torso_velocities[8]) / 2.0;
       torso_velocities[2] = torso_hip_yaw_avg;
       torso_velocities[8] = torso_hip_yaw_avg;
-      double com_hip_yaw_avg = (com_velocities[2] + com_velocities[8]) / 2.0;
-      com_velocities[2] = com_hip_yaw_avg;
-      com_velocities[8] = com_hip_yaw_avg;
+      // double com_hip_yaw_avg = (com_velocities[2] + com_velocities[8]) / 2.0;
+      // com_velocities[2] = com_hip_yaw_avg;
+      // com_velocities[8] = com_hip_yaw_avg;
       //!NAO SPECIFIC
 
       //simulate forward (euler)
       for(unsigned int j = 0; j < m_joint_ids.size(); j++)
       {
         unsigned int joint_id = m_joint_ids[j];
+        unsigned int balance_joint_id = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), joint_id) - m_balance_joint_ids.begin();
 
         double nominal_pose_weight = 0.0;
         double combined_joint_velocity = nominal_pose_weight * (last_positions[joint_id] - m_nominal_positions[joint_id]);
@@ -679,9 +698,9 @@ namespace KACK
           combined_joint_velocity += torso_velocities[j];
           num_velocities++;
         }
-        if(com_velocities[j] != 0.0)
+        if(balance_joint_id < com_velocities.size() && com_velocities[balance_joint_id] != 0.0)
         {
-          combined_joint_velocity += com_velocities[j];
+          combined_joint_velocity += com_velocities[balance_joint_id];
           num_velocities++;
         }
 

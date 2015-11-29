@@ -33,7 +33,7 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   desired_next_pose.update(0,0,0,0,0,0);
   desired_next_com.update(0,0,0);
   
-  PoseOffset.update(0.005 , 0.005 , 0.005 , 0.04 , 0.2 , 0.2);
+  PoseOffset.update(0.005 , 0.005 , 0.005 , 0.05 , 0.05 , 0.2);
   ComOffset.update(0.0025 , 0.0025 , 0.0025);
 
   z_index  = 0.05;
@@ -170,7 +170,7 @@ bool KickModule::Initializing()
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
     //desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
-    desired_next_pose.update(-0.07 , -0.1 , 0.04 , 0 , 0 , 0);
+    desired_next_pose.update(-0.1 , -0.1 , 0.04 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     if(desired_next_pose.y != 0)
     {
@@ -419,35 +419,40 @@ void KickModule::SendingFrame()
 
   std::array<float, NUM_JOINTS> JointsCommand;
   for( int i = 0 ; i < NUM_JOINTS ; i++) JointsCommand[i]= CurrentCommand[i];
+  JointsCommand[RHipYawPitch] = - CurrentCommand[LHipYawPitch];
+  JointsCommand[RHipPitch] = 3*JointsCommand[RHipPitch] + 0.82;
+  JointsCommand[LHipPitch] += 0;
+
+  
 
   //printf("sensed: lefthippitch = %f , leftknee = %f , righthippitch = %f, rightknee = %f \n", CurrentJoints[LHipPitch]*a , CurrentJoints[LKneePitch]*a , CurrentJoints[RHipPitch]*a , CurrentJoints[RKneePitch]*a);
   //printf("commanded: lefthippitch = %f , leftknee = %f , righthippitch = %f , rightknee = %f \n", JointsCommand[LHipPitch]*a , JointsCommand[LKneePitch]*a , JointsCommand[RHipPitch]*a , JointsCommand[RKneePitch]*a);
-  printf("HeadYaw: %f \n", JointsCommand[0]);
-  printf("HeadPitch: %f \n", JointsCommand[1]);
-  printf("LHipYawPitch: %f \n", JointsCommand[2]);
-  printf("LHipRoll: %f \n", JointsCommand[3]);
-  printf("LHipPitch: %f \n", JointsCommand[4]);
-  printf("LKneePitch: %f \n", JointsCommand[5]);
-  printf("LAnklePitch: %f \n", JointsCommand[6]);
-  printf("LAnkleRoll: %f \n", JointsCommand[7]);
-  printf("RHipYawPitch: %f \n", JointsCommand[8]);
-  printf("RHipRoll: %f \n", JointsCommand[9]);
-  printf("RHipPitch: %f \n", JointsCommand[10]);
-  printf("RKneePitch: %f \n", JointsCommand[11]);
-  printf("RAnklePitch: %f \n", JointsCommand[12]);
-  printf("RAnkleRoll: %f \n", JointsCommand[13]);
-  printf("LShoulderPitch: %f \n", JointsCommand[14]);
-  printf("LShoulderRoll: %f \n", JointsCommand[15]);
-  printf("LElbowYaw: %f \n", JointsCommand[16]);
-  printf("LElbowRoll: %f \n", JointsCommand[17]);
-  printf("RShoulderPitch: %f \n", JointsCommand[18]);
-  printf("RShoulderRoll: %f \n", JointsCommand[19]);
-  printf("RElbowYaw: %f \n", JointsCommand[20]);
-  printf("RElbowRoll: %f \n", JointsCommand[21]);
+  printf("HeadYaw: %f\n", JointsCommand[0]*180/3.1415926);
+  printf("HeadPitch: %f\n", JointsCommand[1]*180/3.1415926);
+  printf("LHipYawPitch: %f\n", JointsCommand[2]*180/3.1415926);
+  printf("LHipRoll: %f\n", JointsCommand[3]*180/3.1415926);
+  printf("LHipPitch: %f\n", JointsCommand[4]*180/3.1415926);
+  printf("LKneePitch: %f\n", JointsCommand[5]*180/3.1415926);
+  printf("LAnklePitch: %f\n", JointsCommand[6]*180/3.1415926);
+  printf("LAnkleRoll: %f\n", JointsCommand[7]*180/3.1415926);
+  printf("RHipYawPitch: %f\n", JointsCommand[8]*180/3.1415926);
+  printf("RHipRoll: %f\n", JointsCommand[9]*180/3.1415926);
+  printf("RHipPitch: %f\n", JointsCommand[10]*180/3.1415926);
+  printf("RKneePitch: %f\n", JointsCommand[11]*180/3.1415926);
+  printf("RAnklePitch: %f\n", JointsCommand[12]*180/3.1415926);
+  printf("RAnkleRoll: %f\n", JointsCommand[13]*180/3.1415926);
+  printf("LShoulderPitch: %f\n", JointsCommand[14]*180/3.1415926);
+  printf("LShoulderRoll: %f\n", JointsCommand[15]*180/3.1415926);
+  printf("LElbowYaw: %f\n", JointsCommand[16]*180/3.1415926);
+  printf("LElbowRoll: %f\n", JointsCommand[17]*180/3.1415926);
+  printf("RShoulderPitch: %f\n", JointsCommand[18]*180/3.1415926);
+  printf("RShoulderRoll: %f\n", JointsCommand[19]*180/3.1415926);
+  printf("RElbowYaw: %f\n", JointsCommand[20]*180/3.1415926);
+  printf("RElbowRoll: %f\n", JointsCommand[21]*180/3.1415926);
 
 
 
-  cache_.joint_command->setSendAllAngles(true, 1 * 10);
+  cache_.joint_command->setSendAllAngles(true,10.0);
   cache_.joint_command->setPoseRad(JointsCommand.data());
 }
 

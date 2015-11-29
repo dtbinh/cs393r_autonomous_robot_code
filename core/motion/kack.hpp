@@ -229,7 +229,7 @@ namespace KACK
           double velocity_limit_scale = 0.25;
           m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
           m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
-          m_joint_vels.push_back(velocity_limit_scale*joint_xml.child("limit").attribute("velocity").as_double());
+          m_joint_vels.push_back(velocity_limit_scale * joint_xml.child("limit").attribute("velocity").as_double());
         }
 //        else
 //        {
@@ -453,14 +453,11 @@ namespace KACK
         }
 
         //compute torso adjustment
-        double torso_weight = 0.5;
         double torso_roll, torso_pitch, torso_yaw;
         matrixToRPY(dynamics_tree::Matrix3(supportTtorso.topLeftCorner(3, 3)), torso_roll, torso_pitch, torso_yaw);
         dynamics_tree::Vector6 torso_twist = dynamics_tree::Vector6::Zero();
-        torso_twist(0) = 0;//torso_roll;
-        torso_twist(1) = -torso_pitch;
-        torso_twist *= torso_weight*m_planning_rate;
-        std::cerr << "torso pitch: " << torso_pitch << ", torso roll: "<< torso_roll << std::endl;
+        torso_twist(0) = -0.25 * torso_roll * m_planning_rate;
+        torso_twist(1) = -0.5 * torso_pitch * m_planning_rate;
 
         //compute CoM adjustment
         Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);

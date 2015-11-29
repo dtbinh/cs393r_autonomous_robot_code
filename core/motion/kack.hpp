@@ -251,7 +251,7 @@ namespace KACK
     }
 
     //first keyframe should be at the foot's pose in the nominal standing position
-    bool plan(std::vector<double> starting_joint_positions, std::vector<CartesianKeyframe> keyframes, bool left_foot_supporting = true)
+    bool plan(std::vector<double> starting_joint_positions, std::vector<CartesianKeyframe> keyframes, bool left_foot_supporting = true, bool invert_starting_joints=true)
     {
       m_cartesian_plan.clear();
       m_joint_plan.clear();
@@ -262,7 +262,9 @@ namespace KACK
       m_supporting_frame = left_foot_supporting? "l_sole" : "r_sole";
       m_controlled_frame = left_foot_supporting? "r_sole" : "l_sole";
 
-      invertJoints(starting_joint_positions);
+      if(invert_starting_joints)
+        invertJoints(starting_joint_positions);
+
       m_joint_plan.push_back(starting_joint_positions);
 
       for(unsigned int k = 0; k < keyframes.size(); k++)
@@ -358,7 +360,7 @@ namespace KACK
       Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
       m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
       m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
-      double kicking_foot_force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
+//      double kicking_foot_force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
       std::cerr << "CoP is at (" << m_cop.x << ", " << m_cop.y << ")" << std::endl;
       // if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
       // {
@@ -455,9 +457,9 @@ namespace KACK
       // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
 //      com_twist(3) = (kp_cop_y * (cc.y - m_cop.y));
 //      com_twist(4) = -(kp_cop_x * (cc.x - m_cop.x));
-      com_twist(3) = com_dx;
-      com_twist(4) = com_dy;
-      com_twist(5) = 0.0;
+//      com_twist(3) = com_dx;
+//      com_twist(4) = com_dy;
+//      com_twist(5) = 0.0;
       com_twist *= m_planning_rate;
 
       move(m_last_commanded, m_last_commanded, foot_twist, com_twist, 1.0 / m_planning_rate, false);
@@ -480,6 +482,11 @@ namespace KACK
     std::vector<KACK::Point> getCoMPlan()
     {
       return m_com_plan;
+    }
+
+    dynamics_tree::DynamicsTree& tree(bool left)
+    {
+      return left? m_left_tree : m_right_tree;
     }
 
   private:

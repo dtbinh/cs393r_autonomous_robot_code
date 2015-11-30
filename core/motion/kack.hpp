@@ -227,7 +227,7 @@ namespace KACK
 
         if(joint_xml && joint_xml.child("limit"))
         {
-          double velocity_limit_scale = 1.0; //0.1 was stable
+          double velocity_limit_scale = 0.3; //0.1 was stable
           m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
           m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
           m_joint_vels.push_back(velocity_limit_scale * joint_xml.child("limit").attribute("velocity").as_double());
@@ -416,6 +416,7 @@ namespace KACK
 
     //returns true when foot satisfies k
     dynamics_tree::Vector4 cc_offset = dynamics_tree::Vector4::Zero();
+    dynamics_tree::Vector4 m_last_com = dynamics_tree::Vector4::Zero();
     bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_x = 1e-3, double ki_x = 1e-3, double kmax_x = 1e-3, double kp_y = 1e-3, double ki_y = 1e-3, double kmax_y = 1e-3, bool invert_joints = true)
     {
       if(m_last_commanded.size() == 0)
@@ -464,14 +465,14 @@ namespace KACK
         Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
         // std::cerr << "cop is (" << cop.x << ", " << cop.y << ")" << std::endl;
         double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
-        // if(fabs(force) < 0.1)
-        // {
+        if(fabs(force) < 0.1)
+        {
           m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
           m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
-          double max_offset = 2e-2;
+          double max_offset = 1.0e-2;
           cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (ki_x * (cc.x - m_cop.x)), -max_offset, max_offset);
           cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (ki_y * (cc.y - m_cop.y)), -max_offset, max_offset);
-        // }
+        }
         // else
         // {
         //   cc_offset = dynamics_tree::Vector4::Zero();
@@ -482,9 +483,15 @@ namespace KACK
 
         dynamics_tree::Vector4 com_vector;
         m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
-        double com_dx = ((cc.x + cc_offset(0)) - com_vector(0)) + kmax_x * tanh(kp_x * (cc.x - m_cop.x));
-        double com_dy = ((cc.y + cc_offset(1)) - com_vector(1)) + kmax_y * tanh(kp_y * (cc.y - m_cop.y));
+        double com_dx = ((cc.x + cc_offset(0)) - com_vector(0));
+        double com_dy = ((cc.y + cc_offset(1)) - com_vector(1));
         double com_dz = 0;//cc.z - com_vector(2);
+
+        if(m_last_com == dynamics_tree::Vector4::Zero())
+        {
+          m_last_com = com_vector;
+        }
+        dynamics_tree::Vector4 com_vel = (com_vector - m_last_com) * m_planning_rate;
 
         // std::cerr << "Com is at " << com_vector.transpose() << std::endl;
 
@@ -498,12 +505,14 @@ namespace KACK
         double torso_roll, torso_pitch, torso_yaw;
         matrixToRPY(dynamics_tree::Matrix3(supportTtorso.topLeftCorner(3, 3)), torso_roll, torso_pitch, torso_yaw);
         dynamics_tree::Vector6 torso_twist = dynamics_tree::Vector6::Zero();
-        torso_twist(0) = -0.125 * torso_roll * m_planning_rate;
+        torso_twist(0) = -0.0025 * torso_roll * m_planning_rate;
         torso_twist(1) = -0.25 * torso_pitch * m_planning_rate;
 
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        com_twist(3) = com_dx;
-        com_twist(4) = com_dy;
+        double kd_x = 0;
+        double kd_y = 0.00005;
+        com_twist(3) = com_dx + kmax_x * tanh(kp_x * (cc.x - m_cop.x)) - kd_x * com_vel(0);
+        com_twist(4) = com_dy + kmax_y * tanh(kp_y * (cc.y - m_cop.y)) - kd_y * com_vel(1);
         com_twist(5) = com_dz;
         com_twist *= m_planning_rate;
 

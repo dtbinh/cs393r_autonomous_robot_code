@@ -92,17 +92,17 @@ void KickModule::processFrame() {
   {
     cache_.kick_request->kick_running_ = true;
     if(!Initializing()) kick_state_ = INITIALIZING;
-    else kick_state_ =  INITIALIZING;
-      //kick_state_ = TRACKING;
+    else kick_state_ = TRACKING;
+    //else kick_state_ = INITIALIZING;
   }
   else if(kick_state_ == TRACKING)
   {
-    // if(!TRACKING())
-    //   kick_state_ = TRACKING;
-    // else
+    cache_.kick_request->kick_running_ = true;
     QueueHead = 0;
     QueueRear = 1;
-    kick_state_ = EXECUTING;
+    if(!Tracking()) kick_state_ = TRACKING;
+    // else kick_state_ = EXECUTING;
+    else kick_state_ = TRACKING;
   }
   else if(kick_state_ == EXECUTING)
   {
@@ -177,6 +177,7 @@ bool KickModule::Initializing()
 
     desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA , true);
     printf("desired_next_pose calculated: x = %f , y = %f\n" , desired_next_pose.x , desired_next_pose.y);
+
     desired_next_pose.update(-0.0, -desired_initial_y, 0.04 , -0.1 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
@@ -267,10 +268,10 @@ bool KickModule::Tracking()
   tmp_next_pose = get_desired_foot_position(CurBallPosition, CurGoalPosition, REACHAREA , true);
   RunningTime = getRunningTime(current_pose , tmp_next_pose);
 
-  if(RunningTime > 0.2) if_retrack_counter++;
+  if(RunningTime > 0.225) if_retrack_counter++;
   else if_retrack_counter = 0;
 
-  if(if_retrack_counter > IF_RETRACK_THRESHOLD)
+  if(if_retrack_counter > IF_RETRACK_THRESHOLD && CounterQueue[QueueHead%16] == 0)
   {
     current_pose = desired_next_pose;
     desired_next_pose = tmp_next_pose;
@@ -315,12 +316,84 @@ bool KickModule::Tracking()
 
 bool KickModule::Executing()
 {
+  double RunningTime = 0.15;
+  KACK::Pose min_pose, max_pose;
+  KACK::Point min_com, max_com;
+  KACK::CartesianKeyframe KickingFrame;
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
 
+  if(executing_counter == -1)
+  {
+    executing_counter = 0;
+    current_pose = desired_next_pose;
+    desired_next_pose = get_desired_foot_position(CurBallPosition, CurGoalPosition, REACHAREA , false);
+    CounterQueue[QueueHead%16] = RunningTime*100;
+    AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
+    AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
+    KickingFrame.update( RunningTime , min_pose, max_pose, min_com, max_com);
+    KickKeyFramesQueue[QueueHead%16] = KickingFrame;
+  }
+  
+  double kp_x = 0.001;
+  double ki_x = 0.0005;
+  double kd_x = 0.0;
+  double kmax_x = 0.001;
+
+  double kp_y = 0.3;
+  double kmax_y = 0.3;
+  double ki_y = 0.0005;
+  double kd_y = 0.00005;
+  kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[QueueHead%16], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.2, kp_x, ki_x, kmax_x, kd_x, kp_y, ki_y, kmax_y, kd_y, 0.1); //alpha 0.3
+
+  SendingFrame();
+
+  if( CounterQueue[QueueHead%16] != -50 ) 
+  {
+    CounterQueue[QueueHead%16] --;
+    return false;
+  }
+  else return true;
 }
 
 bool KickModule::Putting_back()
 {
+``double RunningTime = 23.0;
+  KACK::Pose min_pose, max_pose;
+  KACK::Point min_com, max_com;
+  KACK::CartesianKeyframe PuttingBackFrame;
+  KACK::FootSensor left_foot_force_sensor, right_foot_force_sensor;
 
+  if(putting_back_counter == -1)
+  {
+    putting_back_counter = 0;
+    current_pose = desired_next_pose;
+    desired_next_pose.update( 0 , 0.1 , 0 , 0 , 0 , 0);
+    CounterQueue[QueueHead%16] = RunningTime*100;
+    AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
+    AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
+    PuttingBackFrame.update( RunningTime , min_pose, max_pose, min_com, max_com);
+    KickKeyFramesQueue[QueueHead%16] = PuttingBackFrame;
+  }
+
+  double kp_x = 0.001;
+  double ki_x = 0.0005;
+  double kd_x = 0.0;
+  double kmax_x = 0.001;
+
+  double kp_y = 0.3;
+  double kmax_y = 0.3;
+  double ki_y = 0.0005;
+  double kd_y = 0.00005;
+  kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[QueueHead%16], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.2, kp_x, ki_x, kmax_x, kd_x, kp_y, ki_y, kmax_y, kd_y, 0.1); //alpha 0.3
+
+  SendingFrame();
+
+  if( CounterQueue[QueueHead%16] != -50 ) 
+  {
+    CounterQueue[QueueHead%16] --;
+    return false;
+  }
+  else return true;
 }
 
 bool KickModule::Finishing()
@@ -437,8 +510,14 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
   if(back) x = (y0 > y1)? y1 : y0;
   else x = (y0 < y1)? y1 : y0;
   y = (x - b)/a;
+
+  double roll;
+  double roll_ratio = 0.003;
+  if( area.center.y > 0 && y > area.center.y) roll = roll_ratio*( y - area.center.y);
+  else if(area.center.y < 0 && y < area.center.y) roll = roll_ratio*( y - area.center.y);
+  else roll = 0;
   
-  foot.update(x/1000,y/1000,z_index/1000 , 0 , 0 , 0);
+  foot.update(x/1000,y/1000,z_index/1000 , roll , 0 , 0);
   printf("baaaaaaaaaaaaall = (%f,%f,%f)\n", ball.x, ball.y, ball.z);
   printf("foooooooooooooot = (%f,%f,%f)\n", x , y , z_index );
   return foot;
@@ -462,7 +541,7 @@ double KickModule::getRunningTime(KACK::Pose current , KACK::Pose next)
 {
   double delta_x = current.x - next.x;
   double delta_y = current.y - next.y;
-  return 10*sqrt( delta_x*delta_x + delta_y*delta_y );
+  return 15*sqrt( delta_x*delta_x + delta_y*delta_y );
 }
 
 void KickModule::SendingFrame()

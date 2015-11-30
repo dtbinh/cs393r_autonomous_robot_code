@@ -53,15 +53,17 @@ class KickModule : public Module {
     struct ReachableArea
     {
       KACK::Point center;
-      double radius;
+      double long_radius;
       double short_radius;
+      double cut_radius;
 
-      ReachableArea( KACK::Point c, double r, double sr):center(c), radius(r), short_radius(sr){}
+      ReachableArea( KACK::Point c, double lr, double sr , double cr):center(c), long_radius(lr), short_radius(sr), cut_radius(cr){}
       ReachableArea()
       {
         center.x = 0 ; center.y = 0 ; center.z = 0;
-        radius = 0;
+        long_radius = 0;
         short_radius = 0;
+        cut_radius = 0;
       }
     };
 
@@ -73,7 +75,7 @@ class KickModule : public Module {
 
     KACK::Point get_ball_location(KACK::Point shift);
     KACK::Point get_goal_location(KACK::Point shift);
-    KACK::Pose get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area);
+    KACK::Pose get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area , bool if_front);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
     std::vector<double> getCurrentJoints();
@@ -130,6 +132,10 @@ class KickModule : public Module {
     int IF_RETRACK_THRESHOLD;
     int if_kick_counter;
     int if_retrack_counter;
+    KACK::Point OldBallPosition;
+    KACK::Point CurBallPosition;
+    KACK::Point OldGoalPosition;
+    KACK::Point CurGoalPosition;
     ReachableArea REACHAREA;
 
     KACK::CartesianKeyframe KickKeyFramesQueue[16];

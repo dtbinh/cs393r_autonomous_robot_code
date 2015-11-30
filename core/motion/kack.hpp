@@ -227,7 +227,7 @@ namespace KACK
 
         if(joint_xml && joint_xml.child("limit"))
         {
-          double velocity_limit_scale = 0.75; //0.1 was stable
+          double velocity_limit_scale = 1.0; //0.1 was stable
           m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
           m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
           m_joint_vels.push_back(velocity_limit_scale * joint_xml.child("limit").attribute("velocity").as_double());

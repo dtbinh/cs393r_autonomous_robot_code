@@ -214,7 +214,7 @@ bool KickModule::Initializing()
   double kp_x = 0.001;
   double ki_x = 0.0005;
   double kmax_x = 0.001;
-  double kp_y = 0.05;
+  double kp_y = 0.1;
   double ki_y = 0.001;
   double kmax_y = 0.15;
   kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.2, kp_x, ki_x, kmax_x, kp_y, ki_y, kmax_y, 0.1); //alpha 0.3

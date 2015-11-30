@@ -194,11 +194,12 @@ namespace KACK
   class Kack
   {
   public:
-    Kack(std::string model_filename, double planning_rate = 100.0) :
+    Kack(std::string model_filename, double planning_rate = 100.0, bool regulate_com_z = true) :
         m_supporting_tree(m_left_tree)
     {
       m_have_plan = false;
       m_planning_rate = planning_rate;
+      m_regulate_com_z = regulate_com_z;
       m_xml_model.fromFile(model_filename);
       m_rootTworld = dynamics_tree::Matrix4::Identity();
 
@@ -211,7 +212,12 @@ namespace KACK
 
       for(unsigned int i = 0; i < (m_joint_names.size() - 4); i++)
       {
-        if(m_joint_names.at(i) == "HeadYaw" || m_joint_names.at(i) == "HeadPitch" || m_joint_names.at(i) == "LKneePitch" || m_joint_names.at(i) == "LElbowYaw" || m_joint_names.at(i) == "LElbowRoll" || m_joint_names.at(i) == "RElbowYaw" || m_joint_names.at(i) == "RElbowRoll")
+        if(m_joint_names.at(i) == "HeadYaw" || m_joint_names.at(i) == "HeadPitch" || m_joint_names.at(i) == "LElbowYaw" || m_joint_names.at(i) == "LElbowRoll" || m_joint_names.at(i) == "RElbowYaw" || m_joint_names.at(i) == "RElbowRoll")
+        {
+          continue;
+        }
+
+        if(!m_regulate_com_z && m_joint_names.at(i) == "LKneePitch")
         {
           continue;
         }
@@ -450,42 +456,55 @@ namespace KACK
         m_supporting_tree.lookupTransform(m_supporting_frame, "torso", supportTtorso);
 
         double dx, dy, dz, dR, dP, dY;
-        dynamics_tree::Vector6 foot_twist = frameTwist(supportTcontrol, supportTtarget, 1.0 / m_planning_rate, dx, dy, dz, dR, dP, dY);
-        double ori_scale = 1.0;
-        double pos_scale = 0.25;
-        foot_twist(0) *= ori_scale;
-        foot_twist(1) *= ori_scale;
-        foot_twist(2) *= ori_scale;
-        foot_twist(3) *= pos_scale;
-        foot_twist(4) *= pos_scale;
-        foot_twist(5) *= pos_scale;
+        bool use_goal_space_weights = true;
+        dynamics_tree::Vector6 foot_twist = frameTwist(supportTcontrol, supportTtarget, 1.0 / m_planning_rate, dx, dy, dz, dR, dP, dY, use_goal_space_weights, pt);
+
+        if(!use_goal_space_weights) //weight by pos / ori
+        {
+          double ori_scale = 1.0;
+          double pos_scale = 0.25;
+          foot_twist(0) *= ori_scale;
+          foot_twist(1) *= ori_scale;
+          foot_twist(2) *= ori_scale;
+          foot_twist(3) *= pos_scale;
+          foot_twist(4) *= pos_scale;
+          foot_twist(5) *= pos_scale;
+        }
 
         //compute CoM adjustment
         dynamics_tree::Vector6 balance_twist = dynamics_tree::Vector6::Zero();
-        Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
-        // std::cerr << "cop is (" << cop.x << ", " << cop.y << ")" << std::endl;
-        double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
-        if(fabs(force) < 0.1)
+        double support_foot_force = calculateForce(m_left_foot_supporting? left_foot : right_foot);
+        bool cop_valid = support_foot_force != 0;
+        if(cop_valid)
         {
-          m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
-          m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
-          double max_offset = 1.0e-2;
-          cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (ki_x * (cc.x - m_cop.x)), -max_offset, max_offset);
-          cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (ki_y * (cc.y - m_cop.y)), -max_offset, max_offset);
+          Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
+          // std::cerr << "cop is (" << cop.x << ", " << cop.y << ")" << std::endl;
+          double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
+          if(fabs(force) < 0.1)
+          {
+            m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
+            m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
+            double max_offset = 1.0e-2;
+            cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (ki_x * (cc.x - m_cop.x)), -max_offset, max_offset);
+            cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (ki_y * (cc.y - m_cop.y)), -max_offset, max_offset);
+          }
+          // else
+          // {
+          //   cc_offset = dynamics_tree::Vector4::Zero();
+          // }
+          // balance_twist(3) = cc_offset(0);
+          // balance_twist(4) = cc_offset(1);
+          // std::cerr << "==> offset is (" << cc_offset(0) << ", " << cc_offset(1) << ")" << std::endl;
         }
-        // else
-        // {
-        //   cc_offset = dynamics_tree::Vector4::Zero();
-        // }
-        // balance_twist(3) = cc_offset(0);
-        // balance_twist(4) = cc_offset(1);
-        // std::cerr << "==> offset is (" << cc_offset(0) << ", " << cc_offset(1) << ")" << std::endl;
 
         dynamics_tree::Vector4 com_vector;
         m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
         double com_dx = ((cc.x + cc_offset(0)) - com_vector(0));
         double com_dy = ((cc.y + cc_offset(1)) - com_vector(1));
-        double com_dz = 0;//cc.z - com_vector(2);
+        double com_dz = cc.z - com_vector(2);
+
+//        std::cerr << "com is at " << com_vector.transpose() << std::endl;
+//        std::cerr << "offset is " << cc_offset.transpose() << std::endl;
 
         if(m_last_com == dynamics_tree::Vector4::Zero())
         {
@@ -509,15 +528,20 @@ namespace KACK
         torso_twist(1) = -0.25 * torso_pitch * m_planning_rate;
 
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        com_twist(3) = com_dx + kmax_x * tanh(kp_x * (cc.x - m_cop.x)) - kd_x * com_vel(0);
-        com_twist(4) = com_dy + kmax_y * tanh(kp_y * (cc.y - m_cop.y)) - kd_y * com_vel(1);
-        com_twist(5) = com_dz;
+        com_twist(3) = com_dx;
+        com_twist(4) = com_dy;
+        com_twist(5) = m_regulate_com_z? (fabs(com_dz) < fabs(ct.z))? 0.0 : dynamics_tree::sign(com_dz)*(fabs(com_dz) - fabs(ct.z)) : 0.0;
+        if(cop_valid)
+        {
+          com_twist(3) += kmax_x * tanh(kp_x * (cc.x - m_cop.x)) - kd_x * com_vel(0);
+          com_twist(4) += kmax_y * tanh(kp_y * (cc.y - m_cop.y)) - kd_y * com_vel(1);
+        }
         com_twist *= m_planning_rate;
 
         // std::cerr << "foot cc: " << foot_twist.transpose() << std::endl;
         // std::cerr << "foot x: " << pc.x << ", y:" << pc.y << ", z:" << pc.z << ", twist: " << foot_twist.transpose() << std::endl;
-        // std::cerr << "torso twist: " << torso_twist.transpose() << std::endl;
-        // std::cerr << "com twist: " << com_twist.transpose() << std::endl;
+//         std::cerr << "torso twist: " << torso_twist.transpose() << std::endl;
+//         std::cerr << "com twist: " << com_twist.transpose() << std::endl;
 
         move(m_last_commanded, m_last_commanded, foot_twist, torso_twist, com_twist, balance_twist, 1.0 / m_planning_rate, false);
       }
@@ -553,6 +577,8 @@ namespace KACK
     std::vector<std::string> m_joint_names = {"HeadYaw", "HeadPitch", "LHipYawPitch", "LHipRoll", "LHipPitch", "LKneePitch", "LAnklePitch", "LAnkleRoll", "RHipYawPitch", "RHipRoll", "RHipPitch", "RKneePitch", "RAnklePitch", "RAnkleRoll", "LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll", "LWristYaw", "LHand", "RWristYaw", "RHand"};
     std::vector<double> m_nominal_positions = {0, -0.4, 0, 0, -0.436, 0.873, -0.436, 0, 0, 0, -0.436, 0.873, -0.436, 0, 1.4, 0.3, 0, -0.05, 1.4, -0.3, 0, 0.05, 0, 0, 0, 0};
     std::vector<double> m_inverted_joints = {1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0};
+
+    bool m_regulate_com_z;
 
     rpp::ComponentTree m_xml_model;
     dynamics_tree::DynamicsGraph m_graph;
@@ -690,14 +716,14 @@ namespace KACK
       JcomT = Jcom.transpose();
       JcomJcomT = Jcom * JcomT;
 
-      comJacobian(m_balance_joint_ids, m_supporting_frame, Jbal);
-      JbalT = Jbal.transpose();
-      JbalJbalT = Jbal * JbalT;
+//      comJacobian(m_balance_joint_ids, m_supporting_frame, Jbal);
+//      JbalT = Jbal.transpose();
+//      JbalJbalT = Jbal * JbalT;
 
       dynamics_tree::Vector foot_velocities = JfootT * JfootJfootT.inverse() * foot_twist;
       dynamics_tree::Vector torso_velocities = JtorsoT * JtorsoJtorsoT.inverse() * torso_twist;
       dynamics_tree::Vector com_velocities = JcomT * JcomJcomT.inverse() * com_twist;
-      dynamics_tree::Vector bal_velocities = JbalT * JbalJbalT.inverse() * bal_twist;
+//      dynamics_tree::Vector bal_velocities = JbalT * JbalJbalT.inverse() * bal_twist;
 
       // std::cerr << "bal twist: " << bal_twist.transpose() << ", bal vel: " << bal_velocities.transpose() << std::endl;
 
@@ -714,18 +740,18 @@ namespace KACK
       com_velocities[left_idx] = com_hip_yaw_avg;
       com_velocities[right_idx] = com_hip_yaw_avg;
 
-      unsigned int bal_left_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 2) - m_balance_joint_ids.begin();
-      unsigned int bal_right_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 8) - m_balance_joint_ids.begin();
-      double bal_hip_yaw_avg = (bal_velocities[bal_left_idx] + bal_velocities[bal_right_idx]) / 2.0;
-      bal_velocities[bal_left_idx] = bal_hip_yaw_avg;
-      bal_velocities[bal_right_idx] = bal_hip_yaw_avg;
+//      unsigned int bal_left_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 2) - m_balance_joint_ids.begin();
+//      unsigned int bal_right_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 8) - m_balance_joint_ids.begin();
+//      double bal_hip_yaw_avg = (bal_velocities[bal_left_idx] + bal_velocities[bal_right_idx]) / 2.0;
+//      bal_velocities[bal_left_idx] = bal_hip_yaw_avg;
+//      bal_velocities[bal_right_idx] = bal_hip_yaw_avg;
       //!NAO SPECIFIC
 
       //simulate forward (euler)
       for(unsigned int j = 0; j < m_joint_ids.size(); j++)
       {
         unsigned int joint_id = m_joint_ids[j];
-        unsigned int balance_joint_id = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), joint_id) - m_balance_joint_ids.begin();
+//        unsigned int balance_joint_id = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), joint_id) - m_balance_joint_ids.begin();
 
         double nominal_pose_weight = 0.0;
         double combined_joint_velocity = nominal_pose_weight * (last_positions[joint_id] - m_nominal_positions[joint_id]);
@@ -745,11 +771,11 @@ namespace KACK
           combined_joint_velocity += com_velocities[j];
           num_velocities++;
         }
-        if(balance_joint_id < bal_velocities.size() && bal_velocities[balance_joint_id] != 0.0)
-        {
-          combined_joint_velocity += bal_velocities[balance_joint_id];
-          num_velocities++;
-        }
+//        if(balance_joint_id < bal_velocities.size() && bal_velocities[balance_joint_id] != 0.0)
+//        {
+//          combined_joint_velocity += bal_velocities[balance_joint_id];
+//          num_velocities++;
+//        }
 
         double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * dt));
         double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));
@@ -833,7 +859,7 @@ namespace KACK
 
     //assumes that f1 and f2 are expressed w.r.t. the same frame (common)
     //returns a twist in the common frame that takes you from f1 to f2 in dt seconds
-    inline dynamics_tree::Vector6 frameTwist(dynamics_tree::Matrix4 commonTf1, dynamics_tree::Matrix4 commonTf2, double dt, double& dx, double& dy, double& dz, double& dR, double& dP, double& dY)
+    inline dynamics_tree::Vector6 frameTwist(dynamics_tree::Matrix4 commonTf1, dynamics_tree::Matrix4 commonTf2, double dt, double& dx, double& dy, double& dz, double& dR, double& dP, double& dY, bool use_goal_space_weights = false, Pose tol = Pose())
     {
       dynamics_tree::Matrix4 delta = commonTf1.inverse() * commonTf2;
       Eigen::AngleAxis<double> angle_axis((dynamics_tree::Matrix3) delta.topLeftCorner(3, 3));
@@ -844,12 +870,25 @@ namespace KACK
       dx = delta(0, 3);
       dy = delta(1, 3);
       dz = delta(2, 3);
-      twist(0) = dR / dt;
-      twist(1) = dP / dt;
-      twist(2) = dY / dt;
-      twist(3) = dx / dt;
-      twist(4) = dy / dt;
-      twist(5) = dz / dt;
+
+      if(use_goal_space_weights)
+      {
+        twist(0) = (fabs(dR) < fabs(tol.R))? 0.0 : dynamics_tree::sign(dR) * (fabs(dR) - fabs(tol.R)) / dt;
+        twist(1) = (fabs(dP) < fabs(tol.P))? 0.0 : dynamics_tree::sign(dP) * (fabs(dP) - fabs(tol.P)) / dt;
+        twist(2) = (fabs(dY) < fabs(tol.Y))? 0.0 : dynamics_tree::sign(dY) * (fabs(dY) - fabs(tol.Y)) / dt;
+        twist(3) = (fabs(dx) < fabs(tol.x))? 0.0 : dynamics_tree::sign(dx) * (fabs(dx) - fabs(tol.x)) / dt;
+        twist(4) = (fabs(dy) < fabs(tol.y))? 0.0 : dynamics_tree::sign(dy) * (fabs(dy) - fabs(tol.y)) / dt;
+        twist(5) = (fabs(dz) < fabs(tol.z))? 0.0 : dynamics_tree::sign(dz) * (fabs(dz) - fabs(tol.z)) / dt;
+      }
+      else
+      {
+        twist(0) = dR / dt;
+        twist(1) = dP / dt;
+        twist(2) = dY / dt;
+        twist(3) = dx / dt;
+        twist(4) = dy / dt;
+        twist(5) = dz / dt;
+      }
 
       //transform back to common
       twist.topRows(3) = commonTf1.topLeftCorner(3, 3) * twist.topRows(3);

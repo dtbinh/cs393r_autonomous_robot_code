@@ -55,7 +55,7 @@ namespace motion_planning
 //    m_nh.param("kick_filename", m_kick_filename, ros::package::getPath("motion_planning") + std::string("/kick_trajectory.py"));
 //    m_nh.param("sparse_kick_filename", m_sparse_kick_filename, ros::package::getPath("motion_planning") + std::string("/../data/kicks/default.yaml"));
 
-    m_kack.reset(new KACK::Kack(ros::package::getPath("motion_planning") + "/nao.urdf"));
+    m_kack.reset(new KACK::Kack(ros::package::getPath("motion_planning") + "/nao.urdf", m_frame_rate, true));
     std::string initial_pos_string = "      0,      -0.4,            0,        0,    -0.436,      0.873,      -0.436,          0,            0,        0,    -0.436,      0.873,      -0.436,          0,            1.4,          0.3,         0,          -0.05,            1.4,          -0.3,         0,          0.05,         0,     0,         0,     0";
 
     m_js.name = m_kack->getJointNames();
@@ -299,9 +299,9 @@ namespace motion_planning
 
     KACK::Pose kack_foot_pose(m_foot_target.position.x, m_foot_target.position.y, m_foot_target.position.z, R, P, Y);
     KACK::Point kack_com_point(m_com_target.position.x, m_com_target.position.y, m_com_target.position.z);
-    KACK::CartesianKeyframe k(3.0, kack_foot_pose, kack_com_point, 1e-3, 1e-3, 1e-3, 1e3);
+    KACK::CartesianKeyframe k(3.0, kack_foot_pose, kack_com_point, 1e-3, 0.1, 1e-3, 0.05);
 
-    m_kack->moveFoot(m_frame_rate, true, k, m_js.position, KACK::FootSensor(), KACK::FootSensor(), m_js.position, 0, 0, 0, 0, 0, 0, false);
+    m_kack->moveFoot(m_frame_rate, true, k, m_js.position, KACK::FootSensor(), KACK::FootSensor(), m_js.position, 0, 0, 0, 0, 0, 0, 0, 0, 0, false);
   }
 
   void PlanKick::spin()

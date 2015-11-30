@@ -227,7 +227,7 @@ namespace KACK
 
         if(joint_xml && joint_xml.child("limit"))
         {
-          double velocity_limit_scale = 0.1;
+          double velocity_limit_scale = 0.75; //0.1 was stable
           m_joint_mins.push_back(joint_xml.child("limit").attribute("lower").as_double());
           m_joint_maxes.push_back(joint_xml.child("limit").attribute("upper").as_double());
           m_joint_vels.push_back(velocity_limit_scale * joint_xml.child("limit").attribute("velocity").as_double());
@@ -416,7 +416,7 @@ namespace KACK
 
     //returns true when foot satisfies k
     dynamics_tree::Vector4 cc_offset = dynamics_tree::Vector4::Zero();
-    bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_cop_x = 1e-3, double kp_cop_y = 1e-3, double kmax_cop_x = 1e-2, double kmax_cop_y = 1e-2, double kicking_foot_force_threshold = 0.1, bool invert_joints = true)
+    bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_x = 1e-3, double ki_x = 1e-3, double kmax_x = 1e-3, double kp_y = 1e-3, double ki_y = 1e-3, double kmax_y = 1e-3, bool invert_joints = true)
     {
       if(m_last_commanded.size() == 0)
       {
@@ -462,19 +462,15 @@ namespace KACK
         //compute CoM adjustment
         dynamics_tree::Vector6 balance_twist = dynamics_tree::Vector6::Zero();
         Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
-        std::cerr << "cop is (" << cop.x << ", " << cop.y << ")" << std::endl;
+        // std::cerr << "cop is (" << cop.x << ", " << cop.y << ")" << std::endl;
         double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
         // if(fabs(force) < 0.1)
         // {
           m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
           m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
-          // com_twist(3) = kmax_cop_y * tanh(kp_cop_y * (cop_y_desired - m_cop.y));
-          // com_twist(4) = -kmax_cop_x * tanh(kp_cop_x * (cop_x_desired - m_cop.x));
-  //      com_twist(3) = (kp_cop_y * (cc.y - m_cop.y));
-  //      com_twist(4) = -(kp_cop_x * (cc.x - m_cop.x));
-          double max_offset = 1e-2;
-          cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (kp_cop_x * (cc.x - m_cop.x)), -max_offset, max_offset);
-          cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (kp_cop_y * (cc.y - m_cop.y)), -max_offset, max_offset);
+          double max_offset = 2e-2;
+          cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (ki_x * (cc.x - m_cop.x)), -max_offset, max_offset);
+          cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (ki_y * (cc.y - m_cop.y)), -max_offset, max_offset);
         // }
         // else
         // {
@@ -486,8 +482,8 @@ namespace KACK
 
         dynamics_tree::Vector4 com_vector;
         m_supporting_tree.centerOfMass(m_supporting_frame, com_vector);
-        double com_dx = (cc.x + cc_offset(0)) - com_vector(0);
-        double com_dy = (cc.y + cc_offset(1)) - com_vector(1);
+        double com_dx = ((cc.x + cc_offset(0)) - com_vector(0)) + kmax_x * tanh(kp_x * (cc.x - m_cop.x));
+        double com_dy = ((cc.y + cc_offset(1)) - com_vector(1)) + kmax_y * tanh(kp_y * (cc.y - m_cop.y));
         double com_dz = 0;//cc.z - com_vector(2);
 
         // std::cerr << "Com is at " << com_vector.transpose() << std::endl;
@@ -699,15 +695,17 @@ namespace KACK
       // std::cerr << "bal twist: " << bal_twist.transpose() << ", bal vel: " << bal_velocities.transpose() << std::endl;
 
       //NAO SPECIFIC: hip yaw velocities (idx 2 and 8) must be equal and inverse of one another
-      double foot_hip_yaw_avg = (foot_velocities[2] + foot_velocities[8]) / 2.0;
-      foot_velocities[2] = foot_hip_yaw_avg;
-      foot_velocities[8] = foot_hip_yaw_avg;
-      double torso_hip_yaw_avg = (torso_velocities[2] + torso_velocities[8]) / 2.0;
-      torso_velocities[2] = torso_hip_yaw_avg;
-      torso_velocities[8] = torso_hip_yaw_avg;
-      double com_hip_yaw_avg = (com_velocities[2] + com_velocities[8]) / 2.0;
-      com_velocities[2] = com_hip_yaw_avg;
-      com_velocities[8] = com_hip_yaw_avg;
+      unsigned int left_idx = std::find(m_joint_ids.begin(), m_joint_ids.end(), 2) - m_joint_ids.begin();
+      unsigned int right_idx = std::find(m_joint_ids.begin(), m_joint_ids.end(), 8) - m_joint_ids.begin();
+      double foot_hip_yaw_avg = (foot_velocities[left_idx] + foot_velocities[right_idx]) / 2.0;
+      foot_velocities[left_idx] = foot_hip_yaw_avg;
+      foot_velocities[right_idx] = foot_hip_yaw_avg;
+      double torso_hip_yaw_avg = (torso_velocities[left_idx] + torso_velocities[right_idx]) / 2.0;
+      torso_velocities[left_idx] = torso_hip_yaw_avg;
+      torso_velocities[right_idx] = torso_hip_yaw_avg;
+      double com_hip_yaw_avg = (com_velocities[left_idx] + com_velocities[right_idx]) / 2.0;
+      com_velocities[left_idx] = com_hip_yaw_avg;
+      com_velocities[right_idx] = com_hip_yaw_avg;
 
       unsigned int bal_left_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 2) - m_balance_joint_ids.begin();
       unsigned int bal_right_idx = std::find(m_balance_joint_ids.begin(), m_balance_joint_ids.end(), 8) - m_balance_joint_ids.begin();

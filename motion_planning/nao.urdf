@@ -397,7 +397,7 @@
     <origin rpy="0 0 0" xyz="0 0.098 0.1"/>
     <axis xyz="0 1.0 0"/>
     <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.25"/> -->
-    <limit effort="1.329" lower="0" upper="1.4" velocity="1.25"/>
+    <limit effort="1.329" lower="1.5" upper="1.6" velocity="1.25"/> <!-- lower 0 before-->
   </joint>
   <link name="LShoulder">
     <inertial>
@@ -530,7 +530,7 @@
     <origin rpy="0 0 0" xyz="0 -0.098 0.1"/>
     <axis xyz="0 1.0 0"/>
     <!-- <limit effort="1.329" lower="-2.08567" upper="2.08567" velocity="1.25"/> -->
-    <limit effort="1.329" lower="0" upper="1.4" velocity="1.25"/>
+    <limit effort="1.329" lower="1.5" upper="1.6" velocity="1.25"/>
   </joint>
   <link name="RShoulder">
     <inertial>

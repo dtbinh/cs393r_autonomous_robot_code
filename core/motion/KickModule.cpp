@@ -165,7 +165,7 @@ bool KickModule::Initializing()
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
     //desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA);
-    desired_next_pose.update(-0.0 , -0.11, 0.05 , 0 , 0 , 0);
+    desired_next_pose.update(-0.0, -0.1, 0.05 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     if(desired_next_pose.y != 0)
     {
@@ -211,8 +211,13 @@ bool KickModule::Initializing()
   int index = QueueHead%16;
   if(index == 2) index = 1;
 
-  double kp = 0.001;
-  kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.3, kp, kp, 1e-2, 1e-2, 0.1);
+  double kp_x = 0.001;
+  double ki_x = 0.0005;
+  double kmax_x = 0.001;
+  double kp_y = 0.05;
+  double ki_y = 0.001;
+  double kmax_y = 0.15;
+  kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.2, kp_x, ki_x, kmax_x, kp_y, ki_y, kmax_y, 0.1); //alpha 0.3
 
   //printf("period1 = %f\n", period1 );
   // printf("---------------------------------------------------------------------------------------------------------------------------------------\n");

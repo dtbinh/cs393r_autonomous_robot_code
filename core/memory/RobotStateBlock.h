@@ -35,6 +35,10 @@ public:
   double ball_visionBearing;
   double ball_visionDistance;
 
+  bool goal_seen;
+  double goal_visionBearing;
+  double goal_visionDistance;
+
   std::string bodyId() { return std::string(body_id_).substr(0, 15); }
 };
 

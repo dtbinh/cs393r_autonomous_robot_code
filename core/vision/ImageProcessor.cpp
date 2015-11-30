@@ -299,6 +299,11 @@ void ImageProcessor::detectGoal(unsigned char* img, MergeBlob* mb)
   goal->radius = (goal_x_max - goal_x_min);
   goal->seen = true;
 
+  vblocks_.robot_state->goal_seen = goal->seen;
+  vblocks_.robot_state->goal_visionDistance = goal->visionDistance;
+  vblocks_.robot_state->goal_visionBearing = goal->visionBearing;
+
+
   for(unsigned int i = 0; i < 5; i++) //border thickness
   {
     drawLine(img, goal_x_min-i, goal_y_min-i, goal_x_max+i, goal_y_min-i, c_ROBOT_WHITE);

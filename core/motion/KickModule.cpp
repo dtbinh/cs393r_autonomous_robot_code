@@ -92,8 +92,8 @@ void KickModule::processFrame() {
   {
     cache_.kick_request->kick_running_ = true;
     if(!Initializing()) kick_state_ = INITIALIZING;
-    else kick_state_ = TRACKING;
-    //else kick_state_ = INITIALIZING;
+    // else kick_state_ = TRACKING;
+    else kick_state_ = INITIALIZING;
   }
   else if(kick_state_ == TRACKING)
   {
@@ -138,7 +138,7 @@ bool KickModule::Initializing()
 
     if(current_ball_location.y > 15 || (abs(current_ball_location.y) <= 15 && current_goal_location.y < 0)) //left foot
     {
-      coordinate_shift.update(0 , z_index , -0.2);
+      coordinate_shift.update(0 , 50 , -50);
       ball_direction_ = LEFTBALL;
       kick_foot_ = LEFTFOOT;
       REACHAREA.center.y = -REACHAREA.center.y;
@@ -153,7 +153,7 @@ bool KickModule::Initializing()
     }
     else if(current_ball_location.y < -15 || (abs(current_ball_location.y) <= 15 && current_goal_location.y >= 0)) //right foot
     {
-      coordinate_shift.update(0 , -z_index , -0.2);
+      coordinate_shift.update(0 , -50 , -50);
       ball_direction_ = RIGHTBALL;
       kick_foot_ = RIGHTFOOT;
       current_ball_location = get_ball_location(coordinate_shift);
@@ -192,7 +192,7 @@ bool KickModule::Initializing()
     printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 
     current_pose = desired_next_pose;
-    desired_next_pose.update(-0.08 , -0.06 , 0.04 , 0 , 0 , 0);
+    desired_next_pose.update(-0.02 , -0.18 , 0.04 , -0.2 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     if(desired_next_pose.y != 0)
     {
@@ -357,7 +357,7 @@ bool KickModule::Executing()
 
 bool KickModule::Putting_back()
 {
-``double RunningTime = 23.0;
+ double RunningTime = 3.0;
   KACK::Pose min_pose, max_pose;
   KACK::Point min_com, max_com;
   KACK::CartesianKeyframe PuttingBackFrame;
@@ -420,6 +420,10 @@ KACK::Point KickModule::get_goal_location(KACK::Point shift)
 {
   KACK::Point location;
 
+  location.x = cache_.robot_state->goal_visionDistance * cos(cache_.robot_state->goal_visionBearing) + shift.x;
+  location.y = cache_.robot_state->goal_visionDistance * sin(cache_.robot_state->goal_visionBearing) + shift.y;
+  location.z = z_index;
+
   location.update(1000, 0 , 100);
   return location;
 }
@@ -478,10 +482,10 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
   double a = slope;
   double b = interception;
   double e = area.center.y;
-  double c = area.long_radius;
-  double d = area.short_radius;
+  double c = area.short_radius;
+  double d = area.long_radius;
 
-  double delta = c*c*d*d*(a*a+d*d-(a*e+b)*(a*e+b));
+  double delta = c*c*d*d*(a*a*c*c-(b-e)*(b-e)+d*d);
   double x0 = 0, x1 = 0 , y0 = 0 , y1 = 0 ;
   double x = 0, y = 0 ;
 
@@ -498,18 +502,16 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
     return foot;
   }
 
-  x0 = (e*d*d-a*b*c*c+sqrt(delta))/(a*a*c*c+d*d);
-  x1 = (e*d*d-a*b*c*c-sqrt(delta))/(a*a*c*c+d*d);
+  x0 = (a*c*c*(e-b)+sqrt(delta))/(a*a*c*c+d*d);
+  x1 = (a*c*c*(e-b)-sqrt(delta))/(a*a*c*c+d*d);
 
-  if( e < 0 && x1 < -e - area.cut_radius) x1 = -e - area.cut_radius;
-  if( e > 0 && x0 > -e + area.cut_radius) x0 = -e + area.cut_radius;
+  x = (back)?x1:x0;
+  y = a*x+b;
 
-  y0 = a*x0 + b;
-  y1 = a*x1 + b;
+  printf("calculated********************* x0 = %f, x1 = %f, y = %f\n" , x0 , x1 , y);
 
-  if(back) x = (y0 > y1)? y1 : y0;
-  else x = (y0 < y1)? y1 : y0;
-  y = (x - b)/a;
+  if( e < 0 && y > e + area.cut_radius) y = e + area.cut_radius;
+  if( e > 0 && y < e - area.cut_radius) y = e - area.cut_radius;
 
   double roll;
   double roll_ratio = 0.003;
@@ -520,6 +522,7 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
   foot.update(x/1000,y/1000,z_index/1000 , roll , 0 , 0);
   printf("baaaaaaaaaaaaall = (%f,%f,%f)\n", ball.x, ball.y, ball.z);
   printf("foooooooooooooot = (%f,%f,%f)\n", x , y , z_index );
+  printf("---------------------------------------------------------------------\n");
   return foot;
 }
 

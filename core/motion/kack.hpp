@@ -417,7 +417,7 @@ namespace KACK
     //returns true when foot satisfies k
     dynamics_tree::Vector4 cc_offset = dynamics_tree::Vector4::Zero();
     dynamics_tree::Vector4 m_last_com = dynamics_tree::Vector4::Zero();
-    bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_x = 1e-3, double ki_x = 1e-3, double kmax_x = 1e-3, double kp_y = 1e-3, double ki_y = 1e-3, double kmax_y = 1e-3, bool invert_joints = true)
+    bool moveFoot(double rate, bool left_foot_supporting, CartesianKeyframe k, std::vector<double> current_joint_positions, FootSensor left_foot, FootSensor right_foot, std::vector<double>& command, double cop_alpha = 0.95, double kp_x = 1e-3, double ki_x = 1e-3, double kmax_x = 1e-3, double kd_x = 0.0, double kp_y = 1e-3, double ki_y = 1e-3, double kmax_y = 1e-3, double kd_y = 0.0, bool invert_joints = true)
     {
       if(m_last_commanded.size() == 0)
       {
@@ -509,8 +509,6 @@ namespace KACK
         torso_twist(1) = -0.25 * torso_pitch * m_planning_rate;
 
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
-        double kd_x = 0;
-        double kd_y = 0.00005;
         com_twist(3) = com_dx + kmax_x * tanh(kp_x * (cc.x - m_cop.x)) - kd_x * com_vel(0);
         com_twist(4) = com_dy + kmax_y * tanh(kp_y * (cc.y - m_cop.y)) - kd_y * com_vel(1);
         com_twist(5) = com_dz;

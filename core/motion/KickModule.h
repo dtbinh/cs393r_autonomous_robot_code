@@ -82,7 +82,9 @@ class KickModule : public Module {
     void AddPoseTolerance(KACK::Pose DesirePose, KACK::Pose &min_pose, KACK::Pose &max_pose, KACK::Pose offset );
     void AddComTolerance(KACK::Point DesireCom , KACK::Point &min_com, KACK::Point &max_com, KACK::Point offset);
     double getCurrentTime();
-    double getRunningTime(KACK::Pose current , KACK::Pose next);    
+    double getRunningTime(KACK::Pose current , KACK::Pose next);
+    double getFootRoll( double y , ReachableArea area);
+    void getInterpolatedFrame(int num_frames , int num_interpolate , KACK::Pose cur_pose, KACK::Pose next_pose , KACK::Point cur_com, KACK::Point next_com );    
     
     void SendingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
@@ -111,6 +113,7 @@ class KickModule : public Module {
     KACK::Point desired_next_com;
     KACK::Pose  desired_next_pose;
     KACK::Pose  current_pose;
+    KACK::Point current_com;
     
 
     KACK::Kack* kack;
@@ -138,8 +141,8 @@ class KickModule : public Module {
     KACK::Point CurGoalPosition;
     ReachableArea REACHAREA;
 
-    KACK::CartesianKeyframe KickKeyFramesQueue[16];
-    int CounterQueue[16];
+    KACK::CartesianKeyframe KickKeyFramesQueue[1024];
+    int CounterQueue[1024];
     int QueueHead;
     int QueueRear;
 
@@ -147,8 +150,8 @@ class KickModule : public Module {
     {
       if(QueueRear >= QueueHead)
       {
-        KickKeyFramesQueue[QueueRear%16] = a;
-        CounterQueue[QueueRear%16] = a_time;
+        KickKeyFramesQueue[QueueRear%1024] = a;
+        CounterQueue[QueueRear%1024] = a_time;
         QueueRear++;
         return true;
       }

@@ -41,6 +41,12 @@ class Playing(StateMachine):
       global last_inf_constant , last_inf_counter, last_x, last_y, last_bearing, last_distance
       global last_head_time, last_head_pan
 
+      if self.getFrames() <= 3:
+        memory.walk_request.noWalk()
+        memory.kick_request.setFwdKick()
+      if self.getFrames() > 10 and not memory.kick_request.kick_running_:
+        self.finish()
+
       ball = mem_objects.world_objects[core.WO_BALL]
       if_seen_history[if_seen_history_counter] = ball.seen;
       if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant
@@ -112,4 +118,4 @@ class Playing(StateMachine):
         self.finish()
 
   def setup(self):
-    self.trans(self.Stand(), C, self.Kick(), C , self.Tracking(), T(500), self.Stiff() , T(500) , pose.Sit(), C, self.Off())
+    self.trans(self.Stand(), C, self.Tracking(), T(500), self.Stiff() , T(500) , pose.Sit(), C, self.Off())

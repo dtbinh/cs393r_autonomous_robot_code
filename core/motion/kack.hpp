@@ -464,6 +464,7 @@ namespace KACK
       m_left_foot_supporting = left_foot_supporting;
       m_supporting_tree = left_foot_supporting? m_left_tree : m_right_tree;
       m_supporting_frame = left_foot_supporting? "l_sole" : "r_sole";
+      m_supporting_knee = left_foot_supporting? "LKneePitch" : "RKneePitch";
       m_controlled_frame = left_foot_supporting? "r_sole" : "l_sole";
 
       Pose pc, pt;
@@ -558,7 +559,7 @@ namespace KACK
         double torso_roll, torso_pitch, torso_yaw;
         matrixToRPY(dynamics_tree::Matrix3(supportTtorso.topLeftCorner(3, 3)), torso_roll, torso_pitch, torso_yaw);
         dynamics_tree::Vector6 torso_twist = dynamics_tree::Vector6::Zero();
-        torso_twist(0) = -0.001 * torso_roll * m_planning_rate;
+        torso_twist(0) = -0.0001 * torso_roll * m_planning_rate;
         torso_twist(1) = -0.25 * torso_pitch * m_planning_rate;
 
         dynamics_tree::Vector6 com_twist = dynamics_tree::Vector6::Zero();
@@ -625,6 +626,7 @@ namespace KACK
     bool m_left_foot_supporting;
     dynamics_tree::DynamicsTree& m_supporting_tree;
     std::string m_supporting_frame;
+    std::string m_supporting_knee;
     std::string m_controlled_frame;
 
     std::vector<unsigned int> m_balance_joint_ids;
@@ -784,6 +786,9 @@ namespace KACK
       //!NAO SPECIFIC
 
       //simulate forward (euler)
+
+      unsigned int support_knee_idx = std::find(m_joint_names.begin(), m_joint_names.end(), m_supporting_knee) - m_joint_names.begin();
+
       for(unsigned int j = 0; j < m_joint_ids.size(); j++)
       {
         unsigned int joint_id = m_joint_ids[j];
@@ -792,6 +797,7 @@ namespace KACK
         double nominal_pose_weight = 0.0;
         double combined_joint_velocity = nominal_pose_weight * (last_positions[joint_id] - m_nominal_positions[joint_id]);
         unsigned int num_velocities = (nominal_pose_weight == 0.0)? 0 : 1;
+
         if(foot_velocities[j] != 0.0)
         {
           combined_joint_velocity += foot_velocities[j];
@@ -812,6 +818,14 @@ namespace KACK
 //          combined_joint_velocity += bal_velocities[balance_joint_id];
 //          num_velocities++;
 //        }
+
+        if(joint_id == support_knee_idx)
+        {
+          double knee_correction_vel = 0.02*(0.2-last_positions[joint_id]);
+          combined_joint_velocity += knee_correction_vel;
+//          std::cerr << "knee pos: " << last_positions[joint_id] <<  ", corr: " << knee_correction_vel << ", comb: "<< combined_joint_velocity << std::endl;
+          num_velocities++;
+        }
 
         double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * dt));
         double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));

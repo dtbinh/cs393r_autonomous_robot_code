@@ -301,6 +301,10 @@ namespace motion_planning
     KACK::Point kack_com_point(m_com_target.position.x, m_com_target.position.y, m_com_target.position.z);
     KACK::CartesianKeyframe k(3.0, kack_foot_pose, kack_com_point, 1e-3, 0.1, 1e-3, 0.05);
 
+    //override com z
+    k.min_com.z = 0.23;
+    k.max_com.z = 0.35;
+
     m_kack->moveFoot(m_frame_rate, true, k, m_js.position, KACK::FootSensor(), KACK::FootSensor(), m_js.position, 0, 0, 0, 0, 0, 0, 0, 0, 0, false);
   }
 

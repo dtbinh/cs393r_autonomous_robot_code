@@ -142,7 +142,7 @@
     <child link="LTibia"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.023" lower="0.01" upper="2.11255" velocity="1.75"/>
+    <limit effort="3.023" lower="0.05" upper="1.57" velocity="1.75"/>
   </joint>
   <link name="LTibia">
     <inertial>
@@ -299,7 +299,7 @@
     <child link="RTibia"/>
     <origin rpy="0 0 0" xyz="0 0 -0.1"/>
     <axis xyz="0 1.0 0"/>
-    <limit effort="3.0226" lower="0.01" upper="2.11255" velocity="1.75"/>
+    <limit effort="3.0226" lower="0.05" upper="1.57" velocity="1.75"/>
   </joint>
   <link name="RTibia">
     <inertial>

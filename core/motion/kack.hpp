@@ -474,6 +474,8 @@ namespace KACK
       k.getCoMCentroid(cc);
       k.getCoMTolerances(ct);
 
+      // std::cerr << "commanded y: " << pc.y << std::endl;
+
       for(unsigned int i = 0; i < 3; i++)
       {
         processState(m_last_commanded, m_rootTworld);
@@ -511,7 +513,7 @@ namespace KACK
           double force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
           if(fabs(force) > 1e-1)
           {
-            std::cerr << "DUAL" << std::endl;
+            //std::cerr << "DUAL" << std::endl;
             Point non_support_cop = m_left_foot_supporting? calculateCoP(right_foot) : calculateCoP(left_foot);
             cop.x = (cop.x + non_support_cop.x) / 2.0;
             cop.y = (cop.y + non_support_cop.y) / 2.0;

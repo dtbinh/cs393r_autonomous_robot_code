@@ -84,7 +84,8 @@ class KickModule : public Module {
     double getCurrentTime();
     double getRunningTime(KACK::Pose current , KACK::Pose next);
     double getFootRoll( double y , ReachableArea area);
-    void getInterpolatedFrame(int num_frames , int num_interpolate , KACK::Pose cur_pose, KACK::Pose next_pose , KACK::Point cur_com, KACK::Point next_com );    
+    void getInterpolatedFrame(int num_frames , int num_interpolate , KACK::Pose cur_pose, KACK::Pose next_pose , KACK::Point cur_com, KACK::Point next_com );
+    double getYOffset(std::vector<double> current_joint_positions, std::string support_frame, std::string lookup_frame, bool left_foot_supporting);    
     
     void SendingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
@@ -145,6 +146,8 @@ class KickModule : public Module {
     int CounterQueue[1024];
     int QueueHead;
     int QueueRear;
+
+    std::string sole;
 
     bool QueuePush( KACK::CartesianKeyframe a , int a_time)
     {

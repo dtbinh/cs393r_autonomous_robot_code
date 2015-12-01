@@ -55,7 +55,7 @@ void KinematicsModule::calculatePose(float* joints, float* sensors, float* dimen
   }
   if (frames_in_air_ > 25) {
     if (body_model->feet_on_ground_) std::cout << "BodyModel: I'm flying !\n";
-    body_model->feet_on_ground_=false;
+    body_model->feet_on_ground_=true;
   } else {
     body_model->feet_on_ground_=true;
   }

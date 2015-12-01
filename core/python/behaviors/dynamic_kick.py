@@ -52,7 +52,6 @@ class Playing(StateMachine):
       if_seen_history_counter = (if_seen_history_counter + 1)%if_seen_history_constant
       seen_times = sum(if_seen_history)
 
-
       x = 0.
       y = 0.
       bearing = 0.

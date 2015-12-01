@@ -175,17 +175,6 @@ bool KickModule::Initializing()
     current_pose = desired_next_pose;
     current_com = desired_next_com;
     getInterpolatedFrame(50, 50 , current_pose , desired_next_pose , current_com , desired_next_com );
-
-    // AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
-    // AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
-    // period0 = 2;
-    // frame_moving_com.update( period0 , min_pose, max_pose, min_com, max_com );
-    // QueuePush( frame_moving_com , period0*100 + 50 );
-    // printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , min_pose.x , min_pose.y, min_pose.z , min_pose.R, min_pose.P, min_pose.Y);
-    // printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
-    // printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
-    // printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
-
     
 
     desired_next_pose.update(0.00, -desired_initial_y, 0.045 , 0 , 0 , 0);
@@ -196,26 +185,17 @@ bool KickModule::Initializing()
     current_com = desired_next_com;
     getInterpolatedFrame(50, 50 , current_pose , desired_next_pose , current_com , desired_next_com );
 
-    // AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
-    // AddComTolerance(desired_next_com , min_com , max_com , ComOffset);
-    // frame_first_tracking.update( period1 , min_pose, max_pose, min_com, max_com );
-    // QueuePush( frame_first_tracking , period1*100 + 100 );
-    // printf("period1 = %f\n", period1 );
-    // printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , min_pose.x , min_pose.y, min_pose.z , min_pose.R, min_pose.P, min_pose.Y);
-    // printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , max_pose.x , max_pose.y, max_pose.z , max_pose.R, max_pose.P, max_pose.Y);
-    // printf("min_com = (%f,%f,%f)\n", min_com.x, min_com.y, min_com.z);
-    // printf("max_com = (%f,%f,%f)\n", max_com.x, max_com.y, max_com.z);
 //---------------------------------------------------------------------------------------------------------------------------
     
     current_pose = desired_next_pose;
-    //desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA , true);
+    // desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA , true);
     desired_next_pose.update(-0.06 , -0.10 , 0.045 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     period2 = getRunningTime(current_pose , desired_next_pose);
     getInterpolatedFrame(period2*100 , period2*100 , current_pose , desired_next_pose , current_com , desired_next_com);
     current_pose = desired_next_pose;
     current_com = desired_next_com;
-    getInterpolatedFrame(100, 100 , current_pose , desired_next_pose , current_com , desired_next_com );
+    getInterpolatedFrame(200, 200 , current_pose , desired_next_pose , current_com , desired_next_com );
 
     //printf("desired_next_pose calculated: x = %f , y = %f , z = %f\n" , desired_next_pose.x , desired_next_pose.y , desired_next_pose.z);
     // if(desired_next_pose.y != 0)
@@ -252,10 +232,10 @@ bool KickModule::Initializing()
   double ki_x = 0.0005;
   double kd_x = 0.000001;
 
-  double kp_y = 0.3; //0.5
-  double kmax_y = 0.3;//0.5
+  double kp_y = 0.21; //0.5
+  double kmax_y = 0.21;//0.5
   double ki_y = 0.0005;//0.0005
-  double kd_y = 0.000001;//0.00001
+  double kd_y = 0.0000001;//0.00001
   kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.15, kp_x, ki_x, kmax_x, kd_x, kp_y, ki_y, kmax_y, kd_y, 0.1); //alpha 0.3
 
   // printf("!!-----------------------------------------------------------------------------------------------------\n");
@@ -375,8 +355,8 @@ bool KickModule::Executing()
   double ki_x = 0.0005;
   double kd_x = 0.0;
 
-  double kp_y = 0.5; //0.4
-  double kmax_y = 0.5; //0.4
+  double kp_y = 0.21; //0.4
+  double kmax_y = 0.21; //0.4
   double ki_y = 0.00005; //0.0005
   double kd_y = 0.00004; //0.00005
 

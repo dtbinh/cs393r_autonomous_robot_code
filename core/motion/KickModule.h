@@ -90,6 +90,7 @@ class KickModule : public Module {
     void getInterpolatedFrame(int num_frames , int num_interpolate , KACK::Pose cur_pose, KACK::Pose next_pose , KACK::Point cur_com, KACK::Point next_com );
     double getYOffset(std::vector<double> current_joint_positions, std::string support_frame, std::string lookup_frame, bool left_foot_supporting);  
     bool if_pose_valid(KACK::Pose cur , ReachableArea area);  
+    bool if_ball_seen();
     double random( double length );
     
     void SendingFrame();
@@ -141,9 +142,7 @@ class KickModule : public Module {
     int IF_RETRACK_THRESHOLD;
     int if_kick_counter;
     int if_retrack_counter;
-    KACK::Point OldBallPosition;
     KACK::Point CurBallPosition;
-    KACK::Point OldGoalPosition;
     KACK::Point CurGoalPosition;
     ReachableArea REACHAREA;
 
@@ -153,6 +152,10 @@ class KickModule : public Module {
     int QueueRear;
 
     std::string sole;
+    
+    int *ball_seen_array;
+    int ball_seen_threshold;
+    int ball_seen_counter;
 
     bool QueuePush( KACK::CartesianKeyframe a , int a_time)
     {

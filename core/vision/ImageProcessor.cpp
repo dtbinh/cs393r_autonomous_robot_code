@@ -153,7 +153,7 @@ void ImageProcessor::processFrame()
         findBall(blob);
         orange_blob_counter++;
       }
-      if(orange_blob_counter == 0) vblocks_.robot_state->ball_seen = false;
+      //if(orange_blob_counter == 0) vblocks_.robot_state->ball_seen = false;
     }
   }
 

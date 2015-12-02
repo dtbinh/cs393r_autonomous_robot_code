@@ -19,7 +19,7 @@
 KickModule::KickModule() : state_(Finished), sequence_(NULL) 
 {
   KACK::Point area_center;
-  double area_long_radius, area_short_radius, area_cut_radius;
+  double area_long_radius, area_short_radius, area_close_cut_radius, area_far_cut_radius;
 
   kick_state_ = FINISHED;
   ball_direction_ = RIGHTBALL;
@@ -50,7 +50,7 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
 
   IF_KICK_THRESHOLD = 300;
   if_kick_counter = 0;
-  IF_RETRACK_THRESHOLD = 25;
+  IF_RETRACK_THRESHOLD = 250;
   if_retrack_counter = 0;
   OldBallPosition.update( 0 , 0 , 0 );
   CurBallPosition.update( 0 , 0 , 0 );
@@ -60,15 +60,17 @@ KickModule::KickModule() : state_(Finished), sequence_(NULL)
   QueueHead = 0;
   QueueRear = 0;
 
-  area_center.update(0, -100 , 50);
+  area_center.update(10, -100 , 45);
   area_long_radius = 100;
-  area_short_radius = 65;
-  area_cut_radius = 40;
+  area_short_radius = 70;
+  area_close_cut_radius = 40;
+  area_far_cut_radius = 75; 
 
   REACHAREA.center = area_center;
   REACHAREA.long_radius = area_long_radius;
   REACHAREA.short_radius = area_short_radius;
-  REACHAREA.cut_radius = area_cut_radius;
+  REACHAREA.close_cut_radius = area_close_cut_radius;
+  REACHAREA.far_cut_radius = area_far_cut_radius;
 
   kack = new KACK::Kack("/home/nao/nao.urdf", 100, true);
 
@@ -93,17 +95,17 @@ void KickModule::processFrame() {
   {
     cache_.kick_request->kick_running_ = true;
     if(!Initializing()) kick_state_ = INITIALIZING;
-    else kick_state_ = TRACKING;
-    // else kick_state_ = INITIALIZING;
+    // else kick_state_ = TRACKING;
+    else kick_state_ = INITIALIZING;
   }
   else if(kick_state_ == TRACKING)
   {
-    cache_.kick_request->kick_running_ = true;
-    if(!Tracking()) kick_state_ = TRACKING;
-    // else kick_state_ = EXECUTING;
-    else kick_state_ = TRACKING;
+    // cache_.kick_request->kick_running_ = true;
+    // if(!Tracking()) kick_state_ = TRACKING;
+    // // else kick_state_ = EXECUTING;
+    // else kick_state_ = TRACKING;
 
-    //kick_state_ = EXECUTING;
+    kick_state_ = EXECUTING;
   }
   else if(kick_state_ == EXECUTING)
   {
@@ -181,8 +183,8 @@ bool KickModule::Initializing()
     current_com = desired_next_com;
     getInterpolatedFrame(50, 50 , current_pose , desired_next_pose , current_com , desired_next_com );
     
-
-    desired_next_pose.update(0.00, -desired_initial_y, 0.045 , 0 , 0 , 0);
+    double raising_y = (kick_foot_ == RIGHTFOOT)?(-desired_initial_y):desired_initial_y;
+    desired_next_pose.update(0.00, raising_y, 0.045 , 0 , 0 , 0);
     desired_next_com.update(0 , 0 , 0);
     period1 = 2;
     getInterpolatedFrame(period1*100 , period1*100 , current_pose , desired_next_pose , current_com , desired_next_com);
@@ -193,15 +195,18 @@ bool KickModule::Initializing()
 //---------------------------------------------------------------------------------------------------------------------------
     
     desired_next_pose = get_desired_foot_position(current_ball_location, current_goal_location, REACHAREA , true);
-    printf("desired_next_pose = (%f,%f,%f,%f,%f)\n", desired_next_pose.x ,desired_next_pose.y ,desired_next_pose.z , desired_next_pose.R, desired_next_pose.P  );
-    //desired_next_pose.update(-0.05 , -0.15 , 0.045 , -0.2 , 0.1 , 0);
-    desired_next_com.update(0 , 0 , 0);
+    printf("current_ball_location = (%f,%f)\n", current_ball_location.x , current_ball_location.y);
+    printf("desired_next_pose = (%f,%f,%f,%f,%f,%f)\n", desired_next_pose.x ,desired_next_pose.y ,desired_next_pose.z , desired_next_pose.R, desired_next_pose.P , desired_next_pose.Y );
+    desired_next_pose.update(-0.03 , -0.175 , 0.055 , -0.45 , 0.1 , 0);
+    desired_next_com = get_desired_CoM(desired_next_pose , REACHAREA);
+    printf("desire_CoM = (%f,%f)\n" , desired_next_com.x , desired_next_com.y);
+    desired_next_com.update(0 , -0.01 , 0);
     period2 = getRunningTime(current_pose , desired_next_pose);
     printf("period2 = %f\n", period2);
-    getInterpolatedFrame(period2*120 , period2*120 , current_pose , desired_next_pose , current_com , desired_next_com);
+    getInterpolatedFrame(period2*100 , period2*100 , current_pose , desired_next_pose , current_com , desired_next_com);
     current_pose = desired_next_pose;
     current_com = desired_next_com;
-    getInterpolatedFrame(50, 50 , current_pose , desired_next_pose , current_com , desired_next_com );
+    getInterpolatedFrame(200, 200 , current_pose , desired_next_pose , current_com , desired_next_com );
 
 
     initializing_counter = 1;
@@ -227,7 +232,12 @@ bool KickModule::Initializing()
   double ki_y = 0.0005;//0.0005
   double kd_y = 0.0000001;//0.00001
   kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.15, kp_x, ki_x, kmax_x, kd_x, kp_y, ki_y, kmax_y, kd_y, 0.1); //alpha 0.3
-  //printf("*************y_offset = %f\n" , getYOffset(CurrentJoints, "l_sole", "torso", true) );
+  
+  coordinate_shift.y = getYOffset(CurrentJoints, sole, "torso", kick_foot_ == RIGHTFOOT );
+  CurBallPosition = get_ball_location(coordinate_shift);
+  
+  // printf("CurBallPosition = ( %f , %f )\n", CurBallPosition.x , CurBallPosition.y );
+  // printf("*************y_offset = %f , QueueHead = %d , CurBallPosition = (%f , %f)\n" , getYOffset(CurrentJoints, "l_sole", "torso", true) ,  QueueHead , CurBallPosition.x , CurBallPosition.y );
 
   // printf("!!-----------------------------------------------------------------------------------------------------\n");
   // printf("CounterQueue[%d] = %d , QueueRear = %d\n" , QueueHead , CounterQueue[index] , QueueRear);
@@ -237,7 +247,6 @@ bool KickModule::Initializing()
   //                    , KickKeyFramesQueue[index].max_pose.R, KickKeyFramesQueue[index].max_pose.P, KickKeyFramesQueue[index].max_pose.Y);
   // printf("min_com = (%f,%f,%f)\n", KickKeyFramesQueue[index].min_com.x, KickKeyFramesQueue[index].min_com.y, KickKeyFramesQueue[index].min_com.z);
   // printf("max_com = (%f,%f,%f)\n", KickKeyFramesQueue[index].max_com.x, KickKeyFramesQueue[index].max_com.y, KickKeyFramesQueue[index].max_com.z);
-  //printf("CounterQueue[%d] = %d , QueueRear = %d\n" , QueueHead , CounterQueue[QueueHead%1024] , QueueRear);
 
   SendingFrame();
 
@@ -249,7 +258,11 @@ bool KickModule::Initializing()
   }
   else 
   {
-    QueueHead = QueueRear - 1;
+    // QueueHead = QueueRear - 1;
+    // printf("!!-----------------------------------------------------------------------------------------------------\n");
+    // printf("!!-----------------------------------------------------------------------------------------------------\n");
+    // printf("!!-----------------------------------------------------------------------------------------------------\n");
+       
     return true;
   }
 }
@@ -269,25 +282,32 @@ bool KickModule::Tracking()
   tmp_next_pose = get_desired_foot_position(CurBallPosition, CurGoalPosition, REACHAREA , true);
   RunningTime = getRunningTime(current_pose , tmp_next_pose);
 
-  //printf("----------------------------------------------------------------------\n");
+  // printf("----------------------------------------------------------------------\n");
   // printf("CurBallPosition = ( %f , %f )\n", CurBallPosition.x , CurBallPosition.y );
   // printf("tmp_next_pose = (%f , %f , %f , %f , %f)\n" , tmp_next_pose.x , tmp_next_pose.y, tmp_next_pose.z, tmp_next_pose.R, tmp_next_pose.P);
   // printf("current_pose = (%f , %f , %f , %f , %f)\n" , current_pose.x , current_pose.y, current_pose.z, current_pose.R, current_pose.P);
   // printf("RunningTime = %f\n" , RunningTime);
 
-  if(RunningTime > 0.25) if_retrack_counter++;
-  else if_retrack_counter = 0;
+  if(QueueHead == QueueRear)
+  {
+    if(RunningTime > 0.3) if_retrack_counter++;
+    else if_retrack_counter = 0;
+  }
+  else
+    if_retrack_counter = 0;
 
-  if(if_retrack_counter > IF_RETRACK_THRESHOLD && QueueHead == QueueRear)
+  if(if_retrack_counter > IF_RETRACK_THRESHOLD)
   {
     printf("if_retrack_counter = %d\n" ,if_retrack_counter);
     if_retrack_counter = 0;
     desired_next_pose = tmp_next_pose;
     getInterpolatedFrame(RunningTime*100 , RunningTime*100 , current_pose , desired_next_pose , current_com , desired_next_com);
-    printf("RunningTime = %f\n" , RunningTime);
+    printf("*****current_pose = (%f , %f , %f , %f , %f)\n" , current_pose.x , current_pose.y, current_pose.z, current_pose.R, current_pose.P);
+    printf("*****desired_next_pose = (%f,%f,%f,%f,%f)\n", desired_next_pose.x ,desired_next_pose.y ,desired_next_pose.z , desired_next_pose.R, desired_next_pose.P  );
+    printf("*****RunningTime = %f\n" , RunningTime);
     current_pose = desired_next_pose;
     current_com = desired_next_com;
-    getInterpolatedFrame(50 , 50 , current_pose , desired_next_pose , current_com , desired_next_com);
+    getInterpolatedFrame(100 , 100 , current_pose , desired_next_pose , current_com , desired_next_com);
     
     // CounterQueue[QueueHead%1024] = RunningTime*100 + 20;
     // AddPoseTolerance(desired_next_pose , min_pose , max_pose , PoseOffset);
@@ -313,8 +333,16 @@ bool KickModule::Tracking()
   if(QueueHead == QueueRear) index = QueueHead - 1;
 
   kack->moveFoot(100, kick_foot_ == RIGHTFOOT, KickKeyFramesQueue[index], CurrentJoints, left_foot_force_sensor, right_foot_force_sensor, CurrentCommand, 0.2, kp_x, ki_x, kmax_x, kd_x, kp_y, ki_y, kmax_y, kd_y, 0.1); //alpha 0.3
+  // printf("!!-----------------------------------------------------------------------------------------------------\n");
+  // printf("CounterQueue[%d] = %d , QueueRear = %d\n" , QueueHead , CounterQueue[index] , QueueRear);
+  // printf("min_pose = (%f,%f,%f,%f,%f,%f) \n" , KickKeyFramesQueue[index].min_pose.x , KickKeyFramesQueue[index].min_pose.y, KickKeyFramesQueue[index].min_pose.z 
+  //                    , KickKeyFramesQueue[index].min_pose.R, KickKeyFramesQueue[index].min_pose.P, KickKeyFramesQueue[index].min_pose.Y);
+  // printf("max_pose = (%f,%f,%f,%f,%f,%f) \n" , KickKeyFramesQueue[index].max_pose.x , KickKeyFramesQueue[index].max_pose.y, KickKeyFramesQueue[index].max_pose.z 
+  //                    , KickKeyFramesQueue[index].max_pose.R, KickKeyFramesQueue[index].max_pose.P, KickKeyFramesQueue[index].max_pose.Y);
+  // printf("min_com = (%f,%f,%f)\n", KickKeyFramesQueue[index].min_com.x, KickKeyFramesQueue[index].min_com.y, KickKeyFramesQueue[index].min_com.z);
+  // printf("max_com = (%f,%f,%f)\n", KickKeyFramesQueue[index].max_com.x, KickKeyFramesQueue[index].max_com.y, KickKeyFramesQueue[index].max_com.z);
 
-  SendingFrame();
+  //SendingFrame();
 
   if(if_kick_counter < IF_KICK_THRESHOLD)
   {
@@ -354,15 +382,18 @@ bool KickModule::Executing()
 
 
     desired_next_pose = get_desired_foot_position(CurBallPosition, CurGoalPosition, REACHAREA , false);
+    desired_next_pose.x += 0.00;
     //desired_next_pose.update(0.065 , -0.1 , 0.045 , 0 , -0.1 , 0);
-    desired_next_com.update(0 , 0 , 0);
+    desired_next_com = get_desired_CoM(desired_next_pose , REACHAREA);
+    //desired_next_com.update(0 , 0 , 0);
 
-    DesiredMidPose.update(0.0 , (desired_next_pose.y+current_pose.y)/2.0 , 0.02 , 0 , 0 , 0);
+    DesiredMidPose.update((desired_next_pose.x+current_pose.x)/2.0 , (desired_next_pose.y+current_pose.y)/2.0 , 0.02 , (desired_next_pose.R+current_pose.R)/2.0 , 0 , 0);
     printf("Midpose.y = %f\n" , (desired_next_pose.y+current_pose.y)/2.0 );
-    DesiredMidCom.update(0 , 0 , 0);
+    DesiredMidCom.update(0 , (desired_next_com.y + current_com.y)/2.0 , 0);
+    printf("MidpCoM.y = %f\n" , (desired_next_com.y + current_com.y)/2.0 );
 
-    getInterpolatedFrame(5 , 5 , current_pose , DesiredMidPose , current_com , DesiredMidCom);
-    getInterpolatedFrame(5 , 5 , DesiredMidPose , desired_next_pose , DesiredMidCom , desired_next_com);
+    getInterpolatedFrame(4 , 4 , current_pose , DesiredMidPose , current_com , DesiredMidCom);
+    getInterpolatedFrame(4 , 4 , DesiredMidPose , desired_next_pose , DesiredMidCom , desired_next_com);
     current_pose = desired_next_pose;
     current_com = desired_next_com;
   }
@@ -448,6 +479,8 @@ bool KickModule::Finishing()
   return true;
 }
 
+double KickModule::random( double length ){ return (rand()*1.0/RAND_MAX)*length - length*0.5; }
+
 KACK::Point KickModule::get_ball_location(KACK::Point shift)
 {
   KACK::Point location;
@@ -514,23 +547,48 @@ std::vector<double> KickModule::getCurrentJoints()
   return currentjoints;
 }
 
+KACK::Point KickModule::get_desired_CoM(KACK::Pose foot , ReachableArea area)
+{
+  KACK::Point CoM(0 , 0 , 0);
+
+  if(area.center.y > 0)
+  {
+    if(foot.y > (area.center.y/1000.0)) CoM.y = (foot.y - (area.center.y/1000.0))/10.0;
+    else CoM.y = 0;
+  }
+  else if(area.center.y <= 0)
+  {
+    if(foot.y < (area.center.y/1000.0)) CoM.y = (foot.y - (area.center.y/1000.0))/10.0;
+    else CoM.y = 0;
+  }
+
+  return CoM;
+}
+
 
 KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area , bool back)
 {
   KACK::Pose foot;
 
+  if(ball.x == goal.x) 
+  {
+    foot = current_pose;
+    printf("divde zero\n");
+    return foot;
+  }
   double slope = (ball.y - goal.y)/(ball.x - goal.x);
   double interception = ball.y - slope * ball.x;
 
   double a = slope;
-  double b = interception;
-  double e = area.center.y;
-  double c = area.short_radius;
-  double d = area.long_radius;
+  double b = interception/1000.0;
+  double e = area.center.y/1000.0;
+  double f = area.center.x/1000.0;
+  double c = area.short_radius/1000.0;
+  double d = area.long_radius/1000.0;
 
-  double delta = c*c*d*d*(a*a*c*c-(b-e)*(b-e)+d*d);
+  double delta = c*c*d*d*(a*a*c*c-(b-e)*(b-e)+d*d-a*f*a*f-2*a*f*(b-e));
   double x0 = 0, x1 = 0 , y0 = 0 , y1 = 0 ;
-  double x = 0, y = 0 ;
+  double x = 0, y = 0 , z = 0.045 ;
 
 
   // printf("---------------------------------------------------------------------\n");
@@ -538,28 +596,33 @@ KACK::Pose KickModule::get_desired_foot_position(KACK::Point ball, KACK::Point g
   // printf("slope = %f , interception = %f\n" , a , b);
   // printf("center.y = %f , long_radius = %f , short_radius = %f\n" , e , c , d);
 
-  if( delta < 0)
+  if( delta <= 0)
   {
     foot = current_pose;
     printf("Not reachable ************ delta = %f\n" , delta);
     return foot;
   }
 
-  x0 = (a*c*c*(e-b)+sqrt(delta))/(a*a*c*c+d*d);
-  x1 = (a*c*c*(e-b)-sqrt(delta))/(a*a*c*c+d*d);
+  x0 = (a*c*c*(e-b)+f*d*d+sqrt(delta))/(a*a*c*c+d*d);
+  x1 = (a*c*c*(e-b)+f*d*d-sqrt(delta))/(a*a*c*c+d*d);
 
   x = (back)?x1:x0;
   y = a*x+b;
 
   // printf("calculated********************* x0 = %f, x1 = %f, y = %f\n" , x0 , x1 , y);
 
-  if( e < 0 && y > e + area.cut_radius) y = e + area.cut_radius;
-  if( e > 0 && y < e - area.cut_radius) y = e - area.cut_radius;
+  if( e < 0 && y > e + (area.close_cut_radius/1000.0)) y = e + (area.close_cut_radius/1000.0);
+  else if( e > 0 && y < e - (area.close_cut_radius/1000.0)) y = e - (area.close_cut_radius/1000.0);
+  else if( e < 0 && y < e - (area.far_cut_radius/1000.0)) y = e - (area.far_cut_radius/1000.0);
+  else if( e > 0 && y > e + (area.far_cut_radius/1000.0)) y = e + (area.far_cut_radius/1000.0);
+
+  if( e > 0 && y > e) z += 0.13333*(y-e);
+  else if( e < 0 && y < e) z += 0.13333*(e-y);
 
   double roll = getFootRoll( y , area );
   double pitch = (back)?0.1:(-0.1);
   
-  foot.update(x/1000.0,y/1000.0, 0.045 , roll , pitch , 0);
+  foot.update(x , y , z , roll , pitch , 0);
   // printf("baaaaaaaaaaaaall = (%f,%f,%f)\n", ball.x, ball.y, ball.z);
   // printf("foooooooooooooot = (%f,%f,%f)\n", x , y , z_index );
   // printf("---------------------------------------------------------------------\n");
@@ -584,17 +647,20 @@ double KickModule::getRunningTime(KACK::Pose current , KACK::Pose next)
 {
   double delta_x = next.x - current.x;
   double delta_y = next.y - current.y;
-  return 15*sqrt( delta_x*delta_x + delta_y*delta_y );
+  return 25*sqrt( delta_x*delta_x + delta_y*delta_y )+0.05;
 }
 
 double KickModule::getFootRoll( double y , ReachableArea area )
 {
   double roll;
-  double roll_ratio = 0.006;
+  double roll_ratio = 6;
 
-  if( area.center.y > 0 && y > area.center.y) roll = roll_ratio*( y - area.center.y);
-  else if(area.center.y < 0 && y < area.center.y) roll = roll_ratio*( y - area.center.y);
+  if( area.center.y > 0 && y > (area.center.y/1000.0)) roll = roll_ratio*( y - (area.center.y/1000.0));
+  else if(area.center.y < 0 && y < (area.center.y/1000.0)) roll = roll_ratio*( y - (area.center.y/1000.0));
   else roll = 0;
+
+  // if( roll > 0.785 ) roll = 0.785;
+  // else if( roll < -0.785 ) roll = -0.785;
   
   return roll;
 }
@@ -641,6 +707,18 @@ double KickModule::getYOffset(std::vector<double> current_joint_positions, std::
   return lookupTsupport(1, 3);
 }
 
+bool KickModule::if_pose_valid(KACK::Pose cur , ReachableArea area)
+{
+  if(kick_foot_ == RIGHTFOOT)
+  {
+
+  }
+  else
+  {
+
+  }
+}
+
 void KickModule::SendingFrame()
 {
   std::array<float, NUM_JOINTS> JointsCommand;
@@ -677,6 +755,8 @@ void KickModule::SendingFrame()
   cache_.joint_command->setSendAllAngles(true,10.0);
   cache_.joint_command->setPoseRad(JointsCommand.data());
 }
+
+
 
 
 

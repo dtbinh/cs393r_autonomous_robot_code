@@ -406,6 +406,8 @@ namespace KACK
       Point cop = m_left_foot_supporting? calculateCoP(left_foot) : calculateCoP(right_foot);
       m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
       m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
+
+      std::cerr << "m_cop.y" << m_cop.y << endl;
 //      double kicking_foot_force = m_left_foot_supporting? calculateForce(right_foot) : calculateForce(left_foot);
       // std::cerr << "CoP is at (" << m_cop.x << ", " << m_cop.y << ")" << std::endl;
       // if(fabs(kicking_foot_force) < kicking_foot_force_threshold)
@@ -522,6 +524,7 @@ namespace KACK
           }
           m_cop.x = cop_alpha * m_cop.x + (1.0 - cop_alpha) * cop.x;
           m_cop.y = cop_alpha * m_cop.y + (1.0 - cop_alpha) * cop.y;
+          //std::cerr << "cop is (" << m_cop.x << ", " << m_cop.y << ")" << std::endl;
           double max_offset = 1.0e-2;
           cc_offset(0) = dynamics_tree::clamp(cc_offset(0) + (ki_x * (cc.x - m_cop.x)), -max_offset, max_offset);
           cc_offset(1) = dynamics_tree::clamp(cc_offset(1) + (ki_y * (cc.y - m_cop.y)), -max_offset, max_offset);
@@ -821,13 +824,13 @@ namespace KACK
 //          num_velocities++;
 //        }
 
-        if(joint_id == support_knee_idx)
-        {
-          double knee_correction_vel = 0.02*(0.2-last_positions[joint_id]);
-          combined_joint_velocity += knee_correction_vel;
-//          std::cerr << "knee pos: " << last_positions[joint_id] <<  ", corr: " << knee_correction_vel << ", comb: "<< combined_joint_velocity << std::endl;
-          num_velocities++;
-        }
+//         if(joint_id == support_knee_idx)
+//         {
+//           double knee_correction_vel = 0.02*(0.2-last_positions[joint_id]);
+//           combined_joint_velocity += knee_correction_vel;
+// //          std::cerr << "knee pos: " << last_positions[joint_id] <<  ", corr: " << knee_correction_vel << ", comb: "<< combined_joint_velocity << std::endl;
+//           num_velocities++;
+//         }
 
         double local_min = std::max((double) m_joint_mins[j], (double) (last_positions[joint_id] - m_joint_vels[j] * dt));
         double local_max = std::min((double) m_joint_maxes[j], (double) (last_positions[joint_id] + m_joint_vels[j] * dt));

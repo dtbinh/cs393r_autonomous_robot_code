@@ -55,15 +55,17 @@ class KickModule : public Module {
       KACK::Point center;
       double long_radius;
       double short_radius;
-      double cut_radius;
+      double close_cut_radius;
+      double far_cut_radius;
 
-      ReachableArea( KACK::Point c, double lr, double sr , double cr):center(c), long_radius(lr), short_radius(sr), cut_radius(cr){}
+      ReachableArea( KACK::Point c, double lr, double sr , double ccr , double fcr):center(c), long_radius(lr), short_radius(sr), close_cut_radius(ccr) , far_cut_radius(fcr){}
       ReachableArea()
       {
         center.x = 0 ; center.y = 0 ; center.z = 0;
         long_radius = 0;
         short_radius = 0;
-        cut_radius = 0;
+        close_cut_radius = 0;
+        far_cut_radius = 0;
       }
     };
 
@@ -75,6 +77,7 @@ class KickModule : public Module {
 
     KACK::Point get_ball_location(KACK::Point shift);
     KACK::Point get_goal_location(KACK::Point shift);
+    KACK::Point get_desired_CoM(KACK::Pose foot , ReachableArea area);
     KACK::Pose get_desired_foot_position(KACK::Point ball, KACK::Point goal, ReachableArea area , bool if_front);
     KACK::FootSensor get_left_foot_sensor();
     KACK::FootSensor get_right_foot_sensor();
@@ -85,7 +88,9 @@ class KickModule : public Module {
     double getRunningTime(KACK::Pose current , KACK::Pose next);
     double getFootRoll( double y , ReachableArea area);
     void getInterpolatedFrame(int num_frames , int num_interpolate , KACK::Pose cur_pose, KACK::Pose next_pose , KACK::Point cur_com, KACK::Point next_com );
-    double getYOffset(std::vector<double> current_joint_positions, std::string support_frame, std::string lookup_frame, bool left_foot_supporting);    
+    double getYOffset(std::vector<double> current_joint_positions, std::string support_frame, std::string lookup_frame, bool left_foot_supporting);  
+    bool if_pose_valid(KACK::Pose cur , ReachableArea area);  
+    double random( double length );
     
     void SendingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 

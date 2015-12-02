@@ -94,6 +94,7 @@ class KickModule : public Module {
     double random( double length );
     
     void SendingFrame();
+    void SendingStandingFrame();
     //-------------------------------------old keyframe based kicking version-------------------------------------------- 
     ENUM(KickState,
       Initial,

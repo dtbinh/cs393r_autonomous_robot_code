@@ -113,6 +113,8 @@ void ImageProcessor::setCalibration(RobotCalibration calibration)
 
 void ImageProcessor::processFrame()
 {
+  int orange_blob_counter = 0;
+
   if(vblocks_.robot_state->WO_SELF == WO_TEAM_COACH && camera_ == Camera::BOTTOM) return;
   visionLog(30, "Process Frame camera %i", camera_);
 
@@ -149,7 +151,9 @@ void ImageProcessor::processFrame()
         // mergeblob.DisplayBlob(i);
         // findBall(blob);
         findBall(blob);
+        orange_blob_counter++;
       }
+      if(orange_blob_counter == 0) vblocks_.robot_state->ball_seen = false;
     }
   }
 
@@ -349,16 +353,19 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
       //printf("Ball to high\n");
       return false;
     }
+    vblocks_.robot_state->ball_seen = false;
   }
   else if(camera_ == Camera::BOTTOM)
   {
     if( box_height > 65 || box_length > 65)
     {
       //printf("BOTTOM camera: too big!");
+      vblocks_.robot_state->ball_seen = false;
       return false;
     }
     if( box_height < 10 || box_length < 10)
     {
+      vblocks_.robot_state->ball_seen = false;
       return false;
     }
   }
@@ -367,11 +374,13 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
   if( pixel_density < 0.62 || pixel_density > 0.88) 
   {
     //printf("not a ball  pixel_density = %f\n" , pixel_density);
+    vblocks_.robot_state->ball_seen = false;
     return false;
   }
   else if( box_ratio >  1.5 )
   {
     //printf("a rectangle\n");
+    vblocks_.robot_state->ball_seen = false;
     return false;
   }
 
@@ -389,7 +398,11 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
       real_centroid_y = blob->boundingbox_vertex_y + (box_height/2);
       real_radius = (box_length + box_height) / 4;
 
-      if(real_radius < 4) return false;
+      if(real_radius < 4) 
+      {
+        vblocks_.robot_state->ball_seen = false;
+        return false;
+      }
       getSegImg()[320*real_centroid_y + real_centroid_x] = c_UNDEFINED;
       //printf("A ball. real_centroid_x = %d , real_centroid_y = %d \n", real_centroid_x , real_centroid_y );
   }
@@ -472,6 +485,7 @@ bool ImageProcessor::findBall(MergeBlob::Blob* blob)
     // real_centroid_y = ((x1-x3) + (ml1-ml2)*y2 + (ml2*y1 - ml1*y3))/(2*(ml2-ml1));
     // real_radius = sqrt((real_centroid_x-x1)*(real_centroid_x-x1) + (real_centroid_y-y1)*(real_centroid_y-y1));
   }
+
   WorldObject* ball = &vblocks_.world_object->objects_[WO_BALL];
   int x = real_centroid_x;
   int y = real_centroid_y;

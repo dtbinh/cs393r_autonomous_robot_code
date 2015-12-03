@@ -439,7 +439,7 @@ bool KickModule::Executing()
     getInterpolatedFrame(2 , 2 , current_pose , Desired1stPose , current_com , Desired1stCoM);
     getInterpolatedFrame(1 , 1 , Desired1stPose , Desired2ndPose , Desired1stCoM , Desired2ndCoM);
     getInterpolatedFrame(1 , 1 , Desired2ndPose , Desired3rdPose , Desired2ndCoM , Desired3rdCoM);
-    getInterpolatedFrame(2 , 2 , Desired3rdPose , desired_next_pose , Desired3rdCoM , desired_next_com);
+    getInterpolatedFrame(1 , 1 , Desired3rdPose , desired_next_pose , Desired3rdCoM , desired_next_com);
     current_pose = desired_next_pose;
     current_com = desired_next_com;
     getInterpolatedFrame(200 , 200 , current_pose , desired_next_pose , current_com , desired_next_com);

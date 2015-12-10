@@ -8,7 +8,7 @@ Contains the Cartesian trajectory generation code.
 Contains the KACK controller with balancing and whole-body optimization routines.
 
 **core/motion/matec/*:**
-Contains a ros-free port of a subset of the MATEC control suite written by Joshua James (https://bitbucket.org/Jraipxg/matec_control). This code is used by the KACK controller, primarily to load the robot model and compute the kinematics.
+Contains a ROS-free port of the MATEC control suite, written by Joshua James (https://bitbucket.org/Jraipxg/matec_control). This code is used by the KACK controller, primarily to load the robot model and compute the kinematics.
 
 **core/vision/ImageProcessor.cpp:**
 Contains code for detecting the position of the goal and ball.

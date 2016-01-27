@@ -1,4 +1,4 @@
-This respository is a fork of the UT Austin Villa robot soccer team's repo that has been modified to use a Kinematics-based Adaptively-parameterized Closed-loop Kicking (KACK) behavior in place of the old joint-keyframe-based kick. Run the kick behavior as you normally would and KACK will be executed instead.
+This respository is a fork of the UT Austin Villa robot soccer team's repo that has been modified to use a Kinematics-based Adaptively-parameterized Closed-loop Kicking (KACK) behavior in place of the old joint-keyframe-based kick, which served as the final project of the course. Run the kick behavior as you normally would and KACK will be executed instead. This project was finished by Yan Pei and Joshua James from UT Austin.
 
 Relevant files:
 **core/motion/KickModule.cpp:**

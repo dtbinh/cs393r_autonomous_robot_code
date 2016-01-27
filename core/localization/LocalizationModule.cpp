@@ -216,165 +216,165 @@ double LocalizationModule::gettheta( double x , double y , double ori , double b
 }
 
 void LocalizationModule::processFrame() {
-  // std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
-  // auto& ball = cache_.world_object->objects_[WO_BALL];
-  // auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
+  std::cerr << "Initial cache address is: " << cache_.localization_mem << std::endl;
+  auto& ball = cache_.world_object->objects_[WO_BALL];
+  auto& self = cache_.world_object->objects_[cache_.robot_state->WO_SELF];
 
-  // // Retrieve the robot's current location from localization memory
-  // // and store it back into world objects
-  // // auto sloc = cache_.localization_mem->player;
-  // // self.loc = sloc;
+  // Retrieve the robot's current location from localization memory
+  // and store it back into world objects
+  // auto sloc = cache_.localization_mem->player;
+  // self.loc = sloc;
 
-  // KF::StateVector estimated_state;
-  // KF::MeasurementVector measurement;
-  // KF::ControlVector control;
-  // control << 0.0;
+  KF::StateVector estimated_state;
+  KF::MeasurementVector measurement;
+  KF::ControlVector control;
+  control << 0.0;
 
-  // // Process the current frame and retrieve our location/orientation estimate
-  // // from the particle filter
+  // Process the current frame and retrieve our location/orientation estimate
+  // from the particle filter
 
-  // RPF::MeasurementVector pf_z;
-  // RPF::ControlVector pf_u;
+  RPF::MeasurementVector pf_z;
+  RPF::ControlVector pf_u;
 
-  // // printf("1.=============================================================\n");
+  // printf("1.=============================================================\n");
 
-  // bool any_beacon_seen = false;
-  // for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
-  // {
-  //   //extra
-  //   //if( (int)i != 15 && (int)i != 20 ) continue;
-  //   auto& beacon = cache_.world_object->objects_[i];
-  //   if(beacon.seen)
-  //   {
+  bool any_beacon_seen = false;
+  for(unsigned int i = WO_BEACON_BLUE_YELLOW; i <=WO_BEACON_YELLOW_PINK; i++)
+  {
+    //extra
+    //if( (int)i != 15 && (int)i != 20 ) continue;
+    auto& beacon = cache_.world_object->objects_[i];
+    if(beacon.seen)
+    {
 
-  //     if(fabs(beacon.visionBearing) > 1.65) continue;
-  //     any_beacon_seen = true;
+      if(fabs(beacon.visionBearing) > 1.65) continue;
+      any_beacon_seen = true;
      
-  //     pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance;
-  //     pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = beacon.visionDistance;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = beacon.visionBearing;
 
-  //     // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);;
-  //   }
-  //   else
-  //   {
-  //     pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = -1;
-  //     pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = 0;
-  //   }
-  // } 
+      // printf("Saw beacon %d at (x,y)=(%g,%g) || distance = %f , bearing = %f \n", (int) i, beacon.loc.x , beacon.loc.y, beacon.visionDistance, beacon.visionBearing);;
+    }
+    else
+    {
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW)) = -1;
+      pf_z(2*(i-WO_BEACON_BLUE_YELLOW) + 1) = 0;
+    }
+  } 
 
-  // const auto& disp = cache_.odometry->displacement;
-  // pf_u << 0.8*disp.translation.x, 0.8*disp.translation.y, 0.8*disp.rotation;
+  const auto& disp = cache_.odometry->displacement;
+  pf_u << 0.8*disp.translation.x, 0.8*disp.translation.y, 0.8*disp.rotation;
 
-  // // std::cerr << "Control is: " << pf_u.transpose() << std::endl;
-  // //cout << "Measurement is " << pf_z.transpose() << std::endl;
-  // pfilter_->process(pf_z, pf_u);
-  // NAO_LOCATION = pfilter_->getNAO_LOCATION();
-  // // if(cache_.localization_mem != NULL && any_beacon_seen)
-  //    //cache_.localization_mem->particles = pfilter_->getParticles();
+  // std::cerr << "Control is: " << pf_u.transpose() << std::endl;
+  //cout << "Measurement is " << pf_z.transpose() << std::endl;
+  pfilter_->process(pf_z, pf_u);
+  NAO_LOCATION = pfilter_->getNAO_LOCATION();
+  // if(cache_.localization_mem != NULL && any_beacon_seen)
+     //cache_.localization_mem->particles = pfilter_->getParticles();
 
-  // // self.loc.x = NAO_LOCATION(0);
-  // // self.loc.y = NAO_LOCATION(1);
-  // // self.orientation = NAO_LOCATION(2);
+  // self.loc.x = NAO_LOCATION(0);
+  // self.loc.y = NAO_LOCATION(1);
+  // self.orientation = NAO_LOCATION(2);
 
-  //  self.loc.x = -1300;
-  //  self.loc.y = 0;
-  //  self.orientation = 0.000;
+   self.loc.x = -1300;
+   self.loc.y = 0;
+   self.orientation = 0.000;
 
-  // // printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
+  // printf("Robot is at (x,y,theta)=(%g,%g,%g)\n", NAO_LOCATION(0), NAO_LOCATION(1), NAO_LOCATION(2));
 
-  // if(ball.seen) {
-  //   // Compute the relative position of the ball from vision readings
-  //   auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
+  if(ball.seen) {
+    // Compute the relative position of the ball from vision readings
+    auto relBall = Point2D::getPointFromPolar(ball.visionDistance, ball.visionBearing);
 
-  //   // Compute the global position of the ball based on our assumed position and orientation
-  //   auto goalieloc = self.loc ;
-  //   auto goalieori = self.orientation;
-  //   goalieloc.x = -1300.0 ;
-  //   goalieloc.y = 0.0 ;
-  //   goalieori = 0.0 ;
+    // Compute the global position of the ball based on our assumed position and orientation
+    auto goalieloc = self.loc ;
+    auto goalieori = self.orientation;
+    goalieloc.x = -1300.0 ;
+    goalieloc.y = 0.0 ;
+    goalieori = 0.0 ;
 
-  //   auto globalBall = relBall.relativeToGlobal(goalieloc, goalieori);
+    auto globalBall = relBall.relativeToGlobal(goalieloc, goalieori);
 
-  //   // Update the ball in the WorldObject block so that it can be accessed in python
-  //   if(first || unseen_count > 30)
-  //   {
-  //     ball_filter->update_mu(0 , globalBall.x );
-  //     ball_filter->update_mu(1 , globalBall.y );
-  //     ball_filter->update_mu(2 , 0 );
-  //     ball_filter->update_mu(3 , 0 );
-  //     first = false;
-  //   }
+    // Update the ball in the WorldObject block so that it can be accessed in python
+    if(first || unseen_count > 30)
+    {
+      ball_filter->update_mu(0 , globalBall.x );
+      ball_filter->update_mu(1 , globalBall.y );
+      ball_filter->update_mu(2 , 0 );
+      ball_filter->update_mu(3 , 0 );
+      first = false;
+    }
 
-  //   unseen_count = 0;
+    unseen_count = 0;
     
-  //   KF :: StateVector mu = ball_filter->get_mu();
-  //   double measured_vx = (globalBall.x - mu(0)) * 30.0;
-  //   double measured_vy = (globalBall.y - mu(1)) * 30.0;
+    KF :: StateVector mu = ball_filter->get_mu();
+    double measured_vx = (globalBall.x - mu(0)) * 30.0;
+    double measured_vy = (globalBall.y - mu(1)) * 30.0;
 
-  //   //printf("globalBall(x,y) = ( %f , %f )\n", globalBall.x , globalBall.y );
+    //printf("globalBall(x,y) = ( %f , %f )\n", globalBall.x , globalBall.y );
 
-  //   measurement << globalBall.x , globalBall.y , measured_vx , measured_vy ;
+    measurement << globalBall.x , globalBall.y , measured_vx , measured_vy ;
 
-  //   estimated_state = ball_filter -> process(measurement, control);
+    estimated_state = ball_filter -> process(measurement, control);
 
-  //   ball.loc.x = estimated_state(0);
-  //   ball.loc.y = estimated_state(1);
-  //   ball.distance = ball.loc.getDistanceTo(goalieloc);
-  //   ball.bearing = self.loc.getBearingTo(ball.loc,goalieori);
-  //   ball.absVel.x = estimated_state(2);
-  //   ball.absVel.y = estimated_state(3);
+    ball.loc.x = estimated_state(0);
+    ball.loc.y = estimated_state(1);
+    ball.distance = ball.loc.getDistanceTo(goalieloc);
+    ball.bearing = self.loc.getBearingTo(ball.loc,goalieori);
+    ball.absVel.x = estimated_state(2);
+    ball.absVel.y = estimated_state(3);
 
-  //   //printf("x = %f\t, xv = %f\t, y = %f\t, yv = %f , distance = %f \n" , ball.loc.x , measured_vx , ball.loc.y , measured_vy , ball.distance);
+    //printf("x = %f\t, xv = %f\t, y = %f\t, yv = %f , distance = %f \n" , ball.loc.x , measured_vx , ball.loc.y , measured_vy , ball.distance);
 
-  //   //Eigen:: Matrix< float , 4 , 4 > cov ;
-  //   //(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
+    //Eigen:: Matrix< float , 4 , 4 > cov ;
+    //(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
 
-  //   cache_.localization_mem->state[0] = estimated_state(0);
-  //   cache_.localization_mem->state[1] = estimated_state(1);
-  //   cache_.localization_mem->state[2] = estimated_state(2);
-  //   cache_.localization_mem->state[3] = estimated_state(3);
-  //   //cache_.localization_mem->covariance = cov * 10000;
-  // } 
-  // //TODO: How do we handle not seeing the ball?
-  // else {
-    // unseen_count++;
+    cache_.localization_mem->state[0] = estimated_state(0);
+    cache_.localization_mem->state[1] = estimated_state(1);
+    cache_.localization_mem->state[2] = estimated_state(2);
+    cache_.localization_mem->state[3] = estimated_state(3);
+    //cache_.localization_mem->covariance = cov * 10000;
+  } 
+  //TODO: How do we handle not seeing the ball?
+  else {
+    unseen_count++;
 
-    // //ball.distance = 10000.0f;
-    // //ball.bearing = 0.0f;
-    // KF :: StateVector mu = ball_filter->get_mu();
+    //ball.distance = 10000.0f;
+    //ball.bearing = 0.0f;
+    KF :: StateVector mu = ball_filter->get_mu();
 
-    // if( unseen_count > 30 )
-    // {
-    //   ball_filter->update_mu(0 , mu(0));
-    //   ball_filter->update_mu(1 , mu(1));
-    //   ball_filter->update_mu(2 , 0 );
-    //   ball_filter->update_mu(3 , 0 );
-    // }
-    // else
-    // { 
-    //   ball_filter->update_mu(0 , mu(0) + (mu(2)/30) );
-    //   ball_filter->update_mu(1 , mu(1) + (mu(3)/30) );
-    //   ball_filter->update_mu(2 , mu(2)*0.98);
-    //   ball_filter->update_mu(3 , mu(3)*0.98);
-    // }
+    if( unseen_count > 30 )
+    {
+      ball_filter->update_mu(0 , mu(0));
+      ball_filter->update_mu(1 , mu(1));
+      ball_filter->update_mu(2 , 0 );
+      ball_filter->update_mu(3 , 0 );
+    }
+    else
+    { 
+      ball_filter->update_mu(0 , mu(0) + (mu(2)/30) );
+      ball_filter->update_mu(1 , mu(1) + (mu(3)/30) );
+      ball_filter->update_mu(2 , mu(2)*0.98);
+      ball_filter->update_mu(3 , mu(3)*0.98);
+    }
 
-    // KF :: StateVector mu2 = ball_filter->get_mu();
+    KF :: StateVector mu2 = ball_filter->get_mu();
 
-    // ball.loc.x = mu2(0);
-    // ball.loc.y = mu2(1);
-    // ball.distance = ball.loc.getDistanceTo(self.loc);
-    // ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
-    // ball.absVel.x = mu2(2);
-    // ball.absVel.y = mu2(3);
+    ball.loc.x = mu2(0);
+    ball.loc.y = mu2(1);
+    ball.distance = ball.loc.getDistanceTo(self.loc);
+    ball.bearing = self.loc.getBearingTo(ball.loc,self.orientation);
+    ball.absVel.x = mu2(2);
+    ball.absVel.y = mu2(3);
 
-    // //Eigen:: Matrix< float , 4 , 4 > cov ;
-    // //for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
+    //Eigen:: Matrix< float , 4 , 4 > cov ;
+    //for(int i = 0 ; i < 4*4 ; ++i) cov(i) = ball_filter -> get_sigma_value(i);
 
-    // cache_.localization_mem->state[0] = mu2(0);
-    // cache_.localization_mem->state[1] = mu2(1);
-    // cache_.localization_mem->state[2] = mu2(2);
-    // cache_.localization_mem->state[3] = mu2(3);
-    // //cache_.localization_mem->covariance = cov * 10000;
+    cache_.localization_mem->state[0] = mu2(0);
+    cache_.localization_mem->state[1] = mu2(1);
+    cache_.localization_mem->state[2] = mu2(2);
+    cache_.localization_mem->state[3] = mu2(3);
+    //cache_.localization_mem->covariance = cov * 10000;
     
-  // }
+  }
 }
